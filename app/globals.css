@@ -1,0 +1,65 @@
+@font-face {
+  font-family: 'Sagite';
+  font-style: normal;
+  font-weight: normal;
+  src: url('/fonts/Sagite.woff2') format('woff2');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Crelist';
+  font-style: normal;
+  font-weight: normal;
+  src: url('/fonts/Crelist.woff2') format('woff2');
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+  }
+}
+
+.font-outfit {
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+.font-crelist {
+  font-family: 'Crelist', ui-serif, Georgia, serif;
+}
+
+.animated-gradient {
+  font-family: 'Crelist', ui-serif, Georgia, serif;
+  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@media (max-width: 640px) {
+  .animated-gradient {
+    font-family: 'Crelist', ui-serif, Georgia, serif !important;
+  }
+}
+

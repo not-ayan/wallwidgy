@@ -1,4 +1,3 @@
-```markdown
 # WallWidgy  
 
 ![Banner](./thumb.png)  
@@ -6,8 +5,6 @@
 **A dynamic wallpaper repository site**  
 
 WallWidgy powers [wallwidgy.me](https://wallwidgy.me), providing an efficient, visually appealing, and user-friendly platform for browsing and downloading high-quality wallpapers.  
-
----
 
 ## Features  
 
@@ -27,7 +24,6 @@ WallWidgy powers [wallwidgy.me](https://wallwidgy.me), providing an efficient, v
 - WallWidgy is open-source and fully customizable.  
 - You are free to use this project, modify it, and repurpose it for any personal or commercial applications.  
 
----
 
 ## Getting Started  
 
@@ -60,4 +56,4 @@ WallWidgy is licensed under the **MIT License**. Feel free to use it for persona
 Visit the live site: [wallwidgy.me](https://wallwidgy.me)  
 
 Happy browsing! 🌟  
-```
+

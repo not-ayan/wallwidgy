@@ -1,16 +1,8 @@
 @font-face {
-  font-family: 'Sagite';
+  font-family: "Sagite";
   font-style: normal;
   font-weight: normal;
-  src: url('/fonts/Sagite.woff2') format('woff2');
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Crelist';
-  font-style: normal;
-  font-weight: normal;
-  src: url('/fonts/Crelist.woff2') format('woff2');
+  src: url("/fonts/Sagite-woo8x.woff") format("woff");
   font-display: swap;
 }
 
@@ -32,12 +24,11 @@
   font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
-.font-crelist {
-  font-family: 'Crelist', ui-serif, Georgia, serif;
+.font-sagite {
+  font-family: "Sagite", ui-serif, Georgia, serif;
 }
 
 .animated-gradient {
-  font-family: 'Crelist', ui-serif, Georgia, serif;
   background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
   background-size: 400% 400%;
   -webkit-background-clip: text;
@@ -57,9 +48,84 @@
   }
 }
 
-@media (max-width: 640px) {
-  .animated-gradient {
-    font-family: 'Crelist', ui-serif, Georgia, serif !important;
+@keyframes borderGradient {
+  0% {
+    background-position: 0% 50%;
   }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-border {
+  position: relative;
+  background: #0a0a0a;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  bottom: -2px;
+  left: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f7f06d, transparent 50%, #f7f06d);
+  background-size: 200% 100%;
+  animation: borderGradient 3s linear infinite;
+}
+
+.my-masonry-grid {
+  display: flex;
+  margin-left: -16px;
+  width: auto;
+}
+
+.my-masonry-grid_column {
+  padding-left: 16px;
+  background-clip: padding-box;
+}
+
+@media (min-width: 768px) {
+  .my-masonry-grid {
+    margin-left: -24px;
+  }
+
+  .my-masonry-grid_column {
+    padding-left: 24px;
+  }
+}
+
+.loader {
+  width: 75px;
+  aspect-ratio: 1; 
+  display: grid;
+}
+.loader:before,
+.loader:after {
+  content: "";
+  grid-area: 1/1;
+  width: 35px;
+  aspect-ratio: 1;
+  box-shadow: 0 0 0 3px #fff inset;
+  filter: drop-shadow(40px 40px 0 #fff);
+  animation: l8 2s infinite alternate;
+}
+.loader:after {
+  margin: 0 0 0 auto; 
+  filter: drop-shadow(-40px 40px 0 #fff);
+  animation-delay: -1s;
+}
+@keyframes l8 {
+  0%,10%   {border-radius:0}
+  30%,40%  {border-radius:50% 0}
+  60%,70%  {border-radius:50%}
+  90%,100% {border-radius:0 50%}
 }
 

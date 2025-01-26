@@ -1,56 +1,41 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import WallpaperModal from '../../components/WallpaperModal'
-import { Octokit } from '@octokit/rest'
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
+import WallpaperModal from "@/app/components/WallpaperModal"
 
-const octokit = new Octokit({ auth: process.env.NEXT_PUBLIC_GITHUB_ACCESS_TOKEN })
+interface Wallpaper {
+  sha: string
+  name: string
+  download_url: string
+  resolution: string
+  platform: "Desktop" | "Mobile"
+}
 
 export default function WallpaperPage() {
   const { name } = useParams()
-  const [wallpaper, setWallpaper] = useState<any>(null)
+  const [wallpaper, setWallpaper] = useState<Wallpaper | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function fetchWallpaper() {
       try {
-        const owner = process.env.NEXT_PUBLIC_GITHUB_REPO_OWNER
-        const repo = process.env.NEXT_PUBLIC_GITHUB_REPO_NAME
+        const response = await fetch("/api/wallpapers")
+        const wallpapers = await response.json()
 
-        if (!owner || !repo) {
-          throw new Error('GitHub repository configuration is missing')
-        }
+        const foundWallpaper = wallpapers.find((w: any) => w.filename === name)
 
-        const [fileResponse, analysisResponse] = await Promise.all([
-          octokit.repos.getContent({
-            owner,
-            repo,
-            path: decodeURIComponent(name as string),
-          }),
-          octokit.repos.getContent({
-            owner,
-            repo,
-            path: 'image_analysis.json',
-          }),
-        ])
-
-        if ('content' in analysisResponse.data) {
-          const imageAnalysis = JSON.parse(Buffer.from(analysisResponse.data.content, 'base64').toString())
-          const analysis = imageAnalysis.find((item: any) => item.name === name)
-
-          if ('download_url' in fileResponse.data) {
-            setWallpaper({
-              name: name,
-              download_url: fileResponse.data.download_url,
-              resolution: analysis?.resolution,
-              tag: analysis?.tag,
-              blurHash: analysis?.blurHash,
-            })
-          }
+        if (foundWallpaper) {
+          setWallpaper({
+            sha: foundWallpaper.public_id,
+            name: foundWallpaper.filename,
+            download_url: cloudinaryUrl(foundWallpaper.public_id, { isDownload: true }),
+            resolution: `${foundWallpaper.width}x${foundWallpaper.height}`,
+            platform: foundWallpaper.height > foundWallpaper.width ? "Mobile" : "Desktop",
+          })
         }
       } catch (error) {
-        console.error('Error fetching wallpaper:', error)
+        console.error("Error fetching wallpaper:", error)
       } finally {
         setIsLoading(false)
       }
@@ -69,12 +54,33 @@ export default function WallpaperPage() {
     return <div>Wallpaper not found</div>
   }
 
-  return (
-    <WallpaperModal
-      isOpen={true}
-      onClose={() => window.location.href = '/'}
-      wallpaper={wallpaper}
-    />
-  )
+  return <WallpaperModal isOpen={true} onClose={() => (window.location.href = "/")} wallpaper={wallpaper} />
+}
+
+function cloudinaryUrl(
+  publicId: string,
+  options: {
+    width?: number
+    height?: number
+    crop?: string
+    quality?: string
+    format?: string
+    isDownload?: boolean
+  },
+) {
+  const transformations = options.isDownload ? [] : ["f_auto", "q_auto"]
+
+  if (options.width) transformations.push(`w_${options.width}`)
+  if (options.height) transformations.push(`h_${options.height}`)
+  if (options.crop) transformations.push(`c_${options.crop}`)
+
+  const transformationString = transformations.join(",")
+  const fileNameWithoutExtension = publicId.split(".")[0]
+
+  if (options.isDownload) {
+    return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/v1737134442/wallpapers/${publicId}`
+  } else {
+    return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/v1/wallpapers/${fileNameWithoutExtension}`
+  }
 }
 

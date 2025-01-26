@@ -1,174 +1,176 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { useState, useEffect, useCallback } from 'react'
+import { useDropzone } from 'react-dropzone'
+import { Upload, Trash2, RefreshCw } from 'lucide-react'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+interface Wallpaper {
+  public_id: string;
+  name: string;
+  preview_url: string;
+  resolution: string;
+  tag: 'Mobile' | 'Desktop';
+  uploadDate: Date;
+}
 
 export default function AdminPanel() {
-  const [wallpapers, setWallpapers] = useState<any[]>([])
-  const [file, setFile] = useState<File | null>(null)
-  const [session, setSession] = useState<any>(null)
-  const router = useRouter()
+  const [wallpapers, setWallpapers] = useState<Wallpaper[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchWallpapers = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await fetch('/api/wallpapers')
+      const data = await response.json()
+      
+      const wallpaperData = data.map((wallpaper: any) => ({
+        public_id: wallpaper.public_id,
+        name: wallpaper.filename,
+        preview_url: cloudinaryUrl(wallpaper.public_id, {
+          width: 400,
+          height: 300,
+          crop: 'fill',
+          quality: 'auto',
+          format: 'auto',
+        }),
+        resolution: `${wallpaper.width}x${wallpaper.height}`,
+        tag: wallpaper.height > wallpaper.width ? 'Mobile' : 'Desktop',
+        uploadDate: new Date(wallpaper.created_at),
+      }))
+
+      setWallpapers(wallpaperData)
+    } catch (err: any) {
+      setError(`Failed to fetch wallpapers: ${err.message}`)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (!session) {
-        router.push('/login')
-      } else {
-        initializeAndFetchWallpapers()
+    fetchWallpapers()
+  }, [fetchWallpapers])
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    setIsLoading(true)
+    setError(null)
+
+    for (const file of acceptedFiles) {
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.statusText}`)
+        }
+
+        await response.json()
+      } catch (err: any) {
+        setError(`Failed to upload ${file.name}: ${err.message}`)
       }
-    })
+    }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      if (!session) {
-        router.push('/login')
+    setIsLoading(false)
+    fetchWallpapers()
+  }, [fetchWallpapers])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop })
+
+  const handleDelete = useCallback(async (public_id: string) => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const response = await fetch(`/api/wallpapers/${public_id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.statusText}`)
       }
-    })
 
-    return () => subscription.unsubscribe()
-  }, [router])
-
-  async function initializeAndFetchWallpapers() {
-    try {
-      const { data, error } = await supabase
-        .from('wallpapers')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setWallpapers(data || [])
-    } catch (error) {
-      console.error('Error fetching wallpapers:', error)
+      fetchWallpapers()
+    } catch (err: any) {
+      setError(`Failed to delete wallpaper: ${err.message}`)
+    } finally {
+      setIsLoading(false)
     }
-  }
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const selectedFile = e.target.files?.[0]
-    if (selectedFile) {
-      setFile(selectedFile)
-    }
-  }
-
-  async function handleUpload() {
-    if (!file || !session) return
-
-    try {
-      const { data, error: uploadError } = await supabase.storage
-        .from('wallpapers')
-        .upload(`${Date.now()}_${file.name}`, file)
-
-      if (uploadError) throw uploadError
-
-      if (data) {
-        const { error: insertError } = await supabase
-          .from('wallpapers')
-          .insert({
-            name: await generateWallpaperName(file.name),
-            file_path: data.path
-          })
-
-        if (insertError) throw insertError
-
-        initializeAndFetchWallpapers()
-        setFile(null)
-      }
-    } catch (error) {
-      console.error('Error in handleUpload:', error)
-    }
-  }
-
-  async function generateWallpaperName(fileName: string) {
-    // Implement AI name generation here
-    // For now, we'll just return the file name without extension
-    return fileName.split('.').slice(0, -1).join('.')
-  }
-
-  async function handleDelete(id: string) {
-    if (!session) return
-
-    try {
-      const { error } = await supabase
-        .from('wallpapers')
-        .delete()
-        .match({ id })
-
-      if (error) throw error
-
-      initializeAndFetchWallpapers()
-    } catch (error) {
-      console.error('Error deleting wallpaper:', error)
-    }
-  }
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
-  if (!session) {
-    return null // Or a loading spinner
-  }
+  }, [fetchWallpapers])
 
   return (
-    <div className="max-w-6xl mx-auto p-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold">Admin Panel</h1>
-        <button
-          onClick={handleSignOut}
-          className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors"
-        >
-          Sign Out
-        </button>
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Admin Panel</h1>
+
+      <div {...getRootProps()} className="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6 text-center cursor-pointer">
+        <input {...getInputProps()} />
+        {isDragActive ? (
+          <p>Drop the files here ...</p>
+        ) : (
+          <p>Drag 'n' drop some files here, or click to select files</p>
+        )}
       </div>
-      <div className="mb-8">
-        <input
-          type="file"
-          onChange={handleFileChange}
-          accept="image/*"
-          className="mb-2 text-white"
-        />
-        <button
-          onClick={handleUpload}
-          disabled={!file}
-          className="bg-gray-700 text-white px-4 py-2 rounded-md disabled:opacity-50 hover:bg-gray-600 transition-colors"
-        >
-          Upload Wallpaper
-        </button>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {wallpapers.map(wallpaper => (
-          <div key={wallpaper.id} className="relative group overflow-hidden rounded-lg">
-            <Image
-              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/wallpapers/${wallpaper.file_path}`}
+
+      {isLoading && <p className="text-center mb-4">Loading...</p>}
+      {error && <p className="text-red-500 mb-4">{error}</p>}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        {wallpapers.map((wallpaper) => (
+          <div key={wallpaper.public_id} className="relative group">
+            <img
+              src={wallpaper.preview_url || "/placeholder.svg"}
               alt={wallpaper.name}
-              width={300}
-              height={200}
-              className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-auto rounded-lg"
             />
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 p-2 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-              <p className="text-sm text-white">{wallpaper.name}</p>
+            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
               <button
-                onClick={() => handleDelete(wallpaper.id)}
-                className="mt-2 bg-gray-700 text-white text-xs px-2 py-1 rounded-md hover:bg-gray-600 transition-colors"
+                onClick={() => handleDelete(wallpaper.public_id)}
+                className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
               >
-                Delete
+                <Trash2 size={20} />
               </button>
+            </div>
+            <div className="mt-2">
+              <p className="text-sm font-medium">{wallpaper.name}</p>
+              <p className="text-xs text-gray-500">{wallpaper.resolution} - {wallpaper.tag}</p>
             </div>
           </div>
         ))}
       </div>
+
+      <button
+        onClick={fetchWallpapers}
+        className="mt-6 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+      >
+        <RefreshCw size={20} className="mr-2" />
+        Refresh Wallpapers
+      </button>
     </div>
   )
+}
+
+function cloudinaryUrl(publicId: string, options: {
+  width?: number;
+  height?: number;
+  crop?: string;
+  quality?: string;
+  format?: string;
+}) {
+  const transformations = [];
+  
+  if (options.width) transformations.push(`w_${options.width}`);
+  if (options.height) transformations.push(`h_${options.height}`);
+  if (options.crop) transformations.push(`c_${options.crop}`);
+  if (options.quality) transformations.push(`q_${options.quality}`);
+  if (options.format) transformations.push(`f_${options.format}`);
+
+  const transformationString = transformations.join(',');
+  
+  return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/${publicId}`;
 }
 

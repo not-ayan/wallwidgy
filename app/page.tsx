@@ -1,15 +1,14 @@
-import dynamic from 'next/dynamic'
-import Link from 'next/link'
-import { Heart, Grid } from 'lucide-react'
-import Footer from './components/Footer'
-import BackToTop from './components/BackToTop'
-import ProfileIcon from './components/ProfileIcon'
+import dynamic from "next/dynamic"
+import Link from "next/link"
+import { Heart, Grid, ArrowDownAZ, Clock, History } from "lucide-react"
+import Footer from "./components/Footer"
+import BackToTop from "./components/BackToTop"
 
 // Lazy load the WallpaperGrid component
-const WallpaperGrid = dynamic(() => import('./components/WallpaperGrid'), {
+const WallpaperGrid = dynamic(() => import("./components/WallpaperGrid"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-[#F7F06D]"></div>
+      <div className="loader"></div>
     </div>
   ),
 })
@@ -25,15 +24,17 @@ export default function Home() {
               <Heart className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
             </Link>
             <div className="flex items-center gap-6">
-              <Link href="/categories" aria-label="Categories">
-                <Grid className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
-              </Link>
-              <ProfileIcon />
-              <Link 
-                href="/about" 
+              <Link
+                href="/about"
                 className="text-[13px] bg-white/10 text-white/90 px-4 py-2 rounded-full hover:bg-white/15 transition-all hover:scale-105"
               >
                 About
+              </Link>
+              <Link
+                href="/api/docs"
+                className="text-[13px] bg-white/10 text-white/90 px-4 py-2 rounded-full hover:bg-white/15 transition-all hover:scale-105"
+              >
+                API Docs
               </Link>
             </div>
           </nav>
@@ -41,8 +42,11 @@ export default function Home() {
       </div>
 
       {/* Announcement Bar */}
-      <div className="flex justify-center px-6 pt-28 pb-20">
-        <Link href="/latest" className="bg-[#F7F06D]/10 text-[#F7F06D] px-4 py-1.5 rounded-full flex items-center gap-2 text-[13px] hover:scale-105 transition-transform">
+      <div className="flex justify-center px-6 pt-20 sm:pt-28 pb-8 sm:pb-16">
+        <Link
+          href="/latest"
+          className="relative px-4 py-1.5 rounded-full flex items-center gap-2 text-[13px] hover:scale-105 transition-transform bg-white/5 text-white"
+        >
           <span className="font-medium">New</span>
           <span className="mx-1 opacity-40">•</span>
           <span className="opacity-80">Fresh wallpapers added daily</span>
@@ -51,13 +55,13 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="px-8 pb-32 text-center">
-        <h1 className="font-serif text-[48px] sm:text-[56px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] animated-gradient">
+      <section className="px-8 pb-16 sm:pb-24 text-center">
+        <h1 className="font-sagite text-[32px] sm:text-[56px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] text-[#F7F06D]">
           The Finest Collection of Minimalist Wallpapers
         </h1>
-        <p className="mt-6 text-white/60 max-w-[600px] mx-auto text-lg leading-relaxed">
-          Carefully curated wallpapers that bring elegance and simplicity to your screens. 
-          Download and enjoy our growing collection.
+        <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-base sm:text-lg leading-relaxed">
+          Carefully curated wallpapers that bring elegance and simplicity to your screens. Download and enjoy our
+          growing collection.
         </p>
       </section>
 

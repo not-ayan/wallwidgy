@@ -5,6 +5,10 @@ const nextConfig = {
   distDir: 'docs',
   images: {
     unoptimized: true,
+    domains: [
+      'raw.githubusercontent.com',
+      'lh3.googleusercontent.com', // For Google profile pictures
+    ],
   },
 }
 

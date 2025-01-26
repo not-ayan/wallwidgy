@@ -43,9 +43,7 @@ export default function About() {
             <h1 className="text-4xl font-bold">Ayan</h1>
             
             <p className="text-lg text-white/80">
-              I'm a passionate developer and designer with a love for minimalist aesthetics. 
-              I created this wallpaper collection to share my appreciation for simple, elegant designs 
-              that can enhance your digital spaces.
+              Hi, I’m a new designer diving into web and UI design. I put together this wallpaper collection to share my love for simple, stylish looks that make your digital spaces feel just right.
             </p>
 
             <div className="flex gap-4">
@@ -82,14 +80,14 @@ export default function About() {
             <h2 className="text-2xl font-bold">Experience</h2>
             <div className="space-y-4">
               <div className="p-6 rounded-2xl bg-white/5">
-                <div className="text-sm text-[#F7F06D]">2021 - Present</div>
-                <div className="font-medium mt-2">Full Stack Developer</div>
+                <div className="text-sm text-[#F7F06D]">2023 - Present</div>
+                <div className="font-medium mt-2">Learning web & ui design</div>
                 <div className="text-sm text-white/60 mt-1">Freelance</div>
               </div>
               <div className="p-6 rounded-2xl bg-white/5">
-                <div className="text-sm text-[#F7F06D]">2019 - 2021</div>
-                <div className="font-medium mt-2">UI/UX Designer</div>
-                <div className="text-sm text-white/60 mt-1">Design Studio</div>
+                <div className="text-sm text-[#F7F06D]">2019 - 2023</div>
+                <div className="font-medium mt-2">Grapic Designer</div>
+                <div className="text-sm text-white/60 mt-1">Freelance</div>
               </div>
             </div>
           </div>
@@ -98,14 +96,14 @@ export default function About() {
             <h2 className="text-2xl font-bold">Education</h2>
             <div className="space-y-4">
               <div className="p-6 rounded-2xl bg-white/5">
-                <div className="text-sm text-[#F7F06D]">2017 - 2021</div>
-                <div className="font-medium mt-2">Computer Science</div>
-                <div className="text-sm text-white/60 mt-1">University of Technology</div>
+                <div className="text-sm text-[#F7F06D]">2021 - 2024</div>
+                <div className="font-medium mt-2">Honours in Mathematical Sciences</div>
+                <div className="text-sm text-white/60 mt-1">Chaiduar College</div>
               </div>
               <div className="p-6 rounded-2xl bg-white/5">
-                <div className="text-sm text-[#F7F06D]">2015 - 2017</div>
-                <div className="font-medium mt-2">Visual Design</div>
-                <div className="text-sm text-white/60 mt-1">Design Academy</div>
+                <div className="text-sm text-[#F7F06D]">2019 - 2021</div>
+                <div className="font-medium mt-2">Almost done with school, college is up next!</div>
+                <div className="text-sm text-white/60 mt-1">School</div>
               </div>
             </div>
           </div>

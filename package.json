@@ -59,12 +59,18 @@
     "vaul": "^0.9.6",
     "zod": "^3.24.1",
     "@supabase/supabase-js": "latest",
-    "@octokit/rest": "latest",
     "crypto": "latest",
     "nodemailer": "latest",
     "@supabase/auth-helpers-nextjs": "latest",
     "fs": "latest",
-    "path": "latest"
+    "path": "latest",
+    "@octokit/rest": "latest",
+    "firebase": "latest",
+    "react-google-recaptcha": "latest",
+    "react-firebase-hooks": "latest",
+    "cloudinary": "latest",
+    "react-dropzone": "latest",
+    "react-masonry-css": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -1,8 +1,6 @@
-# WallWidgy  
-
 ![Banner](./thumb.png)  
 
-**A dynamic wallpaper repository site**  
+**A minimal & fast wallpaper site**  
 
 WallWidgy powers [wallwidgy.me](https://wallwidgy.me), providing an efficient, visually appealing, and user-friendly platform for browsing and downloading high-quality wallpapers.  
 

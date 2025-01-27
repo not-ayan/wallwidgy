@@ -21,15 +21,22 @@ export async function GET(request: Request) {
       max_results: 500, // Fetch more results to ensure randomness
     }
 
-    if (tag === "desktop" || tag === "mobile") {
-      options.tags = [tag]
+    if (tag) {
+      options.tags = tag
     }
 
     const result = await cloudinary.api.resources(options)
 
     let wallpapers = result.resources
+      .filter((wallpaper: any) => {
+        if (tag === "desktop") {
+          return wallpaper.width > wallpaper.height
+        } else if (tag === "mobile") {
+          return wallpaper.height > wallpaper.width
+        }
+        return true
+      })
       .sort(() => Math.random() - 0.5) // Shuffle the array
-      .slice(0, count) // Take only the requested number of wallpapers
 
     if (resolution) {
       wallpapers = wallpapers.filter((wallpaper: any) => {
@@ -48,6 +55,8 @@ export async function GET(request: Request) {
         }
       })
     }
+
+    wallpapers = wallpapers.slice(0, count) // Take only the requested number of wallpapers
 
     const mappedWallpapers = wallpapers.map((resource: any) => ({
       public_id: resource.public_id,

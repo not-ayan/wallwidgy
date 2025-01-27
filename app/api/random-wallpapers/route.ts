@@ -18,43 +18,51 @@ export async function GET(request: Request) {
     const options: any = {
       type: "upload",
       prefix: "wallpapers",
-      max_results: count,
+      max_results: 500, // Fetch more results to ensure randomness
     }
 
-    if (tag) {
-      options.tags = tag
+    if (tag === "desktop" || tag === "mobile") {
+      options.tags = [tag]
     }
 
     const result = await cloudinary.api.resources(options)
 
-    const wallpapers = result.resources
-      .sort(() => 0.5 - Math.random()) // Shuffle the array
+    let wallpapers = result.resources
+      .sort(() => Math.random() - 0.5) // Shuffle the array
       .slice(0, count) // Take only the requested number of wallpapers
-      .map((resource: any) => {
-        const wallpaper = {
-          public_id: resource.public_id,
-          name: resource.public_id.split("/").pop(),
-          width: resource.width,
-          height: resource.height,
-          format: resource.format,
-          created_at: resource.created_at,
-          tags: resource.tags || [],
-          colors: resource.colors || [],
+
+    if (resolution) {
+      wallpapers = wallpapers.filter((wallpaper: any) => {
+        const [width, height] = [wallpaper.width, wallpaper.height]
+        switch (resolution) {
+          case "1080p":
+            return width >= 1920 && height >= 1080
+          case "1440p":
+            return width >= 2560 && height >= 1440
+          case "4k":
+            return width >= 3840 && height >= 2160
+          case "8k":
+            return width >= 7680 && height >= 4320
+          default:
+            return true
         }
-
-        if (resolution) {
-          const [width, height] = resolution.split("x").map(Number)
-          wallpaper.preview_url = cloudinaryUrl(resource.public_id, { width, height, crop: "fill" })
-        } else {
-          wallpaper.preview_url = cloudinaryUrl(resource.public_id, { width: 600, height: 400, crop: "fill" })
-        }
-
-        wallpaper.download_url = cloudinaryUrl(resource.public_id, { isDownload: true })
-
-        return wallpaper
       })
+    }
 
-    return NextResponse.json(wallpapers)
+    const mappedWallpapers = wallpapers.map((resource: any) => ({
+      public_id: resource.public_id,
+      name: resource.public_id.split("/").pop(),
+      width: resource.width,
+      height: resource.height,
+      format: resource.format,
+      created_at: resource.created_at,
+      tags: resource.tags || [],
+      colors: resource.colors || [],
+      preview_url: cloudinaryUrl(resource.public_id, { width: 600, height: 400, crop: "fill" }),
+      download_url: cloudinaryUrl(resource.public_id, { isDownload: true }),
+    }))
+
+    return NextResponse.json(mappedWallpapers)
   } catch (error: any) {
     console.error("Error fetching random wallpapers:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })

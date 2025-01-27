@@ -86,7 +86,7 @@ export default function About() {
               </div>
               <div className="p-6 rounded-2xl bg-white/5">
                 <div className="text-sm text-[#F7F06D]">2019 - 2023</div>
-                <div className="font-medium mt-2">Grapic Designer</div>
+                <div className="font-medium mt-2">Graphic Designer</div>
                 <div className="text-sm text-white/60 mt-1">Freelance</div>
               </div>
             </div>

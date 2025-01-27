@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Heart, Grid, ArrowDownAZ, Clock, History } from "lucide-react"
+import { Heart, Grid, ArrowDownAZ, Clock, History, Code } from "lucide-react"
 import Footer from "./components/Footer"
 import BackToTop from "./components/BackToTop"
 
@@ -25,16 +25,16 @@ export default function Home() {
             </Link>
             <div className="flex items-center gap-6">
               <Link
+                href="/api/docs"
+                aria-label="API Docs"
+              >
+                <Code className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
+              </Link>
+              <Link
                 href="/about"
                 className="text-[13px] bg-white/10 text-white/90 px-4 py-2 rounded-full hover:bg-white/15 transition-all hover:scale-105"
               >
                 About
-              </Link>
-              <Link
-                href="/api/docs"
-                className="text-[13px] bg-white/10 text-white/90 px-4 py-2 rounded-full hover:bg-white/15 transition-all hover:scale-105"
-              >
-                API Docs
               </Link>
             </div>
           </nav>

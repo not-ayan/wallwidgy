@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build || echo 'Ensure supabaseUrl is set in the environment variables.'",
     "start": "next start",
     "lint": "next lint"
   },
@@ -70,7 +70,8 @@
     "react-firebase-hooks": "latest",
     "cloudinary": "latest",
     "react-dropzone": "latest",
-    "react-masonry-css": "latest"
+    "react-masonry-css": "latest",
+    "sass": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -63,6 +63,7 @@
     "react-hook-form": "^7.54.1",
     "react-masonry-css": "latest",
     "react-resizable-panels": "^2.1.7",
+    "react-swipeable": "^7.0.2",
     "recharts": "2.15.0",
     "sass": "latest",
     "sharp": "^0.34.0",

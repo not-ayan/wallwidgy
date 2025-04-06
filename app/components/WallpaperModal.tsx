@@ -45,6 +45,7 @@ export default function WallpaperModal({
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const [isImageLoaded, setIsImageLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
     if (wallpaper.resolution) {
@@ -59,6 +60,10 @@ export default function WallpaperModal({
     setZoom(1)
     setPosition({ x: 0, y: 0 })
   }, [wallpaper.sha])
+
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768)
+  }, [])
 
   const handleShare = async () => {
     try {
@@ -219,13 +224,13 @@ export default function WallpaperModal({
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
       onClick={handleBackgroundClick}
     >
       <div className="fixed inset-0 flex items-center justify-center">
         {/* Blurred background */}
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30"
           style={{ 
             backgroundImage: `url(${wallpaper.download_url})`,
@@ -245,11 +250,11 @@ export default function WallpaperModal({
           <div
             ref={containerRef}
             className="relative flex items-center justify-center overflow-auto touch-pan-x touch-pan-y"
-            style={{ 
+            style={{
               cursor: 'default',
               height: window.innerWidth < 768 ? '100vh' : '90vh',
-              width: '100%',
-              maxWidth: '90vw',
+              width: window.innerWidth < 768 ? '100vw' : '100%',
+              maxWidth: window.innerWidth < 768 ? '100vw' : '90vw',
             }}
             onClick={handleImageContainerClick}
           >
@@ -275,7 +280,9 @@ export default function WallpaperModal({
                     alt={wallpaper.name}
                     width={wallpaper.width}
                     height={wallpaper.height}
-                    className={`max-h-full max-w-full object-contain rounded-2xl ${
+                    className={`max-h-full max-w-full object-contain ${
+                      window.innerWidth < 768 ? "" : "rounded-2xl"
+                    } ${
                       isImageLoaded ? "opacity-100" : "opacity-0"
                     } transition-opacity duration-300`}
                     style={{
@@ -286,10 +293,6 @@ export default function WallpaperModal({
                     }}
                     onLoad={() => {
                       setIsImageLoaded(true)
-                      setIsImageLoading(false)
-                    }}
-                    onError={() => {
-                      console.error('Failed to load image:', wallpaper.download_url)
                       setIsImageLoading(false)
                     }}
                     priority
@@ -307,91 +310,91 @@ export default function WallpaperModal({
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* Top header with back button and info */}
-          <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
-            <button 
-              onClick={onClose} 
-              className="fixed top-4 left-4 flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
-            >
-              <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
-              <span className="text-base sm:text-sm hidden sm:block">Back</span>
-            </button>
-            <div className="fixed top-4 right-4 flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
-              {wallpaper.resolution && (
-                <div className="text-white/80 text-base sm:text-sm">
-                  {formatResolution(wallpaper.resolution)}
-                </div>
-              )}
-              {wallpaper.platform && (
-                <>
-                  <div className="w-px h-4 sm:h-3 bg-white/20" />
-                  <div className="text-white/80 text-base sm:text-sm">
-                    {wallpaper.platform}
-                  </div>
-                </>
-              )}
+      {/* Top header with back button and info */}
+      <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
+        <button 
+          onClick={onClose} 
+          className="fixed top-4 left-4 flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
+        >
+          <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
+          <span className="text-base sm:text-sm hidden sm:block">Back</span>
+        </button>
+        <div className="fixed top-4 right-4 flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+          {wallpaper.resolution && (
+            <div className="text-white/80 text-base sm:text-sm">
+              {formatResolution(wallpaper.resolution)}
+            </div>
+          )}
+          {wallpaper.platform && (
+            <>
+              <div className="w-px h-4 sm:h-3 bg-white/20" />
+              <div className="text-white/80 text-base sm:text-sm">
+                {wallpaper.platform}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom controls */}
+      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-12 sm:pb-4">
+        <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
+          {/* Navigation and zoom controls */}
+          <div className="fixed bottom-4 left-4 flex items-center gap-4">
+            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+              <button
+                onClick={handleZoomOut}
+                disabled={zoom === 1}
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+              >
+                <Minus className="w-5 h-5 sm:w-4 sm:h-4" />
+              </button>
+              <span className="text-white/80 text-base sm:text-sm px-3">{zoom}x</span>
+              <button
+                onClick={handleZoomIn}
+                disabled={zoom === 3}
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+              >
+                <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+              <button
+                onClick={onPrevious}
+                disabled={!hasPrevious}
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+              >
+                <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+              </button>
+              <button
+                onClick={onNext}
+                disabled={!hasNext}
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+              >
+                <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
+              </button>
             </div>
           </div>
 
-          {/* Bottom controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-12 sm:pb-4">
-            <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
-              {/* Navigation and zoom controls */}
-              <div className="fixed bottom-4 left-4 flex items-center gap-4">
-                <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
-                  <button
-                    onClick={handleZoomOut}
-                    disabled={zoom === 1}
-                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
-                  >
-                    <Minus className="w-5 h-5 sm:w-4 sm:h-4" />
-                  </button>
-                  <span className="text-white/80 text-base sm:text-sm px-3">{zoom}x</span>
-                  <button
-                    onClick={handleZoomIn}
-                    disabled={zoom === 3}
-                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
-                  >
-                    <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
-                  <button
-                    onClick={onPrevious}
-                    disabled={!hasPrevious}
-                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
-                  >
-                    <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
-                  </button>
-                  <button
-                    onClick={onNext}
-                    disabled={!hasNext}
-                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
-                  >
-                    <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="fixed bottom-4 right-4 flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
-                <button
-                  onClick={handleShare}
-                  className="text-white/90 hover:text-white"
-                >
-                  <Share2 className="w-5 h-5 sm:w-4 sm:h-4" />
-                </button>
-                <div className="w-px h-4 sm:h-3 bg-white/20" />
-                <button
-                  onClick={handleDownload}
-                  className="text-white/90 hover:text-white"
-                >
-                  <Download className="w-5 h-5 sm:w-4 sm:h-4" />
-                </button>
-              </div>
-            </div>
+          {/* Action buttons */}
+          <div className="fixed bottom-4 right-4 flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+            <button
+              onClick={handleShare}
+              className="text-white/90 hover:text-white"
+            >
+              <Share2 className="w-5 h-5 sm:w-4 sm:h-4" />
+            </button>
+            <div className="w-px h-4 sm:h-3 bg-white/20" />
+            <button
+              onClick={handleDownload}
+              className="text-white/90 hover:text-white"
+            >
+              <Download className="w-5 h-5 sm:w-4 sm:h-4" />
+            </button>
           </div>
         </div>
       </div>

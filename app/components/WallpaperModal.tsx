@@ -218,15 +218,15 @@ export default function WallpaperModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top header with back button and info */}
-          <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-8 sm:pt-4 flex items-center justify-between">
+          <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
             <button 
               onClick={onClose} 
-              className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-3 sm:px-3 sm:py-2 rounded-lg bg-black/30 backdrop-blur-md"
+              className="flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md"
             >
               <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
               <span className="text-base sm:text-sm">Back</span>
             </button>
-            <div className="flex items-center gap-2 px-4 py-3 sm:px-3 sm:py-2 rounded-lg bg-black/30 backdrop-blur-md">
+            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md">
               {wallpaper.resolution && (
                 <div className="text-white/80 text-base sm:text-sm">
                   {formatResolution(wallpaper.resolution)}
@@ -294,11 +294,11 @@ export default function WallpaperModal({
           </div>
 
           {/* Bottom controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-8 sm:pb-4">
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-12 sm:pb-4">
             <div className="max-w-[1400px] mx-auto flex items-center justify-between">
               {/* Navigation and zoom controls */}
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-4 py-3 sm:px-4 sm:py-2 rounded-full bg-black/30 backdrop-blur-md">
+                <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md">
                   <button
                     onClick={handleZoomOut}
                     disabled={zoom === 1}
@@ -316,7 +316,7 @@ export default function WallpaperModal({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-4 px-4 py-3 sm:px-4 sm:py-2 rounded-full bg-black/30 backdrop-blur-md">
+                <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md">
                   <button
                     onClick={onPrevious}
                     disabled={!hasPrevious}
@@ -335,7 +335,7 @@ export default function WallpaperModal({
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-4 px-4 py-3 sm:px-4 sm:py-2 rounded-full bg-black/30 backdrop-blur-md">
+              <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md">
                 <button
                   onClick={handleShare}
                   className="text-white/90 hover:text-white"

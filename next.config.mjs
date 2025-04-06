@@ -36,21 +36,12 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    unoptimized: true, // Allow unoptimized images for local files
+    unoptimized: true,
   },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
-  },
-  // Serve static files from the public directory
-  async rewrites() {
-    return [
-      {
-        source: '/storage/:path*',
-        destination: '/storage/:path*',
-      },
-    ]
   },
 }
 

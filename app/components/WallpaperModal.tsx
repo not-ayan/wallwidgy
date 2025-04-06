@@ -202,14 +202,14 @@ export default function WallpaperModal({
       <div className="fixed inset-0 flex items-center justify-center">
         {/* Blurred background */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20 md:opacity-30"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30"
           style={{ 
             backgroundImage: `url(${wallpaper.download_url})`,
             filter: 'blur(20px)',
           }} 
         />
         <div 
-          className="absolute inset-0 bg-black/50 backdrop-blur-2xl"
+          className="absolute inset-0 bg-black/40 backdrop-blur-2xl"
           onClick={onClose}
         />
 
@@ -221,12 +221,12 @@ export default function WallpaperModal({
           <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
             <button 
               onClick={onClose} 
-              className="flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:bg-black/30 sm:backdrop-blur-md"
+              className="flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
             >
               <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
               <span className="text-base sm:text-sm">Back</span>
             </button>
-            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:bg-black/30 sm:backdrop-blur-md">
+            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
               {wallpaper.resolution && (
                 <div className="text-white/80 text-base sm:text-sm">
                   {formatResolution(wallpaper.resolution)}
@@ -298,7 +298,7 @@ export default function WallpaperModal({
             <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
               {/* Navigation and zoom controls */}
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:bg-black/30 sm:backdrop-blur-md">
+                <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
                   <button
                     onClick={handleZoomOut}
                     disabled={zoom === 1}
@@ -316,7 +316,7 @@ export default function WallpaperModal({
                   </button>
                 </div>
 
-                <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:bg-black/30 sm:backdrop-blur-md">
+                <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
                   <button
                     onClick={onPrevious}
                     disabled={!hasPrevious}
@@ -335,7 +335,7 @@ export default function WallpaperModal({
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md shadow-[0_4px_12px_rgba(0,0,0,0.3)] sm:bg-black/30 sm:backdrop-blur-md">
+              <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
                 <button
                   onClick={handleShare}
                   className="text-white/90 hover:text-white"

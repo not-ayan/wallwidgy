@@ -295,7 +295,7 @@ export default function WallpaperModal({
 
           {/* Bottom controls */}
           <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-12 sm:pb-4">
-            <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+            <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
               {/* Navigation and zoom controls */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/30 backdrop-blur-md">

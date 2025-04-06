@@ -16,7 +16,6 @@ import {
 } from "lucide-react"
 import WallpaperModal from "./WallpaperModal"
 import { getDatabase, ref, set, onValue, push, serverTimestamp } from "firebase/database"
-import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import Masonry from "react-masonry-css"
 
@@ -47,7 +46,6 @@ export default function WallpaperGrid({
   color,
   wallpapers,
 }: WallpaperGridProps) {
-  const [user] = useAuthState(auth)
   const [wallpapersState, setWallpapers] = useState<Wallpaper[]>([])
   const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
@@ -66,9 +64,8 @@ export default function WallpaperGrid({
 
   useEffect(() => {
     fetchWallpapers({ sortBy: currentSort })
-    fetchFavorites()
     fetchAvailableColors()
-  }, [currentSort, user]) // Removed unnecessary dependencies
+  }, [currentSort]) // Removed unnecessary dependencies
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -138,6 +135,7 @@ export default function WallpaperGrid({
           download_url: cloudinaryUrl(wallpaper.public_id, { isDownload: true }),
           resolution: getResolutionLabel(wallpaper.width, wallpaper.height),
           tag: wallpaper.height > wallpaper.width ? "Mobile" : "Desktop",
+          platform: wallpaper.height > wallpaper.width ? "Mobile" : "Desktop",
           uploadDate: new Date(wallpaper.created_at),
         }))
 
@@ -170,42 +168,6 @@ export default function WallpaperGrid({
     [], // Removed unnecessary dependencies
   )
 
-  const fetchFavorites = useCallback(() => {
-    if (user) {
-      const db = getDatabase()
-      const favoritesRef = ref(db, `favorites/${user.uid}`)
-      onValue(favoritesRef, (snapshot) => {
-        const data = snapshot.val()
-        setFavorites(data ? Object.keys(data) : [])
-      })
-    } else {
-      const storedFavorites = localStorage.getItem("favorites")
-      if (storedFavorites) {
-        setFavorites(JSON.parse(storedFavorites))
-      }
-    }
-  }, [user])
-
-  const toggleFavorite = useCallback(
-    (sha: string) => {
-      if (user) {
-        const db = getDatabase()
-        const favoritesRef = ref(db, `favorites/${user.uid}/${sha}`)
-        if (favorites.includes(sha)) {
-          set(favoritesRef, null)
-        } else {
-          set(favoritesRef, true)
-        }
-      } else {
-        const updatedFavorites = favorites.includes(sha)
-          ? favorites.filter((favSha) => favSha !== sha)
-          : [...favorites, sha]
-        setFavorites(updatedFavorites)
-        localStorage.setItem("favorites", JSON.stringify(updatedFavorites))
-      }
-    },
-    [favorites, user],
-  )
 
   const downloadSelectedWallpapers = useCallback(async () => {
     for (const sha of selectedWallpapers) {
@@ -426,7 +388,6 @@ export default function WallpaperGrid({
                         <Download className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => toggleFavorite(wallpaper.sha)}
                         className={`p-2 rounded-full ${
                           favorites.includes(wallpaper.sha)
                             ? "bg-[#F7F06D] text-black"
@@ -502,7 +463,10 @@ export default function WallpaperGrid({
             setSelectedWallpaper(null)
             setSelectedIndex(-1)
           }}
-          wallpaper={selectedWallpaper}
+          wallpaper={{
+            ...selectedWallpaper,
+            platform: selectedWallpaper?.tag === "Mobile" ? "Mobile" : "Desktop",
+          }}
           onPrevious={handlePreviousWallpaper}
           onNext={handleNextWallpaper}
           hasPrevious={selectedIndex > 0}

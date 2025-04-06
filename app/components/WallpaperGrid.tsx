@@ -66,6 +66,7 @@ export default function WallpaperGrid({
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
     fetchAvailableColors()
+    loadFavorites()
   }, []) // Removed currentSort dependency
 
   useEffect(() => {
@@ -169,6 +170,22 @@ export default function WallpaperGrid({
     [], // Removed unnecessary dependencies
   )
 
+  const loadFavorites = useCallback(() => {
+    const storedFavorites = localStorage.getItem("favorites")
+    if (storedFavorites) {
+      setFavorites(JSON.parse(storedFavorites))
+    }
+  }, [])
+
+  const toggleFavorite = useCallback((sha: string) => {
+    setFavorites((prevFavorites) => {
+      const newFavorites = prevFavorites.includes(sha)
+        ? prevFavorites.filter((id) => id !== sha)
+        : [...prevFavorites, sha]
+      localStorage.setItem("favorites", JSON.stringify(newFavorites))
+      return newFavorites
+    })
+  }, [])
 
   const downloadSelectedWallpapers = useCallback(async () => {
     for (const sha of selectedWallpapers) {
@@ -192,7 +209,7 @@ export default function WallpaperGrid({
   const showNotification = useCallback((message: string) => {
     const notification = document.createElement("div")
     notification.className =
-      "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm"
+      "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm z-50"
     notification.textContent = message
     document.body.appendChild(notification)
     setTimeout(() => notification.remove(), 2000)
@@ -376,6 +393,7 @@ export default function WallpaperGrid({
                         <Download className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => toggleFavorite(wallpaper.sha)}
                         className={`p-2 rounded-full ${
                           favorites.includes(wallpaper.sha)
                             ? "bg-[#F7F06D] text-black"

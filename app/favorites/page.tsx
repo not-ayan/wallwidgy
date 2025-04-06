@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Download, ArrowLeft, Trash2 } from "lucide-react"
 
 interface Wallpaper {
-  public_id: string
+  sha: string
   name: string
   preview_url: string
   download_url: string
@@ -38,7 +38,7 @@ export default function Favorites() {
       const favoriteWallpapers = allWallpapers
         .filter((wallpaper: any) => favoriteIds.includes(wallpaper.public_id))
         .map((wallpaper: any) => ({
-          public_id: wallpaper.public_id,
+          sha: wallpaper.public_id,
           name: wallpaper.filename,
           preview_url: cloudinaryUrl(wallpaper.public_id, {
             width: 800,
@@ -62,19 +62,19 @@ export default function Favorites() {
     }
   }
 
-  async function removeFavorite(public_id: string) {
+  async function removeFavorite(sha: string) {
     const storedFavorites = localStorage.getItem("favorites")
     if (storedFavorites) {
       const favoriteIds = JSON.parse(storedFavorites)
-      const updatedFavorites = favoriteIds.filter((id: string) => id !== public_id)
+      const updatedFavorites = favoriteIds.filter((id: string) => id !== sha)
       localStorage.setItem("favorites", JSON.stringify(updatedFavorites))
       await fetchFavorites()
     }
   }
 
   async function downloadSelectedWallpapers() {
-    for (const public_id of selectedWallpapers) {
-      const wallpaper = favorites.find((w) => w.public_id === public_id)
+    for (const sha of selectedWallpapers) {
+      const wallpaper = favorites.find((w) => w.sha === sha)
       if (wallpaper) {
         const response = await fetch(wallpaper.download_url)
         const blob = await response.blob()
@@ -100,9 +100,9 @@ export default function Favorites() {
     setTimeout(() => notification.remove(), 2000)
   }
 
-  function toggleWallpaperSelection(public_id: string) {
+  function toggleWallpaperSelection(sha: string) {
     setSelectedWallpapers((prev) =>
-      prev.includes(public_id) ? prev.filter((id) => id !== public_id) : [...prev, public_id],
+      prev.includes(sha) ? prev.filter((id) => id !== sha) : [...prev, sha],
     )
   }
 
@@ -134,7 +134,7 @@ export default function Favorites() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {favorites.map((wallpaper) => (
             <div
-              key={wallpaper.public_id}
+              key={wallpaper.sha}
               className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
             >
               <Image
@@ -149,9 +149,9 @@ export default function Favorites() {
                   <h3 className="text-[15px] font-medium text-white/90 mb-3">{wallpaper.name}</h3>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => toggleWallpaperSelection(wallpaper.public_id)}
+                      onClick={() => toggleWallpaperSelection(wallpaper.sha)}
                       className={`p-2 rounded-full ${
-                        selectedWallpapers.includes(wallpaper.public_id)
+                        selectedWallpapers.includes(wallpaper.sha)
                           ? "bg-[#F7F06D] text-black"
                           : "bg-black/30 text-white hover:bg-black/40"
                       } backdrop-blur-sm transition-colors`}
@@ -159,7 +159,7 @@ export default function Favorites() {
                       <Download className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => removeFavorite(wallpaper.public_id)}
+                      onClick={() => removeFavorite(wallpaper.sha)}
                       className="p-2 rounded-full bg-black/30 text-white hover:bg-black/40 backdrop-blur-sm transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

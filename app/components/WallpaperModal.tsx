@@ -218,24 +218,24 @@ export default function WallpaperModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top header with back button and info */}
-          <div className="absolute top-0 left-0 right-0 z-10 p-4 flex items-center justify-between">
+          <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-8 sm:pt-4 flex items-center justify-between">
             <button 
               onClick={onClose} 
-              className="flex items-center gap-2 text-white/90 hover:text-white px-3 py-2 rounded-lg bg-black/30 backdrop-blur-md"
+              className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-3 sm:px-3 sm:py-2 rounded-lg bg-black/30 backdrop-blur-md"
             >
-              <ChevronLeft className="w-5 h-5" />
-              <span className="text-sm">Back</span>
+              <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
+              <span className="text-base sm:text-sm">Back</span>
             </button>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/30 backdrop-blur-md">
+            <div className="flex items-center gap-2 px-4 py-3 sm:px-3 sm:py-2 rounded-lg bg-black/30 backdrop-blur-md">
               {wallpaper.resolution && (
-                <div className="text-white/80 text-sm">
+                <div className="text-white/80 text-base sm:text-sm">
                   {formatResolution(wallpaper.resolution)}
                 </div>
               )}
               {wallpaper.platform && (
                 <>
-                  <div className="w-px h-3 bg-white/20" />
-                  <div className="text-white/80 text-sm">
+                  <div className="w-px h-4 sm:h-3 bg-white/20" />
+                  <div className="text-white/80 text-base sm:text-sm">
                     {wallpaper.platform}
                   </div>
                 </>
@@ -294,60 +294,60 @@ export default function WallpaperModal({
           </div>
 
           {/* Bottom controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
+          <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-8 sm:pb-4">
             <div className="max-w-[1400px] mx-auto flex items-center justify-between">
               {/* Navigation and zoom controls */}
               <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+                <div className="flex items-center gap-2 px-4 py-3 sm:px-4 sm:py-2 rounded-full bg-black/30 backdrop-blur-md">
                   <button
                     onClick={handleZoomOut}
                     disabled={zoom === 1}
                     className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-5 h-5 sm:w-4 sm:h-4" />
                   </button>
-                  <span className="text-white/80 text-sm px-3">{zoom}x</span>
+                  <span className="text-white/80 text-base sm:text-sm px-3">{zoom}x</span>
                   <button
                     onClick={handleZoomIn}
                     disabled={zoom === 3}
                     className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
 
-                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+                <div className="flex items-center gap-4 px-4 py-3 sm:px-4 sm:py-2 rounded-full bg-black/30 backdrop-blur-md">
                   <button
                     onClick={onPrevious}
                     disabled={!hasPrevious}
                     className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={onNext}
                     disabled={!hasNext}
                     className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-4 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+              <div className="flex items-center gap-4 px-4 py-3 sm:px-4 sm:py-2 rounded-full bg-black/30 backdrop-blur-md">
                 <button
                   onClick={handleShare}
                   className="text-white/90 hover:text-white"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <Share2 className="w-5 h-5 sm:w-4 sm:h-4" />
                 </button>
-                <div className="w-px h-3 bg-white/20" />
+                <div className="w-px h-4 sm:h-3 bg-white/20" />
                 <button
                   onClick={handleDownload}
                   className="text-white/90 hover:text-white"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-5 h-5 sm:w-4 sm:h-4" />
                 </button>
               </div>
             </div>

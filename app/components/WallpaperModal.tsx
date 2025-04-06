@@ -224,7 +224,7 @@ export default function WallpaperModal({
               className="flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
             >
               <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
-              <span className="text-base sm:text-sm">Back</span>
+              <span className="text-base sm:text-sm hidden sm:block">Back</span>
             </button>
             <div className="flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
               {wallpaper.resolution && (

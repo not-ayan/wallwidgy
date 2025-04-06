@@ -60,6 +60,8 @@ export default function WallpaperGrid({
   const [availableColors, setAvailableColors] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const [clickCount, setClickCount] = useState(0)
+  const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
@@ -271,6 +273,25 @@ export default function WallpaperGrid({
     }
   }, [])
 
+  const handleClick = useCallback((wallpaper: Wallpaper) => {
+    setClickCount(prev => prev + 1)
+    
+    if (clickTimeout) {
+      clearTimeout(clickTimeout)
+    }
+
+    const timeout = setTimeout(() => {
+      setClickCount(0)
+    }, 300)
+
+    setClickTimeout(timeout)
+
+    if (clickCount === 1) {
+      handleOpenModal(wallpaper)
+      setClickCount(0)
+    }
+  }, [clickCount, clickTimeout, handleOpenModal])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -318,7 +339,7 @@ export default function WallpaperGrid({
                   aspectRatio: window.innerWidth < 768 ? "16/9" : `${wallpaper.width}/${wallpaper.height}`,
                 }}
                 data-wallpaper-sha={wallpaper.sha}
-                onClick={() => handleOpenModal(wallpaper)}
+                onClick={() => handleClick(wallpaper)}
               >
                 <Image
                   src={wallpaper.preview_url || "/placeholder.svg"}

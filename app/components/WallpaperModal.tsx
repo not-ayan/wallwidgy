@@ -202,8 +202,27 @@ export default function WallpaperModal({
     })
   }
 
+  // Update the background click handler
+  const handleBackgroundClick = (e: React.MouseEvent) => {
+    // Only close if clicking directly on the background overlay
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Add click handler for the image container
+  const handleImageContainerClick = (e: React.MouseEvent) => {
+    // Prevent event from bubbling up to background
+    e.stopPropagation();
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      onClick={handleBackgroundClick}
+    >
       <div className="fixed inset-0 flex items-center justify-center">
         {/* Blurred background */}
         <div 
@@ -220,7 +239,7 @@ export default function WallpaperModal({
 
         <div 
           className="relative max-h-[100vh] md:max-h-[90vh] w-full md:w-auto md:max-w-[90vw] overflow-hidden md:rounded-2xl bg-transparent"
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleImageContainerClick}
         >
           {/* Image container */}
           <div
@@ -232,6 +251,7 @@ export default function WallpaperModal({
               width: '100%',
               maxWidth: '90vw',
             }}
+            onClick={handleImageContainerClick}
           >
             <div
               className="relative flex items-center justify-center w-full h-full"
@@ -240,9 +260,16 @@ export default function WallpaperModal({
                 transformOrigin: 'center center',
                 touchAction: zoom > 1 ? 'pan-x pan-y' : 'none',
               }}
+              onClick={handleImageContainerClick}
             >
-              <div className="relative w-full h-full flex items-center justify-center">
-                <div className="relative w-full h-full flex items-center justify-center">
+              <div 
+                className="relative w-full h-full flex items-center justify-center"
+                onClick={handleImageContainerClick}
+              >
+                <div 
+                  className="relative w-full h-full flex items-center justify-center"
+                  onClick={handleImageContainerClick}
+                >
                   <Image
                     src={wallpaper.download_url}
                     alt={wallpaper.name}
@@ -269,6 +296,7 @@ export default function WallpaperModal({
                     quality={100}
                     sizes="100vw"
                     unoptimized={true}
+                    onClick={handleImageContainerClick}
                   />
                 </div>
               </div>
@@ -367,7 +395,7 @@ export default function WallpaperModal({
           </div>
         </div>
       </div>
-    </Modal>
+    </div>
   )
 }
 

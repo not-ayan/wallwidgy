@@ -24,6 +24,10 @@ interface WallpaperFile {
   file_name: string;
   file_cache_name: string;
   file_main_name: string;
+  width: number;
+  height: number;
+  resolution: string;
+  orientation: "Desktop" | "Mobile";
 }
 
 interface Wallpaper {
@@ -177,15 +181,20 @@ export default function WallpaperGrid({
         setError(null)
 
         // Fetch the index.json file
-        const indexResponse = await fetch('https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json')
+        const indexResponse = await fetch('https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json', {
+          cache: 'force-cache',
+          next: { revalidate: 3600 } // Cache for 1 hour
+        })
+        
         if (!indexResponse.ok) {
           throw new Error(`Failed to fetch index.json: ${indexResponse.status}`)
         }
+        
         const wallpaperFiles: WallpaperFile[] = await indexResponse.json()
         console.log('Fetched wallpaper files:', wallpaperFiles.length)
 
-        // Process wallpapers in batches to prevent memory issues
-        const batchSize = 10
+        // Process wallpapers in smaller batches for better performance
+        const batchSize = 5
         const wallpapers: Wallpaper[] = []
         
         for (let i = 0; i < wallpaperFiles.length; i += batchSize) {
@@ -193,35 +202,23 @@ export default function WallpaperGrid({
           const batchResults = await Promise.all(
             batch.map(async (file) => {
               try {
-                // Create a temporary image to get dimensions without loading the full image
+                // Preload the image in the background
                 const img = new window.Image()
                 const previewUrl = `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${file.file_cache_name}`
                 
-                // Use a promise to handle image loading
-                const dimensions = await new Promise<ImageDimensions>((resolve, reject) => {
-                  img.onload = () => {
-                    console.log(`Loaded preview for ${file.file_name}:`, { width: img.width, height: img.height })
-                    resolve({ width: img.width, height: img.height })
-                  }
-                  img.onerror = (error) => {
-                    console.error(`Error loading preview for ${file.file_name}:`, error)
-                    reject(new Error(`Failed to load preview for ${file.file_name}`))
-                  }
-                  img.src = previewUrl
-                })
-
-                const isMobile = dimensions.height > dimensions.width
+                // Start loading the image immediately
+                img.src = previewUrl
                 
                 return {
                   sha: file.file_name,
                   name: file.file_name,
-                  width: dimensions.width,
-                  height: dimensions.height,
+                  width: file.width,
+                  height: file.height,
                   preview_url: previewUrl,
                   download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${file.file_main_name}`,
-                  resolution: getResolutionLabel(dimensions.width, dimensions.height),
-                  tag: isMobile ? "Mobile" : "Desktop",
-                  platform: isMobile ? "Mobile" : "Desktop",
+                  resolution: file.resolution,
+                  tag: file.orientation,
+                  platform: file.orientation,
                   uploadDate: new Date(),
                 }
               } catch (error) {
@@ -231,13 +228,15 @@ export default function WallpaperGrid({
             })
           )
 
-          // Filter out null results and add to main array
           const validResults = batchResults.filter((w): w is Wallpaper => w !== null)
           wallpapers.push(...validResults)
-          console.log(`Processed batch ${i / batchSize + 1}, added ${validResults.length} wallpapers`)
-
+          
           // Update state with current progress
           setWallpapers([...wallpapers])
+          setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
+          
+          // Small delay between batches to prevent UI blocking
+          await new Promise(resolve => setTimeout(resolve, 50))
         }
 
         // Apply sorting
@@ -255,9 +254,7 @@ export default function WallpaperGrid({
             break
         }
 
-        console.log('Final wallpapers array:', wallpapers.length)
         setWallpapers(wallpapers)
-        // Initially display only the first 50 wallpapers
         setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
         setHasMore(wallpapers.length > initialLoadSize)
       } catch (err: any) {
@@ -407,24 +404,33 @@ export default function WallpaperGrid({
     }
   }, [showNotification])
 
-  const handleClick = useCallback((wallpaper: Wallpaper) => {
-    setClickCount(prev => prev + 1)
+  const handleClick = useCallback((wallpaper: Wallpaper, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // If the image is already loaded, just open the modal
+    if (loadedImages.has(wallpaper.sha)) {
+      handleOpenModal(wallpaper);
+      return;
+    }
+    
+    setClickCount(prev => prev + 1);
     
     if (clickTimeout) {
-      clearTimeout(clickTimeout)
+      clearTimeout(clickTimeout);
     }
 
     const timeout = setTimeout(() => {
-      setClickCount(0)
-    }, 300)
+      setClickCount(0);
+    }, 300);
 
-    setClickTimeout(timeout)
+    setClickTimeout(timeout);
 
     if (clickCount === 1) {
-      handleOpenModal(wallpaper)
-      setClickCount(0)
+      handleOpenModal(wallpaper);
+      setClickCount(0);
     }
-  }, [clickCount, clickTimeout, handleOpenModal])
+  }, [clickCount, clickTimeout, handleOpenModal, loadedImages]);
 
   if (isLoading) {
     return (
@@ -459,7 +465,27 @@ export default function WallpaperGrid({
   const ImageComponent = ({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
     const [error, setError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    
+    const [isVisible, setIsVisible] = useState(false);
+    const imageRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        },
+        { rootMargin: '100px' }
+      );
+
+      if (imageRef.current) {
+        observer.observe(imageRef.current);
+      }
+
+      return () => observer.disconnect();
+    }, []);
+
     if (error) {
       return (
         <div className="absolute inset-0 flex items-center justify-center bg-white/5">
@@ -469,39 +495,41 @@ export default function WallpaperGrid({
     }
 
     return (
-      <>
+      <div ref={imageRef} className="relative w-full h-full">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/5">
             <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
           </div>
         )}
-        <Image
-          src={wallpaper.preview_url}
-          alt={wallpaper.name}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${isLoading ? 'opacity-0' : 'opacity-100'}`}
-          priority={index < 6}
-          quality={75}
-          placeholder="blur"
-          loading={index < 12 ? "eager" : "lazy"}
-          onLoad={() => {
-            console.log(`Successfully loaded image: ${wallpaper.preview_url}`);
-            setIsLoading(false);
-          }}
-          onError={(e) => {
-            console.error(`Failed to load image: ${wallpaper.preview_url}`, e);
-            setError(true);
-            setIsLoading(false);
-          }}
-          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
-        />
-      </>
+        {isVisible && (
+          <Image
+            src={wallpaper.preview_url}
+            alt={wallpaper.name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${
+              isLoading ? 'opacity-0' : 'opacity-100'
+            }`}
+            priority={index < 6}
+            quality={75}
+            placeholder="blur"
+            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+            onLoad={() => {
+              setIsLoading(false);
+            }}
+            onError={(e) => {
+              console.error(`Failed to load image: ${wallpaper.preview_url}`, e);
+              setError(true);
+              setIsLoading(false);
+            }}
+          />
+        )}
+      </div>
     );
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative">
+    <div className="w-[90vw] mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative">
       <Masonry
         breakpointCols={breakpointColumnsObj}
         className="my-masonry-grid"
@@ -511,7 +539,7 @@ export default function WallpaperGrid({
           <div key={wallpaper.sha} className="mb-4 sm:mb-6">
             <div
               className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
-              onClick={() => handleClick(wallpaper)}
+              onClick={(e) => handleClick(wallpaper, e)}
             >
               <ImageComponent wallpaper={wallpaper} index={index} />
               {wallpaper.resolution && (

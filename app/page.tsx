@@ -43,8 +43,8 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="px-8 pt-24 sm:pt-32 pb-16 sm:pb-24 text-center">
-        <h1 className="font-sagite text-[32px] sm:text-[56px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] text-[#F7F06D]">
+      <section className="px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
+        <h1 className="font-sagite text-[40px] sm:text-[56px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] text-[#F7F06D]">
           The Finest Collection of Minimalist Wallpapers
         </h1>
         <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-base sm:text-lg leading-relaxed">

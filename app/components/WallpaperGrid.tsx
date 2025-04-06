@@ -18,6 +18,7 @@ import WallpaperModal from "./WallpaperModal"
 import { getDatabase, ref, set, onValue, push, serverTimestamp } from "firebase/database"
 import { useAuthState } from "react-firebase-hooks/auth"
 import Masonry from "react-masonry-css"
+import path from "path"
 
 interface Wallpaper {
   sha: string
@@ -124,22 +125,22 @@ export default function WallpaperGrid({
         const response = await fetch("/api/wallpapers")
         const data = await response.json()
 
-        let wallpaperFiles = data.map((wallpaper: any) => ({
-          sha: wallpaper.public_id,
-          name: wallpaper.filename,
-          width: wallpaper.width,
-          height: wallpaper.height,
-          preview_url: cloudinaryUrl(wallpaper.public_id, {
-            width: 600,
-            height: 400,
-            crop: "fill",
-          }),
-          download_url: cloudinaryUrl(wallpaper.public_id, { isDownload: true }),
-          resolution: getResolutionLabel(wallpaper.width, wallpaper.height),
-          tag: wallpaper.height > wallpaper.width ? "Mobile" : "Desktop",
-          platform: wallpaper.height > wallpaper.width ? "Mobile" : "Desktop",
-          uploadDate: new Date(wallpaper.created_at),
-        }))
+        let wallpaperFiles = data.map((wallpaper: any) => {
+          const isMobile = wallpaper.height > wallpaper.width
+          
+          return {
+            sha: wallpaper.public_id,
+            name: wallpaper.filename,
+            width: wallpaper.width,
+            height: wallpaper.height,
+            preview_url: `/storage/cache/${path.basename(wallpaper.filename, path.extname(wallpaper.filename))}.webp`,
+            download_url: `/storage/main/${wallpaper.filename}`,
+            resolution: getResolutionLabel(wallpaper.width, wallpaper.height),
+            tag: isMobile ? "Mobile" : "Desktop",
+            platform: isMobile ? "Mobile" : "Desktop",
+            uploadDate: new Date(wallpaper.created_at),
+          }
+        })
 
         if (wallpapers) {
           wallpaperFiles = wallpaperFiles.filter((file: Wallpaper) => wallpapers.includes(file.sha))
@@ -173,7 +174,14 @@ export default function WallpaperGrid({
   const loadFavorites = useCallback(() => {
     const storedFavorites = localStorage.getItem("favorites")
     if (storedFavorites) {
-      setFavorites(JSON.parse(storedFavorites))
+      try {
+        const parsedFavorites = JSON.parse(storedFavorites)
+        setFavorites(parsedFavorites)
+      } catch (error) {
+        console.error("Error parsing favorites:", error)
+        localStorage.setItem("favorites", "[]")
+        setFavorites([])
+      }
     }
   }, [])
 
@@ -182,29 +190,18 @@ export default function WallpaperGrid({
       const newFavorites = prevFavorites.includes(sha)
         ? prevFavorites.filter((id) => id !== sha)
         : [...prevFavorites, sha]
-      localStorage.setItem("favorites", JSON.stringify(newFavorites))
+      try {
+        localStorage.setItem("favorites", JSON.stringify(newFavorites))
+      } catch (error) {
+        console.error("Error saving favorites:", error)
+      }
       return newFavorites
     })
   }, [])
 
-  const downloadSelectedWallpapers = useCallback(async () => {
-    for (const sha of selectedWallpapers) {
-      const wallpaper = wallpapersState.find((w) => w.sha === sha)
-      if (wallpaper) {
-        const response = await fetch(wallpaper.download_url)
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = url
-        link.download = wallpaper.name
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
-      }
-    }
-    setSelectedWallpapers([])
-  }, [selectedWallpapers, wallpapersState])
+  const handleFilterChange = useCallback((newFilter: "all" | "desktop" | "mobile") => {
+    setFilter(newFilter)
+  }, [])
 
   const showNotification = useCallback((message: string) => {
     const notification = document.createElement("div")
@@ -215,12 +212,33 @@ export default function WallpaperGrid({
     setTimeout(() => notification.remove(), 2000)
   }, [])
 
+  const downloadSelectedWallpapers = useCallback(async () => {
+    for (const sha of selectedWallpapers) {
+      const wallpaper = wallpapersState.find((w) => w.sha === sha)
+      if (wallpaper) {
+        try {
+          const response = await fetch(wallpaper.download_url)
+          if (!response.ok) throw new Error('Failed to download')
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement("a")
+          link.href = url
+          link.download = wallpaper.name
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+        } catch (error) {
+          console.error(`Error downloading ${wallpaper.name}:`, error)
+          showNotification(`Failed to download ${wallpaper.name}`)
+        }
+      }
+    }
+    setSelectedWallpapers([])
+  }, [selectedWallpapers, wallpapersState, showNotification])
+
   const handleRetry = useCallback(() => {
     setRetryCount((prev) => prev + 1)
-  }, [])
-
-  const handleFilterChange = useCallback((newFilter: "all" | "desktop" | "mobile") => {
-    setFilter(newFilter)
   }, [])
 
   const handleOpenModal = useCallback(
@@ -272,7 +290,7 @@ export default function WallpaperGrid({
 
   const handleShare = useCallback(async (wallpaper: Wallpaper) => {
     try {
-      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.name)}`
+      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.sha)}`
 
       if (navigator.share) {
         await navigator.share({
@@ -288,7 +306,7 @@ export default function WallpaperGrid({
       console.error("Error sharing:", error)
       showNotification("Unable to share or copy link")
     }
-  }, [])
+  }, [showNotification])
 
   const handleClick = useCallback((wallpaper: Wallpaper) => {
     setClickCount(prev => prev + 1)
@@ -348,23 +366,21 @@ export default function WallpaperGrid({
       >
         {wallpapersState
           .filter((wallpaper) => filter === "all" || wallpaper.tag.toLowerCase() === filter)
-          .map((wallpaper) => (
+          .map((wallpaper, index) => (
             <div key={wallpaper.sha} className="mb-4 sm:mb-6">
               <div
-                className="group relative overflow-hidden rounded-2xl bg-white/5 cursor-pointer"
-                style={{
-                  aspectRatio: window.innerWidth < 768 ? "16/9" : `${wallpaper.width}/${wallpaper.height}`,
-                }}
-                data-wallpaper-sha={wallpaper.sha}
-                onClick={() => handleClick(wallpaper)}
+                className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
               >
                 <Image
-                  src={wallpaper.preview_url || "/placeholder.svg"}
+                  src={wallpaper.preview_url}
                   alt={wallpaper.name}
-                  width={600}
-                  height={400}
-                  className="object-cover w-full h-full transition-all duration-300 group-hover:scale-105"
-                  loading="lazy"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover transition-all duration-500 group-hover:scale-[1.02]"
+                  priority={index < 6}
+                  quality={75}
+                  placeholder="blur"
+                  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy0vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
                 />
                 {wallpaper.resolution && (
                   <div className="absolute top-3 left-3 bg-[#F7F06D] text-black px-2 py-1 rounded-full text-xs font-medium">

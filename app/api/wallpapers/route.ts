@@ -1,81 +1,84 @@
 import { NextResponse } from 'next/server'
-import { v2 as cloudinary } from 'cloudinary'
+import fs from 'fs'
+import path from 'path'
+import sharp from 'sharp'
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-  secure: true,
-});
+const mainDir = path.join(process.cwd(), 'public/storage/main')
+const cacheDir = path.join(process.cwd(), 'public/storage/cache')
 
 export async function GET() {
   try {
-    // Fetch all resources from the wallpapers folder
-    const result = await cloudinary.api.resources({
-      type: 'upload',
-      prefix: 'wallpapers',
-      max_results: 500,
-      context: true,
-      metadata: true,
-    });
+    // Read all files from the main directory
+    const files = fs.readdirSync(mainDir)
+      .filter(file => {
+        const ext = path.extname(file).toLowerCase()
+        return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
+      })
 
-    const wallpapers = result.resources.map((resource: any) => {
-      // Extract the filename without the path
-      const filename = resource.public_id.split('/').pop();
+    const wallpapers = await Promise.all(files.map(async (filename) => {
+      const filePath = path.join(mainDir, filename)
+      const baseName = path.basename(filename, path.extname(filename))
+
+      // Get image dimensions
+      const metadata = await sharp(filePath).metadata()
       
-      return {
-        public_id: resource.public_id,
-        filename,
-        width: resource.width,
-        height: resource.height,
-        format: resource.format,
-        created_at: resource.created_at,
-        tags: resource.tags || [],
-        colors: resource.colors || [],
-        categories: resource.context?.categories?.split(',') || [],
-      };
-    });
+      if (!metadata.width || !metadata.height) {
+        throw new Error(`Could not get dimensions for ${filename}`)
+      }
 
-    return NextResponse.json(wallpapers);
+      return {
+        public_id: filename,
+        filename,
+        width: metadata.width,
+        height: metadata.height,
+        format: metadata.format || 'unknown',
+        created_at: fs.statSync(filePath).mtime.toISOString(),
+        tags: [],
+        colors: [],
+        categories: [],
+      }
+    }))
+
+    return NextResponse.json(wallpapers)
   } catch (error: any) {
-    console.error('Error fetching wallpapers:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error fetching wallpapers:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json();
-    
-    // Update resource metadata in Cloudinary
-    await cloudinary.api.update(data.public_id, {
-      context: {
-        categories: data.categories?.join(','),
-      },
-      tags: data.tags,
-    });
-
-    return NextResponse.json({ message: 'Wallpaper updated successfully' });
+    const data = await request.json()
+    // Since we're using local files, we don't need to update metadata
+    return NextResponse.json({ message: 'Wallpaper updated successfully' })
   } catch (error: any) {
-    console.error('Error updating wallpaper:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error updating wallpaper:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 
 export async function DELETE(request: Request) {
-  const public_id = request.url.split('/').pop();
+  const public_id = request.url.split('/').pop()
+  
+  if (!public_id) {
+    return NextResponse.json({ error: 'No wallpaper ID provided' }, { status: 400 })
+  }
 
   try {
-    const result = await cloudinary.uploader.destroy(public_id);
-    
-    if (result.result === 'ok') {
-      return NextResponse.json({ message: 'Wallpaper deleted successfully' });
-    } else {
-      throw new Error('Failed to delete from Cloudinary');
+    const filePath = path.join(mainDir, public_id)
+    const cachePath = path.join(cacheDir, public_id)
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath)
     }
+    if (fs.existsSync(cachePath)) {
+      fs.unlinkSync(cachePath)
+    }
+
+    return NextResponse.json({ message: 'Wallpaper deleted successfully' })
   } catch (error: any) {
-    console.error('Error deleting wallpaper:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error deleting wallpaper:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
 

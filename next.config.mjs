@@ -14,12 +14,43 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
+    domains: [
+      'raw.githubusercontent.com',
+      'lh3.googleusercontent.com',
+      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+    ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'raw.githubusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'hebbkx1anhila5yf.public.blob.vercel-storage.com',
+        pathname: '/**',
+      },
+    ],
+    unoptimized: true, // Allow unoptimized images for local files
   },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
+  },
+  // Serve static files from the public directory
+  async rewrites() {
+    return [
+      {
+        source: '/storage/:path*',
+        destination: '/storage/:path*',
+      },
+    ]
   },
 }
 

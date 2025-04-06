@@ -12,6 +12,8 @@ interface Wallpaper {
   download_url: string
   resolution: string
   platform: "Desktop" | "Mobile"
+  width: number
+  height: number
 }
 
 interface WallpaperModalProps {
@@ -42,6 +44,7 @@ export default function WallpaperModal({
   const [startPos, setStartPos] = useState({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
+  const [isImageLoaded, setIsImageLoaded] = useState(false)
 
   useEffect(() => {
     if (wallpaper.resolution) {
@@ -59,7 +62,7 @@ export default function WallpaperModal({
 
   const handleShare = async () => {
     try {
-      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.name)}`
+      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.sha)}`
 
       if (navigator.share) {
         await navigator.share({
@@ -71,7 +74,7 @@ export default function WallpaperModal({
         await navigator.clipboard.writeText(shareUrl)
         showNotification("Link copied to clipboard!")
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sharing:", error)
       showNotification("Unable to share or copy link")
     }
@@ -89,6 +92,7 @@ export default function WallpaperModal({
   const handleDownload = async () => {
     try {
       const response = await fetch(wallpaper.download_url)
+      if (!response.ok) throw new Error('Failed to download')
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
@@ -98,6 +102,7 @@ export default function WallpaperModal({
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
+      showNotification("Download started!")
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
       showNotification("Failed to download wallpaper")
@@ -217,16 +222,74 @@ export default function WallpaperModal({
           className="relative max-h-[100vh] md:max-h-[90vh] w-full md:w-auto md:max-w-[90vw] overflow-hidden md:rounded-2xl bg-transparent"
           onClick={(e) => e.stopPropagation()}
         >
+          {/* Image container */}
+          <div
+            ref={containerRef}
+            className="relative flex items-center justify-center overflow-auto touch-pan-x touch-pan-y"
+            style={{ 
+              cursor: 'default',
+              height: window.innerWidth < 768 ? '100vh' : '90vh',
+              width: '100%',
+              maxWidth: '90vw',
+            }}
+          >
+            <div
+              className="relative flex items-center justify-center w-full h-full"
+              style={{
+                transform: `scale(${zoom})`,
+                transformOrigin: 'center center',
+                touchAction: zoom > 1 ? 'pan-x pan-y' : 'none',
+              }}
+            >
+              <div className="relative w-full h-full flex items-center justify-center">
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <Image
+                    src={wallpaper.download_url}
+                    alt={wallpaper.name}
+                    width={wallpaper.width}
+                    height={wallpaper.height}
+                    className={`max-h-full max-w-full object-contain rounded-2xl ${
+                      isImageLoaded ? "opacity-100" : "opacity-0"
+                    } transition-opacity duration-300`}
+                    style={{
+                      maxHeight: '100%',
+                      maxWidth: '100%',
+                      width: 'auto',
+                      height: 'auto',
+                    }}
+                    onLoad={() => {
+                      setIsImageLoaded(true)
+                      setIsImageLoading(false)
+                    }}
+                    onError={() => {
+                      console.error('Failed to load image:', wallpaper.download_url)
+                      setIsImageLoading(false)
+                    }}
+                    priority
+                    quality={100}
+                    sizes="100vw"
+                    unoptimized={true}
+                  />
+                </div>
+              </div>
+            </div>
+            {isImageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-md rounded-2xl">
+                <div className="loader"></div>
+              </div>
+            )}
+          </div>
+
           {/* Top header with back button and info */}
           <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
             <button 
               onClick={onClose} 
-              className="flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
+              className="fixed top-4 left-4 flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
             >
               <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
               <span className="text-base sm:text-sm hidden sm:block">Back</span>
             </button>
-            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+            <div className="fixed top-4 right-4 flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
               {wallpaper.resolution && (
                 <div className="text-white/80 text-base sm:text-sm">
                   {formatResolution(wallpaper.resolution)}
@@ -243,61 +306,11 @@ export default function WallpaperModal({
             </div>
           </div>
 
-          {/* Image container */}
-          <div
-            ref={containerRef}
-            className="relative flex items-center justify-center overflow-auto touch-pan-x touch-pan-y"
-            style={{ 
-              cursor: 'default',
-              height: window.innerWidth < 768 ? '100vh' : 'auto',
-              width: window.innerWidth < 768 ? '100%' : 'auto',
-              maxWidth: window.innerWidth < 768 ? '100vw' : '90vw',
-              maxHeight: window.innerWidth < 768 ? '100vh' : '90vh'
-            }}
-          >
-            <div
-              className="relative h-full md:h-auto"
-              style={{
-                transform: `scale(${zoom})`,
-                height: window.innerWidth < 768 ? '100%' : 'auto',
-                width: zoom === 1 ? 'auto' : '100%',
-                touchAction: zoom > 1 ? 'pan-x pan-y' : 'none',
-              }}
-            >
-              <Image
-                ref={imageRef}
-                src={wallpaper.download_url || "/placeholder.svg"}
-                alt={wallpaper.name}
-                width={2000}
-                height={2000}
-                className={`object-contain transition-opacity duration-300 h-full md:h-auto md:max-h-[90vh] ${
-                  isImageLoading ? "opacity-0" : "opacity-100"
-                }`}
-                style={{
-                  width: 'auto',
-                  height: window.innerWidth < 768 ? '100%' : 'auto',
-                }}
-                sizes="(max-width: 768px) 100vw, 90vw"
-                priority
-                onLoadingComplete={() => {
-                  setIsLoading(false)
-                  setIsImageLoading(false)
-                }}
-                onLoad={() => setIsImageLoading(false)}
-              />
-            </div>
-            {isImageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-md">
-                <div className="loader"></div>
-              </div>
-            )}
-          </div>
-
           {/* Bottom controls */}
           <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-12 sm:pb-4">
             <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
               {/* Navigation and zoom controls */}
-              <div className="flex items-center gap-4">
+              <div className="fixed bottom-4 left-4 flex items-center gap-4">
                 <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
                   <button
                     onClick={handleZoomOut}
@@ -335,7 +348,7 @@ export default function WallpaperModal({
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+              <div className="fixed bottom-4 right-4 flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
                 <button
                   onClick={handleShare}
                   className="text-white/90 hover:text-white"

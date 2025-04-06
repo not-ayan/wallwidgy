@@ -7,9 +7,6 @@ export default function Header() {
         <Link href="/" className="text-2xl font-bold">
           Minimalist Wallpapers
         </Link>
-        <Link href="/admin" className="text-sm bg-gray-700 px-3 py-1 rounded">
-          Admin
-        </Link>
       </nav>
     </header>
   )

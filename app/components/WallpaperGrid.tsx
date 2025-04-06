@@ -75,6 +75,12 @@ export default function WallpaperGrid({
   const observerRef = useRef<IntersectionObserver | null>(null)
   const [clickCount, setClickCount] = useState(0)
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [displayedWallpapers, setDisplayedWallpapers] = useState<Wallpaper[]>([])
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const initialLoadSize = 30
+  const loadMoreSize = 25
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
@@ -117,6 +123,42 @@ export default function WallpaperGrid({
   useEffect(() => {
     setVisibleWallpapers([]) // Reset visible wallpapers when filter changes
   }, [filter])
+
+  // Load more wallpapers when scrolling
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading) {
+          loadMoreWallpapers()
+        }
+      },
+      { threshold: 0.5 }
+    )
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current)
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current)
+      }
+    }
+  }, [hasMore, isLoading])
+
+  // Load more wallpapers after initial load
+  const loadMoreWallpapers = useCallback(() => {
+    const startIndex = page * loadMoreSize
+    const endIndex = startIndex + loadMoreSize
+    const newWallpapers = wallpapersState.slice(startIndex, endIndex)
+    
+    if (newWallpapers.length > 0) {
+      setDisplayedWallpapers(prev => [...prev, ...newWallpapers])
+      setPage(prev => prev + 1)
+    } else {
+      setHasMore(false)
+    }
+  }, [page, wallpapersState])
 
   const fetchAvailableColors = useCallback(async () => {
     try {
@@ -215,6 +257,9 @@ export default function WallpaperGrid({
 
         console.log('Final wallpapers array:', wallpapers.length)
         setWallpapers(wallpapers)
+        // Initially display only the first 50 wallpapers
+        setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
+        setHasMore(wallpapers.length > initialLoadSize)
       } catch (err: any) {
         console.error("Error fetching wallpapers:", err)
         setError(`Failed to fetch wallpapers. ${err.message || ""}`)
@@ -462,68 +507,67 @@ export default function WallpaperGrid({
         className="my-masonry-grid"
         columnClassName="my-masonry-grid_column"
       >
-        {wallpapersState
-          .filter((wallpaper) => filter === "all" || wallpaper.tag.toLowerCase() === filter)
-          .map((wallpaper, index) => (
-            <div key={wallpaper.sha} className="mb-4 sm:mb-6">
-              <div
-                className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
-              >
-                <ImageComponent wallpaper={wallpaper} index={index} />
-                {wallpaper.resolution && (
-                  <div className="absolute top-3 left-3 bg-[#F7F06D] text-black px-2 py-1 rounded-full text-xs font-medium">
-                    {wallpaper.resolution}
+        {displayedWallpapers.map((wallpaper, index) => (
+          <div key={wallpaper.sha} className="mb-4 sm:mb-6">
+            <div
+              className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
+              onClick={() => handleClick(wallpaper)}
+            >
+              <ImageComponent wallpaper={wallpaper} index={index} />
+              {wallpaper.resolution && (
+                <div className="absolute top-3 left-3 bg-[#F7F06D] text-black px-2 py-1 rounded-full text-xs font-medium">
+                  {wallpaper.resolution}
+                </div>
+              )}
+              {wallpaper.tag && (
+                <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
+                  {wallpaper.tag}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <div className="absolute bottom-0 left-0 right-0 p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[15px] font-medium text-white/90">{wallpaper.name}</h3>
                   </div>
-                )}
-                {wallpaper.tag && (
-                  <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
-                    {wallpaper.tag}
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-[15px] font-medium text-white/90">{wallpaper.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggleWallpaperSelection(wallpaper.sha)}
-                        className={`p-2 rounded-full ${
-                          selectedWallpapers.includes(wallpaper.sha)
-                            ? "bg-[#F7F06D] text-black"
-                            : "bg-black/60 text-white hover:bg-black/70"
-                        } backdrop-blur-sm transition-all hover:scale-105`}
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => toggleFavorite(wallpaper.sha)}
-                        className={`p-2 rounded-full ${
-                          favorites.includes(wallpaper.sha)
-                            ? "bg-[#F7F06D] text-black"
-                            : "bg-black/60 text-white hover:bg-black/70"
-                        } backdrop-blur-sm transition-all hover:scale-105`}
-                      >
-                        <Heart className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleShare(wallpaper)}
-                        className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
-                      >
-                        <Share2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenModal(wallpaper)}
-                        className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
-                      >
-                        <Expand className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleWallpaperSelection(wallpaper.sha)}
+                      className={`p-2 rounded-full ${
+                        selectedWallpapers.includes(wallpaper.sha)
+                          ? "bg-[#F7F06D] text-black"
+                          : "bg-black/60 text-white hover:bg-black/70"
+                      } backdrop-blur-sm transition-all hover:scale-105`}
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleFavorite(wallpaper.sha)}
+                      className={`p-2 rounded-full ${
+                        favorites.includes(wallpaper.sha)
+                          ? "bg-[#F7F06D] text-black"
+                          : "bg-black/60 text-white hover:bg-black/70"
+                      } backdrop-blur-sm transition-all hover:scale-105`}
+                    >
+                      <Heart className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleShare(wallpaper)}
+                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleOpenModal(wallpaper)}
+                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
+                    >
+                      <Expand className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
+          </div>
+        ))}
       </Masonry>
 
       {selectedWallpapers.length > 0 && (
@@ -582,6 +626,17 @@ export default function WallpaperGrid({
           hasPrevious={selectedIndex > 0}
           hasNext={selectedIndex < wallpapersState.length - 1}
         />
+      )}
+
+      {/* Load more trigger */}
+      {hasMore && (
+        <div ref={loadMoreRef} className="h-20 flex items-center justify-center">
+          {isLoading ? (
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+          ) : (
+            <div className="text-white/50">Scroll to load more</div>
+          )}
+        </div>
       )}
     </div>
   )

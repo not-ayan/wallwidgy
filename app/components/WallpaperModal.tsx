@@ -108,17 +108,35 @@ export default function WallpaperModal({
     if (zoom > 1) {
       setIsDragging(true)
       setStartPos({
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
+        x: e.clientX,
+        y: e.clientY,
       })
     }
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isDragging && zoom > 1) {
-      const newX = e.clientX - startPos.x
-      const newY = e.clientY - startPos.y
-      setPosition({ x: newX, y: newY })
+      const container = containerRef.current
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const maxX = (containerRect.width * (zoom - 1)) / 2
+      const maxY = (containerRect.height * (zoom - 1)) / 2
+
+      // Calculate the difference from the start position
+      const deltaX = e.clientX - startPos.x
+      const deltaY = e.clientY - startPos.y
+
+      // Update position based on the difference
+      const newX = position.x + deltaX
+      const newY = position.y + deltaY
+
+      // Constrain movement to prevent dragging beyond image bounds
+      const constrainedX = Math.min(Math.max(newX, -maxX), maxX)
+      const constrainedY = Math.min(Math.max(newY, -maxY), maxY)
+
+      setPosition({ x: constrainedX, y: constrainedY })
+      setStartPos({ x: e.clientX, y: e.clientY })
     }
   }
 
@@ -130,17 +148,35 @@ export default function WallpaperModal({
     if (zoom > 1) {
       setIsDragging(true)
       setStartPos({
-        x: e.touches[0].clientX - position.x,
-        y: e.touches[0].clientY - position.y,
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
       })
     }
   }
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
     if (isDragging && zoom > 1) {
-      const newX = e.touches[0].clientX - startPos.x
-      const newY = e.touches[0].clientY - startPos.y
-      setPosition({ x: newX, y: newY })
+      const container = containerRef.current
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const maxX = (containerRect.width * (zoom - 1)) / 2
+      const maxY = (containerRect.height * (zoom - 1)) / 2
+
+      // Calculate the difference from the start position
+      const deltaX = e.touches[0].clientX - startPos.x
+      const deltaY = e.touches[0].clientY - startPos.y
+
+      // Update position based on the difference
+      const newX = position.x + deltaX
+      const newY = position.y + deltaY
+
+      // Constrain movement to prevent dragging beyond image bounds
+      const constrainedX = Math.min(Math.max(newX, -maxX), maxX)
+      const constrainedY = Math.min(Math.max(newY, -maxY), maxY)
+
+      setPosition({ x: constrainedX, y: constrainedY })
+      setStartPos({ x: e.touches[0].clientX, y: e.touches[0].clientY })
     }
   }
 
@@ -163,74 +199,85 @@ export default function WallpaperModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="relative w-full h-full md:w-[90%] md:h-[90%] md:max-w-6xl md:rounded-2xl md:overflow-hidden bg-[#0A0A0A]">
-          {/* Mobile header */}
-          <div className="md:hidden flex justify-between items-center p-4 relative z-10">
-            <button onClick={onClose} className="p-2 rounded-full bg-black/60 text-white backdrop-blur-sm">
-              <X className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-2">
-              {wallpaper.resolution && (
-                <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs">
-                  {formatResolution(wallpaper.resolution)}
-                </div>
-              )}
-              {wallpaper.platform && (
-                <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs">
-                  {wallpaper.platform}
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="fixed inset-0 flex items-center justify-center">
+        {/* Blurred background */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 hidden md:block"
+          style={{ 
+            backgroundImage: `url(${wallpaper.download_url})`,
+            filter: 'blur(20px)',
+          }} 
+        />
+        <div 
+          className="absolute inset-0 bg-black/50 backdrop-blur-2xl"
+          onClick={onClose}
+        />
 
-          {/* Desktop header */}
-          <div className="hidden md:flex justify-between items-center p-4 relative z-10">
-            <div className="flex items-center gap-2">
+        <div 
+          className="relative max-h-[100vh] md:max-h-[90vh] w-full md:w-auto md:max-w-[90vw] overflow-hidden md:rounded-2xl bg-transparent md:bg-[#0A0A0A]/80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Top header with back button and info */}
+          <div className="absolute top-0 left-0 right-0 z-10 p-4 flex items-center justify-between">
+            <button 
+              onClick={onClose} 
+              className="flex items-center gap-2 text-white/90 hover:text-white px-3 py-2 rounded-lg bg-black/30 backdrop-blur-md"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-sm">Back</span>
+            </button>
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-black/30 backdrop-blur-md">
               {wallpaper.resolution && (
-                <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs">
+                <div className="text-white/80 text-sm">
                   {formatResolution(wallpaper.resolution)}
                 </div>
               )}
               {wallpaper.platform && (
-                <div className="px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs">
-                  {wallpaper.platform}
-                </div>
+                <>
+                  <div className="w-px h-3 bg-white/20" />
+                  <div className="text-white/80 text-sm">
+                    {wallpaper.platform}
+                  </div>
+                </>
               )}
             </div>
-            <button onClick={onClose} className="p-2 rounded-full bg-black/60 text-white backdrop-blur-sm">
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Image container */}
           <div
             ref={containerRef}
-            className="relative flex-1 overflow-hidden h-[calc(100%-8rem)]"
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            style={{ cursor: zoom > 1 ? "move" : "default" }}
+            className="relative flex items-center justify-center overflow-auto touch-pan-x touch-pan-y"
+            style={{ 
+              cursor: 'default',
+              height: window.innerWidth < 768 ? '100vh' : 'auto',
+              width: window.innerWidth < 768 ? '100%' : 'auto',
+              maxWidth: window.innerWidth < 768 ? '100vw' : '90vw',
+              maxHeight: window.innerWidth < 768 ? '100vh' : '90vh'
+            }}
           >
             <div
-              className={`absolute inset-0 transition-transform duration-200 ${isDragging ? "" : "ease-out"}`}
+              className="relative h-full md:h-auto"
               style={{
-                transform: `scale(${zoom}) translate(${position.x}px, ${position.y}px)`,
+                transform: `scale(${zoom})`,
+                height: window.innerWidth < 768 ? '100%' : 'auto',
+                width: zoom === 1 ? 'auto' : '100%',
+                touchAction: zoom > 1 ? 'pan-x pan-y' : 'none',
               }}
             >
               <Image
                 ref={imageRef}
                 src={wallpaper.download_url || "/placeholder.svg"}
                 alt={wallpaper.name}
-                fill
-                className={`object-contain transition-opacity duration-300 ${
+                width={2000}
+                height={2000}
+                className={`object-contain transition-opacity duration-300 h-full md:h-auto md:max-h-[90vh] ${
                   isImageLoading ? "opacity-0" : "opacity-100"
                 }`}
-                sizes="100vw"
+                style={{
+                  width: 'auto',
+                  height: window.innerWidth < 768 ? '100%' : 'auto',
+                }}
+                sizes="(max-width: 768px) 100vw, 90vw"
                 priority
                 onLoadingComplete={() => {
                   setIsLoading(false)
@@ -244,64 +291,65 @@ export default function WallpaperModal({
                 <div className="loader"></div>
               </div>
             )}
-            {/* Navigation buttons */}
-            <div className="absolute inset-y-0 left-0 flex items-center">
-              {hasPrevious && (
-                <button
-                  onClick={onPrevious}
-                  className="p-2 m-4 rounded-full bg-black/60 text-white backdrop-blur-sm transition-opacity hover:bg-black/80"
-                >
-                  <ChevronLeft className="w-6 h-6" />
-                </button>
-              )}
-            </div>
-            <div className="absolute inset-y-0 right-0 flex items-center">
-              {hasNext && (
-                <button
-                  onClick={onNext}
-                  className="p-2 m-4 rounded-full bg-black/60 text-white backdrop-blur-sm transition-opacity hover:bg-black/80"
-                >
-                  <ChevronRight className="w-6 h-6" />
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Bottom controls */}
-          <div className="absolute bottom-4 left-0 right-0 flex justify-between items-center px-4">
-            {/* Zoom controls */}
-            <div className="flex items-center gap-2 p-2 bg-black/60 backdrop-blur-sm rounded-full">
-              <button
-                onClick={handleZoomOut}
-                disabled={zoom === 1}
-                className="p-2 rounded-full bg-white/10 text-white disabled:opacity-50 hover:bg-white/20 transition-colors"
-              >
-                <Minus className="w-4 h-4" />
-              </button>
-              <span className="text-white text-sm px-2">{zoom}x</span>
-              <button
-                onClick={handleZoomIn}
-                disabled={zoom === 3}
-                className="p-2 rounded-full bg-white/10 text-white disabled:opacity-50 hover:bg-white/20 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <div className="max-w-[1400px] mx-auto flex items-center justify-between">
+              {/* Navigation and zoom controls */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+                  <button
+                    onClick={handleZoomOut}
+                    disabled={zoom === 1}
+                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="text-white/80 text-sm px-3">{zoom}x</span>
+                  <button
+                    onClick={handleZoomIn}
+                    disabled={zoom === 3}
+                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
 
-            {/* Action buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleDownload}
-                className="p-3 rounded-full bg-[#F7F06D] text-black hover:bg-[#F7F06D]/90 transition-colors"
-              >
-                <Download className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleShare}
-                className="p-3 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-              >
-                <Share2 className="w-5 h-5" />
-              </button>
+                <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+                  <button
+                    onClick={onPrevious}
+                    disabled={!hasPrevious}
+                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={onNext}
+                    disabled={!hasNext}
+                    className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-4 px-4 py-2 rounded-full bg-black/30 backdrop-blur-md">
+                <button
+                  onClick={handleShare}
+                  className="text-white/90 hover:text-white"
+                >
+                  <Share2 className="w-4 h-4" />
+                </button>
+                <div className="w-px h-3 bg-white/20" />
+                <button
+                  onClick={handleDownload}
+                  className="text-white/90 hover:text-white"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

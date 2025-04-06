@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Heart, Grid, ArrowDownAZ, Clock, History, Code } from "lucide-react"
+import { Heart, Grid, ArrowDownAZ, Clock, History, Code, Info } from "lucide-react"
 import Footer from "./components/Footer"
 import BackToTop from "./components/BackToTop"
 
@@ -32,30 +32,18 @@ export default function Home() {
               </Link>
               <Link
                 href="/about"
-                className="text-[13px] bg-white/10 text-white/90 px-4 py-2 rounded-full hover:bg-white/15 transition-all hover:scale-105"
+                className="p-2 text-white/80 hover:text-white transition-all"
+                aria-label="About"
               >
-                About
+                <Info className="w-5 h-5" />
               </Link>
             </div>
           </nav>
         </header>
       </div>
 
-      {/* Announcement Bar */}
-      <div className="flex justify-center px-6 pt-20 sm:pt-28 pb-8 sm:pb-16">
-        <Link
-          href="/latest"
-          className="relative px-4 py-1.5 rounded-full flex items-center gap-2 text-[13px] hover:scale-105 transition-transform bg-white/5 text-white"
-        >
-          <span className="font-medium">New</span>
-          <span className="mx-1 opacity-40">•</span>
-          <span className="opacity-80">Fresh wallpapers added daily</span>
-          <span className="ml-1 opacity-60">→</span>
-        </Link>
-      </div>
-
       {/* Hero Section */}
-      <section className="px-8 pb-16 sm:pb-24 text-center">
+      <section className="px-8 pt-24 sm:pt-32 pb-16 sm:pb-24 text-center">
         <h1 className="font-sagite text-[32px] sm:text-[56px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] text-[#F7F06D]">
           The Finest Collection of Minimalist Wallpapers
         </h1>

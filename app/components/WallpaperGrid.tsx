@@ -40,7 +40,7 @@ interface WallpaperGridProps {
 }
 
 export default function WallpaperGrid({
-  sortBy = "name",
+  sortBy = "newest",
   limit = 25,
   category,
   color,
@@ -58,14 +58,13 @@ export default function WallpaperGrid({
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   const [visibleWallpapers, setVisibleWallpapers] = useState<Wallpaper[]>([])
   const [availableColors, setAvailableColors] = useState<string[]>([])
-  const [currentSort, setCurrentSort] = useState<"newest" | "oldest" | "name">("name")
   const [currentPage, setCurrentPage] = useState(1)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
   useEffect(() => {
-    fetchWallpapers({ sortBy: currentSort })
+    fetchWallpapers({ sortBy: "newest" })
     fetchAvailableColors()
-  }, [currentSort]) // Removed unnecessary dependencies
+  }, []) // Removed currentSort dependency
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -304,39 +303,6 @@ export default function WallpaperGrid({
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative">
-      <div className="mb-8 flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <div className="flex bg-white/5 rounded-full p-1">
-            <button
-              onClick={() => setCurrentSort("name")}
-              className={`p-2 rounded-full transition-colors ${
-                currentSort === "name" ? "bg-[#F7F06D] text-black" : "text-white hover:bg-white/10"
-              }`}
-              title="Sort by name"
-            >
-              <ArrowDownAZ className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentSort("newest")}
-              className={`p-2 rounded-full transition-colors ${
-                currentSort === "newest" ? "bg-[#F7F06D] text-black" : "text-white hover:bg-white/10"
-              }`}
-              title="Latest uploads"
-            >
-              <Clock className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setCurrentSort("oldest")}
-              className={`p-2 rounded-full transition-colors ${
-                currentSort === "oldest" ? "bg-[#F7F06D] text-black" : "text-white hover:bg-white/10"
-              }`}
-              title="Oldest uploads"
-            >
-              <History className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
       <Masonry
         breakpointCols={breakpointColumnsObj}
         className="my-masonry-grid"
@@ -347,11 +313,12 @@ export default function WallpaperGrid({
           .map((wallpaper) => (
             <div key={wallpaper.sha} className="mb-4 sm:mb-6">
               <div
-                className="group relative overflow-hidden rounded-2xl bg-white/5"
+                className="group relative overflow-hidden rounded-2xl bg-white/5 cursor-pointer"
                 style={{
                   aspectRatio: window.innerWidth < 768 ? "16/9" : `${wallpaper.width}/${wallpaper.height}`,
                 }}
                 data-wallpaper-sha={wallpaper.sha}
+                onClick={() => handleOpenModal(wallpaper)}
               >
                 <Image
                   src={wallpaper.preview_url || "/placeholder.svg"}

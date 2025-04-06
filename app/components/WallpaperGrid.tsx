@@ -38,17 +38,13 @@ interface Wallpaper {
   preview_url: string;
   download_url: string;
   resolution: string;
-  tag: "Mobile" | "Desktop";
-  platform: "Mobile" | "Desktop";
+  tag: "Desktop" | "Mobile";
+  platform: "Desktop" | "Mobile";
   uploadDate: Date;
 }
 
 interface WallpaperGridProps {
-  sortBy?: "newest" | "default" | "name" | "color"
-  limit?: number
-  category?: string
-  color?: string
-  wallpapers?: string[]
+  wallpapers?: string[]; // Array of favorite wallpaper IDs
 }
 
 interface ImageDimensions {
@@ -56,14 +52,8 @@ interface ImageDimensions {
   height: number;
 }
 
-export default function WallpaperGrid({
-  sortBy = "newest",
-  limit = 25,
-  category,
-  color,
-  wallpapers,
-}: WallpaperGridProps) {
-  const [wallpapersState, setWallpapers] = useState<Wallpaper[]>([])
+export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGridProps) {
+  const [wallpapersState, setWallpapersState] = useState<Wallpaper[]>([])
   const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -83,8 +73,8 @@ export default function WallpaperGrid({
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const initialLoadSize = 30
-  const loadMoreSize = 25
+  const initialLoadSize = 50
+  const loadMoreSize = 20
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
@@ -236,7 +226,7 @@ export default function WallpaperGrid({
           console.log(`Processed batch ${i / batchSize + 1}, added ${validResults.length} wallpapers`)
 
           // Update state with current progress
-          setWallpapers([...wallpapers])
+          setWallpapersState([...wallpapers])
         }
 
         // Apply sorting
@@ -255,7 +245,7 @@ export default function WallpaperGrid({
         }
 
         console.log('Final wallpapers array:', wallpapers.length)
-        setWallpapers(wallpapers)
+        setWallpapersState(wallpapers)
         // Initially display only the first 50 wallpapers
         setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
         setHasMore(wallpapers.length > initialLoadSize)
@@ -283,19 +273,14 @@ export default function WallpaperGrid({
     }
   }, [])
 
-  const toggleFavorite = useCallback((sha: string) => {
-    setFavorites((prevFavorites) => {
-      const newFavorites = prevFavorites.includes(sha)
-        ? prevFavorites.filter((id) => id !== sha)
-        : [...prevFavorites, sha]
-      try {
-        localStorage.setItem("favorites", JSON.stringify(newFavorites))
-      } catch (error) {
-        console.error("Error saving favorites:", error)
-      }
-      return newFavorites
-    })
-  }, [])
+  const handleFavorite = (wallpaper: Wallpaper) => {
+    const newFavorites = favorites.includes(wallpaper.sha)
+      ? favorites.filter(id => id !== wallpaper.sha)
+      : [...favorites, wallpaper.sha];
+    
+    setFavorites(newFavorites);
+    localStorage.setItem("favorites", JSON.stringify(newFavorites));
+  };
 
   const handleFilterChange = useCallback((newFilter: "all" | "desktop" | "mobile") => {
     setFilter(newFilter)
@@ -425,6 +410,18 @@ export default function WallpaperGrid({
     }
   }, [clickCount, clickTimeout, handleOpenModal])
 
+  // Update displayed wallpapers when favorites change
+  useEffect(() => {
+    if (favoriteIds) {
+      // If we're on the favorites page, only show favorited wallpapers
+      const favoritedWallpapers = wallpapersState.filter((wallpaper): wallpaper is Wallpaper => 
+        wallpaper !== null && favoriteIds.includes(wallpaper.sha)
+      );
+      setDisplayedWallpapers(favoritedWallpapers);
+      setHasMore(false); // No need to load more on favorites page
+    }
+  }, [favoriteIds, wallpapersState]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -510,19 +507,14 @@ export default function WallpaperGrid({
           <div key={wallpaper.sha} className="mb-4 sm:mb-6">
             <div
               className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
-              onClick={() => handleClick(wallpaper)}
+              onClick={(e) => {
+                // Only handle click if clicking on the container itself
+                if (e.target === e.currentTarget) {
+                  handleClick(wallpaper);
+                }
+              }}
             >
               <ImageComponent wallpaper={wallpaper} index={index} />
-              {wallpaper.resolution && (
-                <div className="absolute top-3 left-3 bg-[#F7F06D] text-black px-2 py-1 rounded-full text-xs font-medium">
-                  {wallpaper.resolution}
-                </div>
-              )}
-              {wallpaper.tag && (
-                <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
-                  {wallpaper.tag}
-                </div>
-              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
                 <div className="absolute bottom-0 left-0 right-0 p-5">
                   <div className="flex items-center justify-between mb-3">
@@ -530,7 +522,10 @@ export default function WallpaperGrid({
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => toggleWallpaperSelection(wallpaper.sha)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWallpaperSelection(wallpaper.sha);
+                      }}
                       className={`p-2 rounded-full ${
                         selectedWallpapers.includes(wallpaper.sha)
                           ? "bg-[#F7F06D] text-black"
@@ -540,7 +535,10 @@ export default function WallpaperGrid({
                       <Download className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => toggleFavorite(wallpaper.sha)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFavorite(wallpaper);
+                      }}
                       className={`p-2 rounded-full ${
                         favorites.includes(wallpaper.sha)
                           ? "bg-[#F7F06D] text-black"
@@ -550,19 +548,31 @@ export default function WallpaperGrid({
                       <Heart className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleShare(wallpaper)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(wallpaper);
+                      }}
                       className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
                     >
                       <Share2 className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleOpenModal(wallpaper)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenModal(wallpaper);
+                      }}
                       className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
                     >
                       <Expand className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
+              </div>
+              <div className="absolute top-3 left-3 bg-[#F7F06D] text-black px-2 py-1 rounded-full text-xs font-medium">
+                {wallpaper.resolution}
+              </div>
+              <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
+                {wallpaper.tag}
               </div>
             </div>
           </div>

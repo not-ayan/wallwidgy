@@ -414,11 +414,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
     )
   }
 
-  const breakpointColumnsObj = {
+  const breakpointColumnsObj: { [key: string]: number } = favoriteIds ? {
+    default: 3,
+    '1100': 2,
+    '700': 1
+  } : {
     default: 4,
-    1400: 3,
-    1100: 2,
-    700: 1,
+    '1400': 3,
+    '1100': 2,
+    '700': 1
   }
 
   const ImageComponent = ({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
@@ -466,16 +470,59 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   };
 
   return (
-    <div className="w-[90vw] mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative">
+    <div className={`${favoriteIds ? 'w-[70vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
+      {favoriteIds && displayedWallpapers.length > 0 && (
+        <div className="flex items-center justify-center gap-4 mb-8">
+          <button
+            onClick={async () => {
+              // Download all favorites
+              for (const wallpaper of displayedWallpapers) {
+                try {
+                  const response = await fetch(wallpaper.download_url)
+                  if (!response.ok) throw new Error('Failed to download')
+                  const blob = await response.blob()
+                  const url = window.URL.createObjectURL(blob)
+                  const link = document.createElement("a")
+                  link.href = url
+                  link.download = wallpaper.name
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                  window.URL.revokeObjectURL(url)
+                } catch (error) {
+                  console.error(`Error downloading ${wallpaper.name}:`, error)
+                  showNotification(`Failed to download ${wallpaper.name}`)
+                }
+              }
+              showNotification("Started downloading all favorites")
+            }}
+            className="bg-[var(--accent-light)] text-black px-5 py-2.5 rounded-full hover:bg-[var(--accent-light)]/90 transition-all text-sm font-medium flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download All
+          </button>
+          <button
+            onClick={() => {
+              localStorage.setItem("favorites", "[]")
+              setFavorites([])
+              showNotification("Removed all favorites")
+            }}
+            className="bg-black/60 text-white px-5 py-2.5 rounded-full hover:bg-black/70 transition-all text-sm font-medium flex items-center gap-2 backdrop-blur-sm"
+          >
+            <Heart className="w-4 h-4" />
+            Remove All
+          </button>
+        </div>
+      )}
       <Masonry
         breakpointCols={breakpointColumnsObj}
         className="my-masonry-grid"
         columnClassName="my-masonry-grid_column"
       >
         {displayedWallpapers.map((wallpaper, index) => (
-          <div key={wallpaper.sha} className="mb-4 sm:mb-6">
+          <div key={wallpaper.sha} className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}>
             <div
-              className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
+              className={`group relative ${favoriteIds ? 'aspect-[4/3]' : 'aspect-[3/2]'} overflow-hidden rounded-2xl bg-white/5`}
               onClick={(e) => {
                 // Only handle click if clicking on the container itself
                 if (e.target === e.currentTarget) {

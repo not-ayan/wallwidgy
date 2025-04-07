@@ -7,9 +7,15 @@ import WallpaperModal from "@/app/components/WallpaperModal"
 interface Wallpaper {
   sha: string
   name: string
+  width: number
+  height: number
+  preview_url: string
   download_url: string
   resolution: string
+  tag: string
   platform: "Desktop" | "Mobile"
+  uploadDate: Date
+  format: string
 }
 
 export default function WallpaperPage() {
@@ -20,18 +26,35 @@ export default function WallpaperPage() {
   useEffect(() => {
     async function fetchWallpaper() {
       try {
-        const response = await fetch("/api/wallpapers")
-        const wallpapers = await response.json()
+        const response = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json', {
+          next: { revalidate: 3600 }, // Cache for 1 hour
+        })
 
-        const foundWallpaper = wallpapers.find((w: any) => w.filename === name)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch wallpapers: ${response.status}`)
+        }
 
-        if (foundWallpaper) {
+        const data = await response.json()
+        
+        if (!data || !Array.isArray(data)) {
+          throw new Error('Invalid data format: expected an array')
+        }
+
+        const wallpaper = data.find((item: any) => item.file_name === name)
+
+        if (wallpaper) {
           setWallpaper({
-            sha: foundWallpaper.public_id,
-            name: foundWallpaper.filename,
-            download_url: cloudinaryUrl(foundWallpaper.public_id, { isDownload: true }),
-            resolution: `${foundWallpaper.width}x${foundWallpaper.height}`,
-            platform: foundWallpaper.height > foundWallpaper.width ? "Mobile" : "Desktop",
+            sha: wallpaper.file_name,
+            name: wallpaper.file_name,
+            width: wallpaper.width,
+            height: wallpaper.height,
+            preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${wallpaper.file_cache_name}`,
+            download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${wallpaper.file_main_name}`,
+            resolution: wallpaper.resolution,
+            tag: wallpaper.orientation,
+            platform: wallpaper.orientation,
+            uploadDate: new Date(wallpaper.timestamp),
+            format: wallpaper.file_name.split('.').pop() || 'unknown'
           })
         }
       } catch (error) {

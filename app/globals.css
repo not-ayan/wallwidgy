@@ -10,14 +10,17 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 @layer base {
   body {
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
     font-family: var(--font-outfit), system-ui, sans-serif;
+    color: rgb(var(--foreground-rgb));
+    background: linear-gradient(
+        to bottom,
+        transparent,
+        rgb(var(--background-end-rgb))
+      )
+      rgb(var(--background-start-rgb));
   }
 }
 
@@ -34,11 +37,16 @@
 }
 
 .animated-gradient {
-  background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-  background-size: 400% 400%;
+  background: linear-gradient(
+    90deg,
+    #F0D0C7 0%,
+    #BC430D 100%
+  );
+  background-size: 200% 200%;
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradient 15s ease infinite;
+  background-clip: text;
+  color: transparent;
+  animation: gradient 8s ease infinite;
 }
 
 @keyframes gradient {
@@ -144,5 +152,11 @@
   100% {
     border-radius: 0 50%;
   }
+}
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 10, 10, 10;
+  --background-end-rgb: 10, 10, 10;
 }
 

@@ -168,79 +168,46 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   }, [])
 
   const fetchWallpapers = useCallback(
-    async ({ sortBy = "newest" }: { sortBy?: "newest" | "oldest" | "name" } = {}) => {
+    async ({ sortBy = "newest" }: { sortBy?: string } = {}) => {
       try {
         setIsLoading(true)
         setError(null)
 
-        // Fetch the index.json file
-        const indexResponse = await fetch('https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json')
-        if (!indexResponse.ok) {
-          throw new Error(`Failed to fetch index.json: ${indexResponse.status}`)
-        }
-        const wallpaperFiles: WallpaperFile[] = await indexResponse.json()
-        console.log('Fetched wallpaper files:', wallpaperFiles.length)
+        const response = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json', {
+          next: { revalidate: 3600 }, // Cache for 1 hour
+        })
 
-        // Process wallpapers in batches to prevent memory issues
-        const batchSize = 10
-        const wallpapers: Wallpaper[] = []
+        if (!response.ok) {
+          throw new Error(`Failed to fetch wallpapers: ${response.status}`)
+        }
+
+        const data = await response.json()
         
-        for (let i = 0; i < wallpaperFiles.length; i += batchSize) {
-          const batch = wallpaperFiles.slice(i, i + batchSize)
-          const batchResults = await Promise.all(
-            batch.map(async (file) => {
-              try {
-                const img = new window.Image()
-                const previewUrl = `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${file.file_cache_name}`
-                
-                const dimensions = await new Promise<ImageDimensions>((resolve, reject) => {
-                  img.onload = () => {
-                    resolve({ width: img.width, height: img.height })
-                  }
-                  img.onerror = (error) => {
-                    reject(new Error(`Failed to load preview for ${file.file_name}`))
-                  }
-                  img.src = previewUrl
-                })
-
-                return {
-                  sha: file.file_name,
-                  name: file.file_name,
-                  width: file.width,
-                  height: file.height,
-                  preview_url: previewUrl,
-                  download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${file.file_main_name}`,
-                  resolution: file.resolution,
-                  tag: file.orientation,
-                  platform: file.orientation,
-                  uploadDate: new Date(file.timestamp),
-                }
-              } catch (error) {
-                console.error(`Error processing ${file.file_name}:`, error)
-                return null
-              }
-            })
-          )
-
-          const validResults = batchResults.filter((w): w is Wallpaper => w !== null)
-          wallpapers.push(...validResults)
-          console.log(`Processed batch ${i / batchSize + 1}, added ${validResults.length} wallpapers`)
-
-          // Update state with current progress
-          setWallpapersState([...wallpapers])
+        if (!data || !Array.isArray(data)) {
+          throw new Error('Invalid data format: expected an array')
         }
 
-        // Sort wallpapers by newest first using the timestamp
-        wallpapers.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
+        const wallpapers = data.map((item: any) => ({
+          sha: item.file_name,
+          name: item.file_name,
+          width: item.width,
+          height: item.height,
+          preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${item.file_cache_name}`,
+          download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
+          resolution: item.resolution,
+          tag: item.orientation,
+          platform: item.orientation,
+          uploadDate: new Date(item.timestamp),
+          format: item.file_name.split('.').pop() || 'unknown'
+        }))
 
-        console.log('Final wallpapers array:', wallpapers.length)
+        // Sort wallpapers by newest first
+        wallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
+
         setWallpapersState(wallpapers)
-        // Initially display only the first 50 wallpapers
-        setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
-        setHasMore(wallpapers.length > initialLoadSize)
       } catch (err: any) {
+        setError(err.message)
         console.error("Error fetching wallpapers:", err)
-        setError(`Failed to fetch wallpapers. ${err.message || ""}`)
       } finally {
         setIsLoading(false)
       }
@@ -438,7 +405,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={handleRetry}
-          className="bg-[#F7F06D] text-black px-4 py-2 rounded-full hover:bg-[#F7F06D]/90 transition-all flex items-center gap-2 mx-auto"
+          className="bg-[#F0D0C7] text-black px-4 py-2 rounded-full hover:bg-[#F0D0C7]/90 transition-all flex items-center gap-2 mx-auto"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Retry</span>
@@ -530,7 +497,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
                       }}
                       className={`p-2 rounded-full ${
                         selectedWallpapers.includes(wallpaper.sha)
-                          ? "bg-[#F7F06D] text-black"
+                          ? "bg-[#F0D0C7] text-black"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all hover:scale-105`}
                     >
@@ -543,11 +510,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
                       }}
                       className={`p-2 rounded-full ${
                         favorites.includes(wallpaper.sha)
-                          ? "bg-[#F7F06D] text-black"
+                          ? "bg-black/60 text-[#FF0000]"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all hover:scale-105`}
                     >
-                      <Heart className="w-4 h-4" />
+                      <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -570,7 +537,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
                   </div>
                 </div>
               </div>
-              <div className="absolute top-3 left-3 bg-[#F7F06D] text-black px-2 py-1 rounded-full text-xs font-medium">
+              <div className="absolute top-3 left-3 bg-[#F0D0C7] text-black px-2 py-1 rounded-full text-xs font-medium">
                 {wallpaper.resolution}
               </div>
               <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
@@ -585,7 +552,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         <div className="fixed bottom-24 sm:bottom-8 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={downloadSelectedWallpapers}
-            className="bg-[#F7F06D]/10 text-[#F7F06D] px-5 py-2.5 rounded-full hover:bg-[#F7F06D]/15 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg"
+            className="bg-[#F0D0C7]/10 text-[#F0D0C7] px-5 py-2.5 rounded-full hover:bg-[#F0D0C7]/15 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg"
             style={{ width: "auto" }}
           >
             <Download className="w-4 h-4" />
@@ -598,14 +565,14 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         <div className="bg-black/60 backdrop-blur-sm rounded-full p-2 flex gap-2">
           <button
             onClick={() => handleFilterChange("all")}
-            className={`px-3 py-1 rounded-full text-xs ${filter === "all" ? "bg-[#F7F06D] text-black" : "text-white"}`}
+            className={`px-3 py-1 rounded-full text-xs ${filter === "all" ? "bg-[#F0D0C7] text-black" : "text-white"}`}
           >
             All
           </button>
           <button
             onClick={() => handleFilterChange("desktop")}
             className={`px-3 py-1 rounded-full text-xs ${
-              filter === "desktop" ? "bg-[#F7F06D] text-black" : "text-white"
+              filter === "desktop" ? "bg-[#F0D0C7] text-black" : "text-white"
             }`}
           >
             Desktop
@@ -613,7 +580,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
           <button
             onClick={() => handleFilterChange("mobile")}
             className={`px-3 py-1 rounded-full text-xs ${
-              filter === "mobile" ? "bg-[#F7F06D] text-black" : "text-white"
+              filter === "mobile" ? "bg-[#F0D0C7] text-black" : "text-white"
             }`}
           >
             Mobile

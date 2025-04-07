@@ -25,7 +25,7 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
         <header className="px-4 sm:px-12 py-5">
           <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
-            <Link href="/" className="text-[#F0D0C7] hover:text-white transition-all font-medium text-xl sm:text-lg pl-4">
+            <Link href="/" className="text-[var(--accent-light)] hover:text-white transition-all font-medium text-xl sm:text-lg pl-4">
               WallWidgy
             </Link>
             <div className="flex items-center gap-4 pr-4">

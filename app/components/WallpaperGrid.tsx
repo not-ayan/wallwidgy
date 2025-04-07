@@ -76,6 +76,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const initialLoadSize = 50
   const loadMoreSize = 20
+  const [isMobile, setIsMobile] = useState(true)
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
@@ -391,6 +392,17 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
     }
   }, [favoriteIds, wallpapersState]);
 
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -405,7 +417,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={handleRetry}
-          className="bg-[#F0D0C7] text-black px-4 py-2 rounded-full hover:bg-[#F0D0C7]/90 transition-all flex items-center gap-2 mx-auto"
+          className="bg-[var(--accent-light)] text-black px-4 py-2 rounded-full hover:bg-[var(--accent-light)]/90 transition-all flex items-center gap-2 mx-auto"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Retry</span>
@@ -475,9 +487,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         {displayedWallpapers.map((wallpaper, index) => (
           <div key={wallpaper.sha} className="mb-4 sm:mb-6">
             <div
-              className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
+              className="group relative overflow-hidden rounded-2xl bg-white/5"
+              style={{
+                aspectRatio: isMobile ? '3/2' : `${wallpaper.width}/${wallpaper.height}`
+              }}
               onClick={(e) => {
-                // Only handle click if clicking on the container itself
                 if (e.target === e.currentTarget) {
                   handleClick(wallpaper);
                 }
@@ -497,7 +511,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
                       }}
                       className={`p-2 rounded-full ${
                         selectedWallpapers.includes(wallpaper.sha)
-                          ? "bg-[#F0D0C7] text-black"
+                          ? "bg-[var(--accent-light)] text-black"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all hover:scale-105`}
                     >
@@ -537,7 +551,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
                   </div>
                 </div>
               </div>
-              <div className="absolute top-3 left-3 bg-[#F0D0C7] text-black px-2 py-1 rounded-full text-xs font-medium">
+              <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium">
                 {wallpaper.resolution}
               </div>
               <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
@@ -552,7 +566,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         <div className="fixed bottom-24 sm:bottom-8 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={downloadSelectedWallpapers}
-            className="bg-[#F0D0C7]/10 text-[#F0D0C7] px-5 py-2.5 rounded-full hover:bg-[#F0D0C7]/15 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg"
+            className="bg-[var(--accent-light)]/10 text-[var(--accent-light)] px-5 py-2.5 rounded-full hover:bg-[var(--accent-light)]/15 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg"
             style={{ width: "auto" }}
           >
             <Download className="w-4 h-4" />
@@ -565,14 +579,14 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         <div className="bg-black/60 backdrop-blur-sm rounded-full p-2 flex gap-2">
           <button
             onClick={() => handleFilterChange("all")}
-            className={`px-3 py-1 rounded-full text-xs ${filter === "all" ? "bg-[#F0D0C7] text-black" : "text-white"}`}
+            className={`px-3 py-1 rounded-full text-xs ${filter === "all" ? "bg-[var(--accent-light)] text-black" : "text-white"}`}
           >
             All
           </button>
           <button
             onClick={() => handleFilterChange("desktop")}
             className={`px-3 py-1 rounded-full text-xs ${
-              filter === "desktop" ? "bg-[#F0D0C7] text-black" : "text-white"
+              filter === "desktop" ? "bg-[var(--accent-light)] text-black" : "text-white"
             }`}
           >
             Desktop
@@ -580,7 +594,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
           <button
             onClick={() => handleFilterChange("mobile")}
             className={`px-3 py-1 rounded-full text-xs ${
-              filter === "mobile" ? "bg-[#F0D0C7] text-black" : "text-white"
+              filter === "mobile" ? "bg-[var(--accent-light)] text-black" : "text-white"
             }`}
           >
             Mobile

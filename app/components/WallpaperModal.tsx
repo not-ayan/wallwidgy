@@ -71,8 +71,8 @@ export default function WallpaperModal({
 
       if (navigator.share) {
         await navigator.share({
-          title: "Minimalist Wallpaper",
-          text: `Check out this minimalist wallpaper: ${wallpaper.name}`,
+          title: "Wallpaper",
+          text: `Check out this wallpaper: ${wallpaper.name}`,
           url: shareUrl,
         })
       } else {

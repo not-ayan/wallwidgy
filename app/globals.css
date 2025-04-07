@@ -39,8 +39,8 @@
 .animated-gradient {
   background: linear-gradient(
     90deg,
-    #F0D0C7 0%,
-    #E2292B 100%
+    var(--accent-light) 0%,
+    var(--accent-dark) 100%
   );
   background-size: 200% 200%;
   -webkit-background-clip: text;
@@ -158,5 +158,7 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 10, 10, 10;
   --background-end-rgb: 10, 10, 10;
+  --accent-light: #eedf9f;
+  --accent-dark: #fff0d0;
 }
 

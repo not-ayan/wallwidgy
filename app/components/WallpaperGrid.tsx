@@ -46,6 +46,7 @@ interface Wallpaper {
 
 interface WallpaperGridProps {
   wallpapers?: string[]; // Array of favorite wallpaper IDs
+  categoryFilter?: string; // Category filter string
 }
 
 interface ImageDimensions {
@@ -53,7 +54,7 @@ interface ImageDimensions {
   height: number;
 }
 
-export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGridProps) {
+export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter }: WallpaperGridProps) {
   const [wallpapersState, setWallpapersState] = useState<Wallpaper[]>([])
   const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
@@ -187,7 +188,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
           throw new Error('Invalid data format: expected an array')
         }
 
-        const wallpapers = data.map((item: any) => ({
+        let wallpapers = data.map((item: any) => ({
           sha: item.file_name,
           name: item.file_name,
           width: item.width,
@@ -198,13 +199,20 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
           tag: item.orientation,
           platform: item.orientation,
           uploadDate: new Date(item.timestamp),
-          format: item.file_name.split('.').pop() || 'unknown'
+          format: item.file_name.split('.').pop() || 'unknown',
+          category: item.category
         }))
+
+        // Apply category filter if provided
+        if (categoryFilter) {
+          wallpapers = wallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
+        }
 
         // Sort wallpapers by newest first
         wallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
         setWallpapersState(wallpapers)
+        setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
       } catch (err: any) {
         setError(err.message)
         console.error("Error fetching wallpapers:", err)
@@ -212,7 +220,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         setIsLoading(false)
       }
     },
-    [],
+    [categoryFilter],
   )
 
   const loadFavorites = useCallback(() => {
@@ -418,6 +426,10 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
     default: 3,
     '1100': 2,
     '700': 1
+  } : categoryFilter ? {
+    default: 3,
+    '1100': 2,
+    '700': 1
   } : {
     default: 4,
     '1400': 3,
@@ -470,7 +482,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   };
 
   return (
-    <div className={`${favoriteIds ? 'w-[85vw] sm:w-[70vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
+    <div className={`${favoriteIds ? 'w-[85vw] sm:w-[70vw]' : categoryFilter ? 'w-[90vw] sm:w-[75vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
       {favoriteIds && displayedWallpapers.length > 0 && (
         <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8">
           <button

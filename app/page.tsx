@@ -32,6 +32,9 @@ export default function Home() {
               <Link href="/favorites" aria-label="Favorites">
                 <Heart className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
               </Link>
+              <Link href="/categories" aria-label="Categories">
+                <Grid className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
+              </Link>
               <Link
                 href="/about"
                 className="p-2 text-white/80 hover:text-white transition-all"

@@ -470,9 +470,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   };
 
   return (
-    <div className={`${favoriteIds ? 'w-[70vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
+    <div className={`${favoriteIds ? 'w-[85vw] sm:w-[70vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
       {favoriteIds && displayedWallpapers.length > 0 && (
-        <div className="flex items-center justify-center gap-4 mb-8">
+        <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8">
           <button
             onClick={async () => {
               // Download all favorites
@@ -496,9 +496,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
               }
               showNotification("Started downloading all favorites")
             }}
-            className="bg-[var(--accent-light)] text-black px-5 py-2.5 rounded-full hover:bg-[var(--accent-light)]/90 transition-all text-sm font-medium flex items-center gap-2"
+            className="bg-[var(--accent-light)] text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-[var(--accent-light)]/90 transition-all text-xs sm:text-sm font-medium flex items-center gap-2"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Download All
           </button>
           <button
@@ -507,9 +507,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
               setFavorites([])
               showNotification("Removed all favorites")
             }}
-            className="bg-black/60 text-white px-5 py-2.5 rounded-full hover:bg-black/70 transition-all text-sm font-medium flex items-center gap-2 backdrop-blur-sm"
+            className="bg-black/60 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-black/70 transition-all text-xs sm:text-sm font-medium flex items-center gap-2 backdrop-blur-sm"
           >
-            <Heart className="w-4 h-4" />
+            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Remove All
           </button>
         </div>

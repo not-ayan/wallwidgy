@@ -653,32 +653,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   )
 }
 
-function cloudinaryUrl(
-  publicId: string,
-  options: {
-    width?: number
-    height?: number
-    crop?: string
-    quality?: string
-    format?: string
-    isDownload?: boolean
-  },
-) {
-  const transformations = options.isDownload ? [] : ["f_auto", "q_auto"]
-
-  if (options.width) transformations.push(`w_${options.width}`)
-  if (options.height) transformations.push(`h_${options.height}`)
-  if (options.crop) transformations.push(`c_${options.crop}`)
-
-  const transformationString = transformations.join(",")
-
-  if (options.isDownload) {
-    return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${publicId}`
-  } else {
-    return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/${publicId}`
-  }
-}
-
 function getResolutionLabel(width: number, height: number): string {
   const resolutionPixels = width * height
   if (resolutionPixels >= 1920 * 1080 && resolutionPixels < 2560 * 1440) {

@@ -76,7 +76,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const initialLoadSize = 50
   const loadMoreSize = 20
-  const [isMobile, setIsMobile] = useState(true)
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
@@ -392,17 +391,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
     }
   }, [favoriteIds, wallpapersState]);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -487,11 +475,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
         {displayedWallpapers.map((wallpaper, index) => (
           <div key={wallpaper.sha} className="mb-4 sm:mb-6">
             <div
-              className="group relative overflow-hidden rounded-2xl bg-white/5"
-              style={{
-                aspectRatio: isMobile ? '3/2' : `${wallpaper.width}/${wallpaper.height}`
-              }}
+              className="group relative aspect-[3/2] overflow-hidden rounded-2xl bg-white/5"
               onClick={(e) => {
+                // Only handle click if clicking on the container itself
                 if (e.target === e.currentTarget) {
                   handleClick(wallpaper);
                 }

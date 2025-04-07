@@ -1,8 +1,8 @@
 @font-face {
-  font-family: "Sagite";
+  font-family: "BONNACODENSED";
   font-style: normal;
   font-weight: normal;
-  src: url("/fonts/Sagite-woo8x.woff") format("woff");
+  src: url("/fonts/BONNACOCONDENSEDRegular.woff") format("woff");
   font-display: swap;
 }
 
@@ -34,6 +34,10 @@
 
 .font-sagite {
   font-family: "Sagite", ui-serif, Georgia, serif;
+}
+
+.font-title {
+  font-family: "BONNACODENSED", system-ui, sans-serif;
 }
 
 .animated-gradient {
@@ -158,7 +162,7 @@
   --foreground-rgb: 255, 255, 255;
   --background-start-rgb: 10, 10, 10;
   --background-end-rgb: 10, 10, 10;
-  --accent-light: #eedf9f;
-  --accent-dark: #fff0d0;
+  --accent-light: #fff8cf;
+  --accent-dark: #ffe555;
 }
 

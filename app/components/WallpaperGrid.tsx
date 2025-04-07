@@ -371,21 +371,25 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
 
   const handleShare = useCallback(async (wallpaper: Wallpaper) => {
     try {
-      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.sha)}`
+      const shareUrl = wallpaper.download_url
+      const shareText = `Checkout this wallpaper: ${shareUrl}`
 
       if (navigator.share) {
         await navigator.share({
-          title: "Minimalist Wallpaper",
-          text: `Check out this minimalist wallpaper: ${wallpaper.name}`,
+          text: shareText,
           url: shareUrl,
         })
       } else {
-        await navigator.clipboard.writeText(shareUrl)
+        // Fallback to clipboard copy
+        await navigator.clipboard.writeText(shareText)
         showNotification("Link copied to clipboard!")
       }
     } catch (error: any) {
       console.error("Error sharing:", error)
-      showNotification("Unable to share or copy link")
+      // Only show error notification if it's not an abort error (user cancelled)
+      if (error.name !== 'AbortError') {
+        showNotification("Unable to share or copy link")
+      }
     }
   }, [showNotification])
 

@@ -167,7 +167,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   }, [])
 
   const fetchWallpapers = useCallback(
-    async ({ sortBy = "name" }: { sortBy?: "newest" | "oldest" | "name" } = {}) => {
+    async ({ sortBy = "newest" }: { sortBy?: "newest" | "oldest" | "name" } = {}) => {
       try {
         setIsLoading(true)
         setError(null)
@@ -229,20 +229,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
           setWallpapersState([...wallpapers])
         }
 
-        // Apply sorting
-        switch (sortBy) {
-          case "newest":
-            wallpapers.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
-            break
-          case "oldest":
-            wallpapers.sort((a, b) => a.uploadDate.getTime() - b.uploadDate.getTime())
-            break
-          case "name":
-            wallpapers.sort((a, b) => a.name.localeCompare(b.name))
-            break
-          default:
-            break
-        }
+        // Sort wallpapers by newest first
+        wallpapers.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
         console.log('Final wallpapers array:', wallpapers.length)
         setWallpapersState(wallpapers)
@@ -283,8 +271,17 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
   };
 
   const handleFilterChange = useCallback((newFilter: "all" | "desktop" | "mobile") => {
-    setFilter(newFilter)
-  }, [])
+    setFilter(newFilter);
+    if (newFilter === "all") {
+      setDisplayedWallpapers(wallpapersState.slice(0, initialLoadSize));
+    } else {
+      const filteredWallpapers = wallpapersState.filter(
+        (wallpaper) => wallpaper.platform.toLowerCase() === newFilter
+      );
+      setDisplayedWallpapers(filteredWallpapers.slice(0, initialLoadSize));
+    }
+    setHasMore(true);
+  }, [wallpapersState]);
 
   const showNotification = useCallback((message: string) => {
     const notification = document.createElement("div")
@@ -490,7 +487,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
             setError(true);
             setIsLoading(false);
           }}
-          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
         />
       </>
     );

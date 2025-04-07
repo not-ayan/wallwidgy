@@ -28,6 +28,7 @@ interface WallpaperFile {
   height: number;
   resolution: string;
   orientation: "Desktop" | "Mobile";
+  timestamp: string;
 }
 
 interface Wallpaper {
@@ -212,7 +213,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
                   resolution: file.resolution,
                   tag: file.orientation,
                   platform: file.orientation,
-                  uploadDate: new Date(),
+                  uploadDate: new Date(file.timestamp),
                 }
               } catch (error) {
                 console.error(`Error processing ${file.file_name}:`, error)
@@ -229,7 +230,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds }: WallpaperGrid
           setWallpapersState([...wallpapers])
         }
 
-        // Sort wallpapers by newest first
+        // Sort wallpapers by newest first using the timestamp
         wallpapers.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
         console.log('Final wallpapers array:', wallpapers.length)

@@ -46,7 +46,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
-        <h1 className="font-title text-[40px] sm:text-[120px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] animated-gradient">
+        <h1 className="font-title text-[56px] sm:text-[120px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] animated-gradient">
           The only wallpaper site you need
         </h1>
         <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-base sm:text-lg leading-relaxed">

@@ -279,7 +279,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           const url = window.URL.createObjectURL(blob)
           const link = document.createElement("a")
           link.href = url
-          link.download = wallpaper.name
+          // Get the file extension from the download URL
+          const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+          // Ensure the filename has the correct extension
+          const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+          link.download = fileName
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
@@ -399,6 +403,30 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     }
   }, [favoriteIds, wallpapersState]);
 
+  const handleDownload = useCallback(async (wallpaper: Wallpaper) => {
+    try {
+      const response = await fetch(wallpaper.download_url)
+      if (!response.ok) throw new Error('Failed to download')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      // Get the file extension from the download URL
+      const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+      // Ensure the filename has the correct extension
+      const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      showNotification("Download started!")
+    } catch (error) {
+      console.error("Error downloading wallpaper:", error)
+      showNotification("Failed to download wallpaper")
+    }
+  }, [showNotification])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -496,7 +524,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                   const url = window.URL.createObjectURL(blob)
                   const link = document.createElement("a")
                   link.href = url
-                  link.download = wallpaper.name
+                  const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+                  const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+                  link.download = fileName
                   document.body.appendChild(link)
                   link.click()
                   document.body.removeChild(link)

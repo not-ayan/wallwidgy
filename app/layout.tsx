@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Outfit } from "next/font/google"
 import localFont from "next/font/local"
 import "./globals.css"
@@ -14,7 +15,7 @@ const sagite = localFont({
   variable: "--font-sagite",
 })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Minimalist Wallpapers",
   description: "A curated collection of minimalist wallpapers",
   icons: {
@@ -31,6 +32,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${outfit.variable} ${sagite.variable}`}>
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4025936088642615"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={`bg-[#0A0A0A] text-white antialiased ${outfit.variable} ${sagite.variable} font-sans`}>
         {children}
       </body>

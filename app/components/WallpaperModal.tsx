@@ -46,6 +46,7 @@ export default function WallpaperModal({
   const imageRef = useRef<HTMLImageElement>(null)
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (wallpaper.resolution) {
@@ -64,6 +65,16 @@ export default function WallpaperModal({
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
   }, [])
+
+  // Add focus management
+  useEffect(() => {
+    if (isOpen) {
+      const currentModal = modalRef.current
+      if (currentModal) {
+        currentModal.focus()
+      }
+    }
+  }, [isOpen])
 
   const handleShare = async () => {
     try {
@@ -225,8 +236,29 @@ export default function WallpaperModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      ref={modalRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm outline-none"
       onClick={handleBackgroundClick}
+      onKeyDown={(e) => {
+        switch (e.key) {
+          case "Escape":
+            onClose()
+            break
+          case "ArrowLeft":
+            if (hasPrevious && onPrevious) onPrevious()
+            break
+          case "ArrowRight":
+            if (hasNext && onNext) onNext()
+            break
+          case "ArrowUp":
+            handleZoomIn()
+            break
+          case "ArrowDown":
+            handleZoomOut()
+            break
+        }
+      }}
     >
       <div className="fixed inset-0 flex items-center justify-center">
         {/* Blurred background */}

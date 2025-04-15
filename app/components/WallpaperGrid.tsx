@@ -124,17 +124,22 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const loadMoreWallpapers = useCallback(() => {
     if (isLoading || !hasMore) return;
 
+    // Get the filtered wallpapers based on current filter
+    const filteredWallpapers = filter === "all" 
+      ? wallpapersState 
+      : wallpapersState.filter(wallpaper => wallpaper.platform.toLowerCase() === filter);
+
     const startIndex = displayedWallpapers.length;
     const endIndex = startIndex + loadMoreSize;
-    const newWallpapers = wallpapersState.slice(startIndex, endIndex);
+    const newWallpapers = filteredWallpapers.slice(startIndex, endIndex);
     
     if (newWallpapers.length > 0) {
       setDisplayedWallpapers(prev => [...prev, ...newWallpapers]);
-      setHasMore(endIndex < wallpapersState.length);
+      setHasMore(endIndex < filteredWallpapers.length);
     } else {
       setHasMore(false);
     }
-  }, [displayedWallpapers.length, wallpapersState, isLoading, hasMore, loadMoreSize]);
+  }, [displayedWallpapers.length, wallpapersState, isLoading, hasMore, loadMoreSize, filter]);
 
   // Update the useEffect for loading more wallpapers
   useEffect(() => {

@@ -26,6 +26,7 @@ const categories = {
   architecture: { name: "Architecture", icon: "🏛️" },
   minimal: { name: "Minimal", icon: "✨" },
   tech: { name: "Tech", icon: "💻" },
+  amoled: { name: "AMOLED", icon: "🌑" },
 }
 
 export default function CategoryPage({ params }: { params: { category: string } }) {
@@ -90,4 +91,4 @@ export default function CategoryPage({ params }: { params: { category: string } 
       <BackToTop />
     </main>
   )
-} 
+}

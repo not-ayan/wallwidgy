@@ -127,7 +127,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     // Get the filtered wallpapers based on current filter
     const filteredWallpapers = filter === "all" 
       ? wallpapersState 
-      : wallpapersState.filter(wallpaper => wallpaper.platform.toLowerCase() === filter);
+      : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
 
     const startIndex = displayedWallpapers.length;
     const endIndex = startIndex + loadMoreSize;
@@ -257,7 +257,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       setDisplayedWallpapers(wallpapersState.slice(0, initialLoadSize));
     } else {
       const filteredWallpapers = wallpapersState.filter(
-        (wallpaper) => wallpaper.platform.toLowerCase() === newFilter
+        (wallpaper) => wallpaper.platform?.toLowerCase() === newFilter
       );
       setDisplayedWallpapers(filteredWallpapers.slice(0, initialLoadSize));
     }
@@ -317,7 +317,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
   const handlePreviousWallpaper = useCallback(() => {
     if (selectedIndex > 0) {
-      const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag.toLowerCase() === filter)
+      const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag?.toLowerCase() === filter)
       const currentFilteredIndex = filteredWallpapers.findIndex((w) => w.sha === selectedWallpaper?.sha)
       if (currentFilteredIndex > 0) {
         const prevWallpaper = filteredWallpapers[currentFilteredIndex - 1]
@@ -329,7 +329,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   }, [selectedIndex, wallpapersState, filter, selectedWallpaper])
 
   const handleNextWallpaper = useCallback(() => {
-    const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag.toLowerCase() === filter)
+    const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag?.toLowerCase() === filter)
     const currentFilteredIndex = filteredWallpapers.findIndex((w) => w.sha === selectedWallpaper?.sha)
     if (currentFilteredIndex < filteredWallpapers.length - 1) {
       const nextWallpaper = filteredWallpapers[currentFilteredIndex + 1]
@@ -730,4 +730,3 @@ function getResolutionLabel(width: number, height: number): string {
     return "Below 1080p"
   }
 }
-

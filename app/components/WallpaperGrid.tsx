@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import {
   Download,
@@ -53,6 +53,52 @@ interface ImageDimensions {
   width: number;
   height: number;
 }
+
+const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
+  const [error, setError] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  
+  // Use a stable ID to identify this specific image and prevent reloads
+  const stableId = `image-${wallpaper.sha}`;
+  
+  if (error) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+        <span className="text-white/50">Failed to load image</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {!isImageLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+          <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+        </div>
+      )}
+      <Image
+        id={stableId}
+        src={wallpaper.preview_url}
+        alt={wallpaper.name}
+        fill
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
+        priority={index < 6}
+        quality={75}
+        placeholder="blur"
+        loading={index < 12 ? "eager" : "lazy"}
+        onLoadingComplete={() => setIsImageLoaded(true)}
+        onError={() => setError(true)}
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+      />
+    </>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if the wallpaper sha changes (which should never happen for the same card)
+  return prevProps.wallpaper.sha === nextProps.wallpaper.sha;
+});
+
+StableImageComponent.displayName = 'StableImageComponent';
 
 export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter }: WallpaperGridProps) {
   const [wallpapersState, setWallpapersState] = useState<Wallpaper[]>([])
@@ -458,47 +504,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     '700': 1
   }
 
-  // Create ImageComponent as a separate component to prevent re-renders
-  const ImageComponent = ({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
-    const [error, setError] = useState(false);
-    const [isImageLoaded, setIsImageLoaded] = useState(false);
-    
-    // Use wallpaper.sha as a unique key to prevent reloading
-    const imageKey = `${wallpaper.sha}-${wallpaper.preview_url}`;
-    
-    if (error) {
-      return (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/5">
-          <span className="text-white/50">Failed to load image</span>
-        </div>
-      );
-    }
-
-    return (
-      <>
-        {!isImageLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/5">
-            <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-          </div>
-        )}
-        <Image
-          key={imageKey}
-          src={wallpaper.preview_url}
-          alt={wallpaper.name}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-          priority={index < 6}
-          quality={75}
-          placeholder="blur"
-          loading={index < 12 ? "eager" : "lazy"}
-          onLoad={() => setIsImageLoaded(true)}
-          onError={() => setError(true)}
-          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
-        />
-      </>
-    );
-  };
+  // Replace the original ImageComponent with the stable one
+  const ImageComponent = StableImageComponent;
 
   return (
     <div className={`${favoriteIds ? 'w-[85vw] sm:w-[70vw]' : categoryFilter ? 'w-[90vw] sm:w-[75vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
@@ -599,7 +606,10 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                        // Use a function to prevent re-renders
                         toggleWallpaperSelection(wallpaper.sha);
+                        return false;
                       }}
                       className={`p-2 rounded-full ${
                         selectedWallpapers.includes(wallpaper.sha)
@@ -614,7 +624,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
                         handleFavorite(wallpaper);
+                        return false;
                       }}
                       className={`p-2 rounded-full ${
                         favorites.includes(wallpaper.sha)
@@ -629,6 +641,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
                         handleShare(wallpaper);
                       }}
                       className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
@@ -640,6 +653,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
                         handleOpenModal(wallpaper);
                       }}
                       className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"

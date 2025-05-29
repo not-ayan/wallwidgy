@@ -89,7 +89,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         loading={index < 12 ? "eager" : "lazy"}
         onLoadingComplete={() => setIsImageLoaded(true)}
         onError={() => setError(true)}
-        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
       />
     </>
   );
@@ -435,6 +435,65 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       setIsDownloading(false);
     }
   }, [showNotification])
+
+  const handleRetry = useCallback(() => {
+    setRetryCount((prev) => prev + 1);
+    fetchWallpapers({ sortBy: "newest" });
+  }, [fetchWallpapers]);
+
+  const handleShare = useCallback((wallpaper: Wallpaper) => {
+    try {
+      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.sha)}`;
+      
+      if (navigator.share) {
+        navigator.share({
+          title: "Wallpaper",
+          text: `Check out this wallpaper: ${wallpaper.name}`,
+          url: shareUrl,
+        }).catch(error => {
+          console.error("Error sharing:", error);
+          showNotification("Unable to share");
+        });
+      } else {
+        navigator.clipboard.writeText(shareUrl)
+          .then(() => showNotification("Link copied to clipboard!"))
+          .catch(() => showNotification("Unable to copy link"));
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      showNotification("Unable to share or copy link");
+    }
+  }, [showNotification]);
+
+  const handleOpenModal = useCallback((wallpaper: Wallpaper) => {
+    setSelectedWallpaper(wallpaper);
+    const index = wallpapersState.findIndex(w => w.sha === wallpaper.sha);
+    setSelectedIndex(index);
+  }, [wallpapersState]);
+
+  const handleClick = useCallback((wallpaper: Wallpaper, isDoubleClick: boolean) => {
+    if (isDoubleClick) {
+      handleDownload(wallpaper);
+    } else {
+      handleOpenModal(wallpaper);
+    }
+  }, [handleDownload, handleOpenModal]);
+
+  const handlePreviousWallpaper = useCallback(() => {
+    if (selectedIndex > 0) {
+      const prevWallpaper = wallpapersState[selectedIndex - 1];
+      setSelectedWallpaper(prevWallpaper);
+      setSelectedIndex(selectedIndex - 1);
+    }
+  }, [selectedIndex, wallpapersState]);
+
+  const handleNextWallpaper = useCallback(() => {
+    if (selectedIndex < wallpapersState.length - 1) {
+      const nextWallpaper = wallpapersState[selectedIndex + 1];
+      setSelectedWallpaper(nextWallpaper);
+      setSelectedIndex(selectedIndex + 1);
+    }
+  }, [selectedIndex, wallpapersState]);
 
   if (isLoading) {
     return (

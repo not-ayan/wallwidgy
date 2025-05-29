@@ -315,6 +315,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     [wallpapersState],
   )
 
+  const handleClick = useCallback((wallpaper: Wallpaper, isMobile: boolean) => {
+    // Only open modal on desktop or double-tap on mobile
+    if (!isMobile) {
+      handleOpenModal(wallpaper);
+    }
+  }, [handleOpenModal]);
+
   const handlePreviousWallpaper = useCallback(() => {
     if (selectedIndex > 0) {
       const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag?.toLowerCase() === filter)
@@ -376,25 +383,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       }
     }
   }, [showNotification])
-
-  const handleClick = useCallback((wallpaper: Wallpaper) => {
-    setClickCount(prev => prev + 1)
-    
-    if (clickTimeout) {
-      clearTimeout(clickTimeout)
-    }
-
-    const timeout = setTimeout(() => {
-      setClickCount(0)
-    }, 300)
-
-    setClickTimeout(timeout)
-
-    if (clickCount === 1) {
-      handleOpenModal(wallpaper)
-      setClickCount(0)
-    }
-  }, [clickCount, clickTimeout, handleOpenModal])
 
   // Update displayed wallpapers when favorites change
   useEffect(() => {
@@ -470,9 +458,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     '700': 1
   }
 
+  // Create ImageComponent as a separate component to prevent re-renders
   const ImageComponent = ({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
     const [error, setError] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isImageLoaded, setIsImageLoaded] = useState(false);
+    
+    // Use wallpaper.sha as a unique key to prevent reloading
+    const imageKey = `${wallpaper.sha}-${wallpaper.preview_url}`;
     
     if (error) {
       return (
@@ -484,30 +476,24 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
     return (
       <>
-        {isLoading && (
+        {!isImageLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/5">
             <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
           </div>
         )}
         <Image
+          key={imageKey}
           src={wallpaper.preview_url}
           alt={wallpaper.name}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+          className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
           priority={index < 6}
           quality={75}
           placeholder="blur"
           loading={index < 12 ? "eager" : "lazy"}
-          onLoad={() => {
-            console.log(`Successfully loaded image: ${wallpaper.preview_url}`);
-            setIsLoading(false);
-          }}
-          onError={(e) => {
-            console.error(`Failed to load image: ${wallpaper.preview_url}`, e);
-            setError(true);
-            setIsLoading(false);
-          }}
+          onLoad={() => setIsImageLoaded(true)}
+          onError={() => setError(true)}
           blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
         />
       </>
@@ -566,111 +552,118 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         className="my-masonry-grid"
         columnClassName="my-masonry-grid_column"
       >
-        {displayedWallpapers.map((wallpaper, index) => (
-          <div 
-            key={wallpaper.sha} 
-            className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
-            style={{
-              animationDelay: `${index * 50}ms`,
-              animation: "fadeInUp 0.6s ease-out both"
-            }}
-          >
-            <div
-              className={`group relative ${favoriteIds ? 'aspect-[4/3]' : 'aspect-[3/2]'} overflow-hidden rounded-2xl bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
+        {displayedWallpapers.map((wallpaper, index) => {
+          const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          
+          return (
+            <div 
+              key={wallpaper.sha} 
+              className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
+              style={{
+                animationDelay: `${index * 50}ms`,
+                animation: "fadeInUp 0.6s ease-out both"
+              }}
             >
-              <ImageComponent wallpaper={wallpaper} index={index} />
-              
-              {/* Enhanced gradient overlay with smoother transition */}
-              <div className="absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-100"
-                style={{
-                  background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%)"
-                }}
-              />
-              
-              {/* Clickable area for modal - behind buttons */}
-              <div 
-                className="absolute inset-0 cursor-pointer"
-                onClick={() => handleClick(wallpaper)}
-              />
-              
-              {/* Content with enhanced animations */}
-              <div className="absolute inset-0 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:translate-y-[-4px] pointer-events-none">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-[15px] font-medium text-white/90 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
-                    {wallpaper.name}
-                  </h3>
+              <div
+                className={`group relative ${favoriteIds ? 'aspect-[4/3]' : 'aspect-[3/2]'} overflow-hidden rounded-2xl bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
+              >
+                <ImageComponent wallpaper={wallpaper} index={index} />
+                
+                {/* Enhanced gradient overlay with smoother transition */}
+                <div className="absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100"
+                  style={{
+                    background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%)"
+                  }}
+                />
+                
+                {/* Clickable area for modal - only active on desktop */}
+                <div 
+                  className="absolute inset-0 cursor-pointer hidden sm:block"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleClick(wallpaper, false);
+                  }}
+                />
+                
+                {/* Content with enhanced animations */}
+                <div className="absolute inset-0 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 transition-all duration-500 group-hover:translate-y-[-4px] pointer-events-none">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[15px] font-medium text-white/90 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                      {wallpaper.name}
+                    </h3>
+                  </div>
+                  
+                  {/* Action buttons with staggered animation */}
+                  <div className="flex items-center gap-2 pointer-events-auto">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleWallpaperSelection(wallpaper.sha);
+                      }}
+                      className={`p-2 rounded-full ${
+                        selectedWallpapers.includes(wallpaper.sha)
+                          ? "bg-[var(--accent-light)] text-black"
+                          : "bg-black/60 text-white hover:bg-black/70"
+                      } backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10`}
+                      style={{ transitionDelay: '0ms' }}
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleFavorite(wallpaper);
+                      }}
+                      className={`p-2 rounded-full ${
+                        favorites.includes(wallpaper.sha)
+                          ? "bg-black/60 text-[#FF0000]"
+                          : "bg-black/60 text-white hover:bg-black/70"
+                      } backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10`}
+                      style={{ transitionDelay: '50ms' }}
+                    >
+                      <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleShare(wallpaper);
+                      }}
+                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
+                      style={{ transitionDelay: '100ms' }}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleOpenModal(wallpaper);
+                      }}
+                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
+                      style={{ transitionDelay: '150ms' }}
+                    >
+                      <Expand className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 
-                {/* Action buttons with staggered animation */}
-                <div className="flex items-center gap-2 pointer-events-auto">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleWallpaperSelection(wallpaper.sha);
-                    }}
-                    className={`p-2 rounded-full ${
-                      selectedWallpapers.includes(wallpaper.sha)
-                        ? "bg-[var(--accent-light)] text-black"
-                        : "bg-black/60 text-white hover:bg-black/70"
-                    } backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10`}
-                    style={{ transitionDelay: '0ms' }}
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleFavorite(wallpaper);
-                    }}
-                    className={`p-2 rounded-full ${
-                      favorites.includes(wallpaper.sha)
-                        ? "bg-black/60 text-[#FF0000]"
-                        : "bg-black/60 text-white hover:bg-black/70"
-                    } backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10`}
-                    style={{ transitionDelay: '50ms' }}
-                  >
-                    <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleShare(wallpaper);
-                    }}
-                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
-                    style={{ transitionDelay: '100ms' }}
-                  >
-                    <Share2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleOpenModal(wallpaper);
-                    }}
-                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
-                    style={{ transitionDelay: '150ms' }}
-                  >
-                    <Expand className="w-4 h-4" />
-                  </button>
+                {/* Enhanced badges with animations */}
+                <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium transition-all duration-500 transform translate-y-[-2px] group-hover:translate-y-0 group-hover:shadow-lg">
+                  {wallpaper.resolution}
                 </div>
+                <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-500 transform translate-y-[-2px] group-hover:translate-y-0 group-hover:bg-white/20">
+                  {wallpaper.tag}
+                </div>
+                
+                {/* Highlight border on hover */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-transparent transition-all duration-500 group-hover:border-white/20 pointer-events-none"></div>
               </div>
-              
-              {/* Enhanced badges with animations */}
-              <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium transition-all duration-500 transform translate-y-[-2px] group-hover:translate-y-0 group-hover:shadow-lg">
-                {wallpaper.resolution}
-              </div>
-              <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-500 transform translate-y-[-2px] group-hover:translate-y-0 group-hover:bg-white/20">
-                {wallpaper.tag}
-              </div>
-              
-              {/* Highlight border on hover */}
-              <div className="absolute inset-0 rounded-2xl border-2 border-transparent transition-all duration-500 group-hover:border-white/20 pointer-events-none"></div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </Masonry>
 
       {selectedWallpapers.length > 0 && (

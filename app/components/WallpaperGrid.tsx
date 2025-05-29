@@ -89,7 +89,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         loading={index < 12 ? "eager" : "lazy"}
         onLoadingComplete={() => setIsImageLoaded(true)}
         onError={() => setError(true)}
-        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
       />
     </>
   );
@@ -123,6 +123,20 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const initialLoadSize = 50
   const loadMoreSize = 20
+  const [showDownloadConfirmation, setShowDownloadConfirmation] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadInfo, setDownloadInfo] = useState({ fileName: "", fileType: "" });
+
+  // Define this function higher up in the component
+  const toggleWallpaperSelection = useCallback((sha: string) => {
+    setSelectedWallpapers((prev) => {
+      if (prev.includes(sha)) {
+        return prev.filter((s) => s !== sha)
+      } else {
+        return [...prev, sha]
+      }
+    })
+  }, [])
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
@@ -313,13 +327,27 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const showNotification = useCallback((message: string) => {
     const notification = document.createElement("div")
     notification.className =
-      "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm z-50"
-    notification.textContent = message
+      "fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-5 py-3 rounded-xl text-sm z-50 flex items-center gap-2 shadow-lg"
+    
+    // Add download icon for download notifications
+    if (message.includes("downloading") || message.includes("Download")) {
+      const iconSpan = document.createElement("span")
+      iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`
+      notification.prepend(iconSpan)
+    }
+    
+    const textSpan = document.createElement("span")
+    textSpan.textContent = message
+    notification.appendChild(textSpan)
+    
     document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 2000)
+    setTimeout(() => notification.remove(), 3000)
   }, [])
 
   const downloadSelectedWallpapers = useCallback(async () => {
+    setIsDownloading(true);
+    showNotification(`Your wallpapers are now downloading...`);
+    
     for (const sha of selectedWallpapers) {
       const wallpaper = wallpapersState.find((w) => w.sha === sha)
       if (wallpaper) {
@@ -339,110 +367,39 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           link.click()
           document.body.removeChild(link)
           window.URL.revokeObjectURL(url)
+          
+          // Show download confirmation for first file only in popup
+          if (selectedWallpapers.indexOf(sha) === 0) {
+            setDownloadInfo({
+              fileName: selectedWallpapers.length > 1 ? `${fileName} and ${selectedWallpapers.length - 1} more` : fileName,
+              fileType: fileExtension.toUpperCase()
+            });
+            setShowDownloadConfirmation(true);
+            
+            // Hide the confirmation after 3 seconds
+            setTimeout(() => {
+              setShowDownloadConfirmation(false);
+            }, 3000);
+          }
         } catch (error) {
           console.error(`Error downloading ${wallpaper.name}:`, error)
           showNotification(`Failed to download ${wallpaper.name}`)
         }
       }
     }
-    setSelectedWallpapers([])
-  }, [selectedWallpapers, wallpapersState, showNotification])
-
-  const handleRetry = useCallback(() => {
-    setRetryCount((prev) => prev + 1)
-  }, [])
-
-  const handleOpenModal = useCallback(
-    (wallpaper: Wallpaper) => {
-      const index = wallpapersState.findIndex((w) => w.sha === wallpaper.sha)
-      setSelectedIndex(index)
-      setSelectedWallpaper(wallpaper)
-    },
-    [wallpapersState],
-  )
-
-  const handleClick = useCallback((wallpaper: Wallpaper, isMobile: boolean) => {
-    // Only open modal on desktop or double-tap on mobile
-    if (!isMobile) {
-      handleOpenModal(wallpaper);
-    }
-  }, [handleOpenModal]);
-
-  const handlePreviousWallpaper = useCallback(() => {
-    if (selectedIndex > 0) {
-      const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag?.toLowerCase() === filter)
-      const currentFilteredIndex = filteredWallpapers.findIndex((w) => w.sha === selectedWallpaper?.sha)
-      if (currentFilteredIndex > 0) {
-        const prevWallpaper = filteredWallpapers[currentFilteredIndex - 1]
-        const globalIndex = wallpapersState.findIndex((w) => w.sha === prevWallpaper.sha)
-        setSelectedIndex(globalIndex)
-        setSelectedWallpaper(prevWallpaper)
-      }
-    }
-  }, [selectedIndex, wallpapersState, filter, selectedWallpaper])
-
-  const handleNextWallpaper = useCallback(() => {
-    const filteredWallpapers = wallpapersState.filter((w) => filter === "all" || w.tag?.toLowerCase() === filter)
-    const currentFilteredIndex = filteredWallpapers.findIndex((w) => w.sha === selectedWallpaper?.sha)
-    if (currentFilteredIndex < filteredWallpapers.length - 1) {
-      const nextWallpaper = filteredWallpapers[currentFilteredIndex + 1]
-      const globalIndex = wallpapersState.findIndex((w) => w.sha === nextWallpaper.sha)
-      setSelectedIndex(globalIndex)
-      setSelectedWallpaper(nextWallpaper)
-    }
-  }, [wallpapersState, filter, selectedWallpaper])
-
-  const handleImageLoad = useCallback((sha: string) => {
-    setLoadedImages((prev) => new Set(prev).add(sha))
-  }, [])
-
-  const toggleWallpaperSelection = useCallback((sha: string) => {
-    setSelectedWallpapers((prev) => {
-      if (prev.includes(sha)) {
-        return prev.filter((s) => s !== sha)
-      } else {
-        return [...prev, sha]
-      }
-    })
-  }, [])
-
-  const handleShare = useCallback(async (wallpaper: Wallpaper) => {
-    try {
-      const shareUrl = wallpaper.download_url
-      const shareText = `Checkout this wallpaper: ${shareUrl}`
-
-      if (navigator.share) {
-        await navigator.share({
-          text: shareText,
-          url: shareUrl,
-        })
-      } else {
-        // Fallback to clipboard copy
-        await navigator.clipboard.writeText(shareText)
-        showNotification("Link copied to clipboard!")
-      }
-    } catch (error: any) {
-      console.error("Error sharing:", error)
-      // Only show error notification if it's not an abort error (user cancelled)
-      if (error.name !== 'AbortError') {
-        showNotification("Unable to share or copy link")
-      }
-    }
-  }, [showNotification])
-
-  // Update displayed wallpapers when favorites change
-  useEffect(() => {
-    if (favoriteIds) {
-      // If we're on the favorites page, only show favorited wallpapers
-      const favoritedWallpapers = wallpapersState.filter((wallpaper): wallpaper is Wallpaper => 
-        wallpaper !== null && favoriteIds.includes(wallpaper.sha)
-      );
-      setDisplayedWallpapers(favoritedWallpapers);
-      setHasMore(false); // No need to load more on favorites page
-    }
-  }, [favoriteIds, wallpapersState]);
+    
+    // Reset after download completes
+    setTimeout(() => {
+      setIsDownloading(false);
+      setSelectedWallpapers([]);
+    }, 1000);
+    
+  }, [selectedWallpapers, wallpapersState, showNotification]);
 
   const handleDownload = useCallback(async (wallpaper: Wallpaper) => {
+    setIsDownloading(true);
+    showNotification("Your wallpaper is now downloading...");
+    
     try {
       const response = await fetch(wallpaper.download_url)
       if (!response.ok) throw new Error('Failed to download')
@@ -459,10 +416,23 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-      showNotification("Download started!")
+      
+      // Show download confirmation popup with file details
+      setDownloadInfo({
+        fileName: fileName,
+        fileType: fileExtension.toUpperCase()
+      });
+      setShowDownloadConfirmation(true);
+      
+      // Hide the confirmation after 3 seconds
+      setTimeout(() => {
+        setShowDownloadConfirmation(false);
+        setIsDownloading(false);
+      }, 3000);
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
       showNotification("Failed to download wallpaper")
+      setIsDownloading(false);
     }
   }, [showNotification])
 
@@ -607,7 +577,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                         e.preventDefault();
                         e.stopPropagation();
                         e.nativeEvent.stopImmediatePropagation();
-                        // Use a function to prevent re-renders
+                        // Call the function directly
                         toggleWallpaperSelection(wallpaper.sha);
                         return false;
                       }}
@@ -680,14 +650,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         })}
       </Masonry>
 
-      {selectedWallpapers.length > 0 && (
+      {/* Only show download button if not currently downloading */}
+      {selectedWallpapers.length > 0 && !isDownloading && (
         <div className="fixed bottom-24 sm:bottom-8 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={downloadSelectedWallpapers}
-            className="bg-[var(--accent-light)]/10 text-[var(--accent-light)] px-5 py-2.5 rounded-full hover:bg-[var(--accent-light)]/15 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg"
+            className="bg-black/80 text-white px-5 py-2.5 rounded-full hover:bg-black/90 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg border border-white/10"
             style={{ width: "auto" }}
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4 text-[var(--accent-light)]" />
             Download Selected ({selectedWallpapers.length})
           </button>
         </div>
@@ -749,7 +720,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         </div>
       )}
 
-      {/* Add fade-in animation styles */}
+      {/* Add animation for popup */}
       <style jsx global>{`
         @keyframes fadeInUp {
           from {
@@ -760,6 +731,21 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
         }
       `}</style>
     </div>

@@ -108,7 +108,7 @@ export default function CategoriesPage() {
   }, [])
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/60 via-[#0A0A0A] to-[#0A0A0A]">
+    <main className="min-h-screen bg-[#0A0A0A]">
       <Header showBackButton />
 
       <div className="max-w-[1400px] mx-auto px-6 pt-28 pb-32">

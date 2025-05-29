@@ -567,76 +567,107 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         columnClassName="my-masonry-grid_column"
       >
         {displayedWallpapers.map((wallpaper, index) => (
-          <div key={wallpaper.sha} className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}>
+          <div 
+            key={wallpaper.sha} 
+            className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
+            style={{
+              animationDelay: `${index * 50}ms`,
+              animation: "fadeInUp 0.6s ease-out both"
+            }}
+          >
             <div
-              className={`group relative ${favoriteIds ? 'aspect-[4/3]' : 'aspect-[3/2]'} overflow-hidden rounded-2xl bg-white/5`}
-              onClick={(e) => {
-                // Only handle click if clicking on the container itself
-                if (e.target === e.currentTarget) {
-                  handleClick(wallpaper);
-                }
-              }}
+              className={`group relative ${favoriteIds ? 'aspect-[4/3]' : 'aspect-[3/2]'} overflow-hidden rounded-2xl bg-white/5 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
             >
               <ImageComponent wallpaper={wallpaper} index={index} />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[15px] font-medium text-white/90">{wallpaper.name}</h3>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWallpaperSelection(wallpaper.sha);
-                      }}
-                      className={`p-2 rounded-full ${
-                        selectedWallpapers.includes(wallpaper.sha)
-                          ? "bg-[var(--accent-light)] text-black"
-                          : "bg-black/60 text-white hover:bg-black/70"
-                      } backdrop-blur-sm transition-all hover:scale-105`}
-                    >
-                      <Download className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFavorite(wallpaper);
-                      }}
-                      className={`p-2 rounded-full ${
-                        favorites.includes(wallpaper.sha)
-                          ? "bg-black/60 text-[#FF0000]"
-                          : "bg-black/60 text-white hover:bg-black/70"
-                      } backdrop-blur-sm transition-all hover:scale-105`}
-                    >
-                      <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(wallpaper);
-                      }}
-                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
-                    >
-                      <Share2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenModal(wallpaper);
-                      }}
-                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all hover:scale-105"
-                    >
-                      <Expand className="w-4 h-4" />
-                    </button>
-                  </div>
+              
+              {/* Enhanced gradient overlay with smoother transition */}
+              <div className="absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-100"
+                style={{
+                  background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%)"
+                }}
+              />
+              
+              {/* Clickable area for modal - behind buttons */}
+              <div 
+                className="absolute inset-0 cursor-pointer"
+                onClick={() => handleClick(wallpaper)}
+              />
+              
+              {/* Content with enhanced animations */}
+              <div className="absolute inset-0 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:translate-y-[-4px] pointer-events-none">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-[15px] font-medium text-white/90 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                    {wallpaper.name}
+                  </h3>
+                </div>
+                
+                {/* Action buttons with staggered animation */}
+                <div className="flex items-center gap-2 pointer-events-auto">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleWallpaperSelection(wallpaper.sha);
+                    }}
+                    className={`p-2 rounded-full ${
+                      selectedWallpapers.includes(wallpaper.sha)
+                        ? "bg-[var(--accent-light)] text-black"
+                        : "bg-black/60 text-white hover:bg-black/70"
+                    } backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10`}
+                    style={{ transitionDelay: '0ms' }}
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleFavorite(wallpaper);
+                    }}
+                    className={`p-2 rounded-full ${
+                      favorites.includes(wallpaper.sha)
+                        ? "bg-black/60 text-[#FF0000]"
+                        : "bg-black/60 text-white hover:bg-black/70"
+                    } backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10`}
+                    style={{ transitionDelay: '50ms' }}
+                  >
+                    <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleShare(wallpaper);
+                    }}
+                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
+                    style={{ transitionDelay: '100ms' }}
+                  >
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleOpenModal(wallpaper);
+                    }}
+                    className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-500 hover:scale-105 transform translate-y-4 group-hover:translate-y-0 z-10"
+                    style={{ transitionDelay: '150ms' }}
+                  >
+                    <Expand className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-              <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium">
+              
+              {/* Enhanced badges with animations */}
+              <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium transition-all duration-500 transform translate-y-[-2px] group-hover:translate-y-0 group-hover:shadow-lg">
                 {wallpaper.resolution}
               </div>
-              <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium">
+              <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-500 transform translate-y-[-2px] group-hover:translate-y-0 group-hover:bg-white/20">
                 {wallpaper.tag}
               </div>
+              
+              {/* Highlight border on hover */}
+              <div className="absolute inset-0 rounded-2xl border-2 border-transparent transition-all duration-500 group-hover:border-white/20 pointer-events-none"></div>
             </div>
           </div>
         ))}
@@ -710,6 +741,20 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           )}
         </div>
       )}
+
+      {/* Add fade-in animation styles */}
+      <style jsx global>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   )
 }

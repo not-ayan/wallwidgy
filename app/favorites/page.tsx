@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react"
 import WallpaperGrid from "../components/WallpaperGrid"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Share2 } from "lucide-react"
 import Link from "next/link"
+import ShareFavoritesModal from "../components/ShareFavoritesModal"
 
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState<string[]>([])
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   useEffect(() => {
     const storedFavorites = localStorage.getItem("favorites")
@@ -33,10 +35,27 @@ export default function FavoritesPage() {
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-center">Favorites</h1>
-          <div className="w-10" /> {/* Spacer for alignment */}
+          {favorites.length > 0 ? (
+            <button
+              onClick={() => setIsShareModalOpen(true)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-2"
+              aria-label="Share favorites"
+            >
+              <Share2 className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="w-10" /> /* Spacer for alignment */
+          )}
         </div>
         {favorites.length > 0 ? (
-          <WallpaperGrid wallpapers={favorites} />
+          <>
+            <WallpaperGrid wallpapers={favorites} />
+            <ShareFavoritesModal 
+              isOpen={isShareModalOpen} 
+              onClose={() => setIsShareModalOpen(false)}
+              favoriteIds={favorites}
+            />
+          </>
         ) : (
           <div className="text-center py-20">
             <p className="text-white/60 text-lg">No favorites yet</p>

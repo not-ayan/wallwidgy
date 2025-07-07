@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import Image from "next/image"
-import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus } from "lucide-react"
+import Image from "next/image"  // This is the Next.js Image component
+import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles } from "lucide-react"
 import Modal from "./Modal"
 import Link from "next/link"
 
@@ -10,6 +10,7 @@ interface Wallpaper {
   sha: string
   name: string
   download_url: string
+  preview_url: string
   resolution: string
   platform: "Desktop" | "Mobile"
   width: number
@@ -47,6 +48,10 @@ export default function WallpaperModal({
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
+  const [isHighQuality, setIsHighQuality] = useState(false)
+  const [isLoadingHighQuality, setIsLoadingHighQuality] = useState(false)
+  const [isPreviewLoaded, setIsPreviewLoaded] = useState(false)
+  const [isFullImageLoaded, setIsFullImageLoaded] = useState(false)
 
   useEffect(() => {
     if (wallpaper.resolution) {
@@ -60,6 +65,8 @@ export default function WallpaperModal({
     setIsImageLoading(true)
     setZoom(1)
     setPosition({ x: 0, y: 0 })
+    setIsHighQuality(false)
+    setIsLoadingHighQuality(false)
   }, [wallpaper.sha])
 
   useEffect(() => {
@@ -75,6 +82,17 @@ export default function WallpaperModal({
       }
     }
   }, [isOpen])
+
+  // Preload the high-resolution image when preview is loaded
+  useEffect(() => {
+    if (isOpen && wallpaper && isPreviewLoaded) {
+      const img = new window.Image();  // Use window.Image to reference the browser's Image constructor
+      img.src = wallpaper.download_url;
+      img.onload = () => {
+        setIsFullImageLoaded(true);
+      };
+    }
+  }, [isOpen, wallpaper, isPreviewLoaded]);
 
   const handleShare = async () => {
     try {
@@ -232,6 +250,13 @@ export default function WallpaperModal({
     e.stopPropagation();
   };
 
+  const loadHighQualityImage = () => {
+    setIsLoadingHighQuality(true)
+    // The actual loading happens in the Image component
+    setIsHighQuality(true)
+    showNotification("Loading high quality image...")
+  }
+
   if (!isOpen) return null;
 
   return (
@@ -265,7 +290,7 @@ export default function WallpaperModal({
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30"
           style={{ 
-            backgroundImage: `url(${wallpaper.download_url})`,
+            backgroundImage: `url(${wallpaper.preview_url})`,
             filter: 'blur(20px)',
           }} 
         />
@@ -308,7 +333,7 @@ export default function WallpaperModal({
                   onClick={handleImageContainerClick}
                 >
                   <Image
-                    src={wallpaper.download_url}
+                    src={isHighQuality ? wallpaper.download_url : wallpaper.preview_url}
                     alt={wallpaper.name}
                     width={wallpaper.width}
                     height={wallpaper.height}
@@ -326,11 +351,16 @@ export default function WallpaperModal({
                     onLoad={() => {
                       setIsImageLoaded(true)
                       setIsImageLoading(false)
+                      setIsPreviewLoaded(true)
+                      if (isHighQuality) {
+                        setIsLoadingHighQuality(false)
+                        showNotification("High quality image loaded!")
+                      }
                     }}
                     priority
-                    quality={100}
+                    quality={isHighQuality ? 100 : 75}
                     sizes="100vw"
-                    unoptimized={true}
+                    unoptimized={isHighQuality}
                     onClick={handleImageContainerClick}
                   />
                 </div>
@@ -341,9 +371,38 @@ export default function WallpaperModal({
                 <div className="loader"></div>
               </div>
             )}
+            
+            {/* Loading overlay for high quality image */}
+            {isLoadingHighQuality && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 backdrop-blur-sm rounded-2xl">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                  <p className="text-white/90 text-sm">Loading high quality image...</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* High quality button - show only when not already in high quality mode */}
+      {!isHighQuality && !isLoadingHighQuality && (
+        <button
+          onClick={loadHighQualityImage}
+          className="fixed top-20 sm:top-16 right-4 z-20 bg-black/70 text-white/90 hover:text-white px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 transition-all hover:bg-black/80 border border-white/10"
+        >
+          <Sparkles className="w-4 h-4 text-yellow-400" />
+          <span>Load HD</span>
+        </button>
+      )}
+
+      {/* Quality indicator */}
+      {isHighQuality && (
+        <div className="fixed top-20 sm:top-16 right-4 z-20 bg-black/40 text-white/90 px-3 py-1.5 rounded-xl backdrop-blur-sm text-xs flex items-center gap-1.5 border border-white/10">
+          <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+          <span>High Quality</span>
+        </div>
+      )}
 
       {/* Top header with back button and info */}
       <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
@@ -436,10 +495,9 @@ export default function WallpaperModal({
 
 function formatResolution(resolution: string): string {
   const [width, height] = resolution.split("x").map(Number)
-  if (width >= 7680 && height >= 4320) return "8K"
-  if (width >= 3840 && height >= 2160) return "4K"
-  if (width >= 2560 && height >= 1440) return "1440p"
-  if (width >= 1920 && height >= 1080) return "1080p"
+  if (width && height) {
+    return `${width} x ${height}`
+  }
   return resolution
 }
 

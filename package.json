@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0",
     "build": "next build || echo 'Ensure supabaseUrl is set in the environment variables.'",
     "start": "next start",
     "lint": "next lint"
@@ -48,6 +48,7 @@
     "date-fns": "^2.28.0",
     "embla-carousel-react": "8.5.1",
     "fs": "latest",
+    "gsap": "^3.13.0",
     "hugeicons-react": "^0.3.0",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",

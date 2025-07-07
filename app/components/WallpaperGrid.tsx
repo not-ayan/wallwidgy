@@ -89,7 +89,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         loading={index < 12 ? "eager" : "lazy"}
         onLoadingComplete={() => setIsImageLoaded(true)}
         onError={() => setError(true)}
-        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
       />
     </>
   );
@@ -272,12 +272,18 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         if (categoryFilter) {
           wallpapers = wallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
         }
+        
+        // Filter by favorites if favoriteIds are provided
+        if (favoriteIds && favoriteIds.length > 0) {
+          wallpapers = wallpapers.filter(wallpaper => favoriteIds.includes(wallpaper.sha))
+        }
 
         // Sort wallpapers by newest first
         wallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
         setWallpapersState(wallpapers)
         setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
+        setHasMore(wallpapers.length > initialLoadSize)
       } catch (err: any) {
         setError(err.message)
         console.error("Error fetching wallpapers:", err)
@@ -285,7 +291,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         setIsLoading(false)
       }
     },
-    [categoryFilter],
+    [categoryFilter, favoriteIds],
   )
 
   const loadFavorites = useCallback(() => {
@@ -358,10 +364,31 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           const url = window.URL.createObjectURL(blob)
           const link = document.createElement("a")
           link.href = url
-          // Get the file extension from the download URL
-          const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+          
+          // Extract file extension from the URL or Content-Type
+          let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
+          // Remove any query parameters from the extension
+          fileExtension = fileExtension.split('?')[0]
+          
+          // If no extension or invalid extension, determine from MIME type or default to jpg
+          if (!fileExtension || fileExtension.length > 4) {
+            const contentType = response.headers.get('Content-Type') || ''
+            if (contentType.includes('png')) {
+              fileExtension = 'png'
+            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+              fileExtension = 'jpg'
+            } else if (contentType.includes('webp')) {
+              fileExtension = 'webp'
+            } else {
+              // Default to jpg for images
+              fileExtension = 'jpg'
+            }
+          }
+          
           // Ensure the filename has the correct extension
-          const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+          const fileName = wallpaper.name.includes('.') ? 
+            wallpaper.name : `${wallpaper.name}.${fileExtension}`
+          
           link.download = fileName
           document.body.appendChild(link)
           link.click()
@@ -407,10 +434,31 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
-      // Get the file extension from the download URL
-      const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+    
+      // Extract file extension from the URL or Content-Type
+      let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
+      // Remove any query parameters from the extension
+      fileExtension = fileExtension.split('?')[0]
+    
+      // If no extension or invalid extension, determine from MIME type or default to jpg
+      if (!fileExtension || fileExtension.length > 4) {
+        const contentType = response.headers.get('Content-Type') || ''
+        if (contentType.includes('png')) {
+          fileExtension = 'png'
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          fileExtension = 'jpg'
+        } else if (contentType.includes('webp')) {
+          fileExtension = 'webp'
+        } else {
+          // Default to jpg for images
+          fileExtension = 'jpg'
+        }
+      }
+    
       // Ensure the filename has the correct extension
-      const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+      const fileName = wallpaper.name.includes('.') ? 
+        wallpaper.name : `${wallpaper.name}.${fileExtension}`
+    
       link.download = fileName
       document.body.appendChild(link)
       link.click()

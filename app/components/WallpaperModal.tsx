@@ -131,12 +131,40 @@ export default function WallpaperModal({
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
-      link.download = wallpaper.name
+      
+      // Extract file extension from the URL or Content-Type
+      let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
+      // Remove any query parameters from the extension
+      fileExtension = fileExtension.split('?')[0]
+      
+      // If no extension or invalid extension, determine from MIME type or default to jpg
+      if (!fileExtension || fileExtension.length > 4) {
+        const contentType = response.headers.get('Content-Type') || ''
+        if (contentType.includes('png')) {
+          fileExtension = 'png'
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          fileExtension = 'jpg'
+        } else if (contentType.includes('webp')) {
+          fileExtension = 'webp'
+        } else {
+          // Default to jpg for images
+          fileExtension = 'jpg'
+        }
+      }
+      
+      // Ensure the filename has the correct extension
+      const fileName = wallpaper.name.includes('.') ? 
+        // If filename already has an extension, use it as is
+        wallpaper.name : 
+        // Otherwise add the extension
+        `${wallpaper.name}.${fileExtension}`
+      
+      link.download = fileName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-      showNotification("Download started!")
+      showNotification(`Downloading ${fileName}`)
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
       showNotification("Failed to download wallpaper")
@@ -389,7 +417,7 @@ export default function WallpaperModal({
       {!isHighQuality && !isLoadingHighQuality && (
         <button
           onClick={loadHighQualityImage}
-          className="fixed top-20 sm:top-16 right-4 z-20 bg-black/70 text-white/90 hover:text-white px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 transition-all hover:bg-black/80 border border-white/10"
+          className="fixed top-20 sm:top-16 right-4 z-20 bg-black/80 text-white/90 hover:text-white px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 transition-all hover:bg-black/90 border border-white/10 shadow-lg"
         >
           <Sparkles className="w-4 h-4 text-yellow-400" />
           <span>Load HD</span>
@@ -398,7 +426,7 @@ export default function WallpaperModal({
 
       {/* Quality indicator */}
       {isHighQuality && (
-        <div className="fixed top-20 sm:top-16 right-4 z-20 bg-black/40 text-white/90 px-3 py-1.5 rounded-xl backdrop-blur-sm text-xs flex items-center gap-1.5 border border-white/10">
+        <div className="fixed top-20 sm:top-16 right-4 z-20 bg-black/80 text-white/90 px-3 py-1.5 rounded-xl backdrop-blur-sm text-xs flex items-center gap-1.5 border border-white/10 shadow-lg">
           <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
           <span>High Quality</span>
         </div>
@@ -408,12 +436,12 @@ export default function WallpaperModal({
       <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
         <button 
           onClick={onClose} 
-          className="fixed top-4 left-4 flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md"
+          className="fixed top-4 left-4 flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg"
         >
           <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
           <span className="text-base sm:text-sm hidden sm:block">Back</span>
         </button>
-        <div className="fixed top-4 right-4 flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+        <div className="fixed top-4 right-4 flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
           {wallpaper.resolution && (
             <div className="text-white/80 text-base sm:text-sm">
               {formatResolution(wallpaper.resolution)}
@@ -435,7 +463,7 @@ export default function WallpaperModal({
         <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
           {/* Navigation and zoom controls */}
           <div className="fixed bottom-4 left-4 flex items-center gap-4">
-            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
               <button
                 onClick={handleZoomOut}
                 disabled={zoom === 1}
@@ -453,7 +481,7 @@ export default function WallpaperModal({
               </button>
             </div>
 
-            <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+            <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
               <button
                 onClick={onPrevious}
                 disabled={!hasPrevious}
@@ -472,7 +500,7 @@ export default function WallpaperModal({
           </div>
 
           {/* Action buttons */}
-          <div className="fixed bottom-4 right-4 flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl sm:bg-black/30 sm:backdrop-blur-md">
+          <div className="fixed bottom-4 right-4 flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
             <button
               onClick={handleShare}
               className="text-white/90 hover:text-white"

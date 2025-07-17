@@ -528,20 +528,40 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   }, [handleDownload, handleOpenModal]);
 
   const handlePreviousWallpaper = useCallback(() => {
-    if (selectedIndex > 0) {
-      const prevWallpaper = wallpapersState[selectedIndex - 1];
+    // Get the filtered wallpapers based on current filter
+    const filteredWallpapers = filter === "all" 
+      ? wallpapersState 
+      : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
+    
+    // Find current wallpaper index in filtered list
+    const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+    
+    if (currentFilteredIndex > 0) {
+      const prevWallpaper = filteredWallpapers[currentFilteredIndex - 1];
       setSelectedWallpaper(prevWallpaper);
-      setSelectedIndex(selectedIndex - 1);
+      // Update the selected index to match the position in the full wallpapers array
+      const fullIndex = wallpapersState.findIndex(w => w.sha === prevWallpaper.sha);
+      setSelectedIndex(fullIndex);
     }
-  }, [selectedIndex, wallpapersState]);
+  }, [selectedWallpaper, filter, wallpapersState]);
 
   const handleNextWallpaper = useCallback(() => {
-    if (selectedIndex < wallpapersState.length - 1) {
-      const nextWallpaper = wallpapersState[selectedIndex + 1];
+    // Get the filtered wallpapers based on current filter
+    const filteredWallpapers = filter === "all" 
+      ? wallpapersState 
+      : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
+    
+    // Find current wallpaper index in filtered list
+    const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+    
+    if (currentFilteredIndex < filteredWallpapers.length - 1) {
+      const nextWallpaper = filteredWallpapers[currentFilteredIndex + 1];
       setSelectedWallpaper(nextWallpaper);
-      setSelectedIndex(selectedIndex + 1);
+      // Update the selected index to match the position in the full wallpapers array
+      const fullIndex = wallpapersState.findIndex(w => w.sha === nextWallpaper.sha);
+      setSelectedIndex(fullIndex);
     }
-  }, [selectedIndex, wallpapersState]);
+  }, [selectedWallpaper, filter, wallpapersState]);
 
   if (isLoading) {
     return (
@@ -801,23 +821,30 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         </div>
       </div>
 
-      {selectedWallpaper && (
-        <WallpaperModal
-          isOpen={true}
-          onClose={() => {
-            setSelectedWallpaper(null)
-            setSelectedIndex(-1)
-          }}
-          wallpaper={{
-            ...selectedWallpaper,
-            platform: selectedWallpaper?.tag === "Mobile" ? "Mobile" : "Desktop",
-          }}
-          onPrevious={handlePreviousWallpaper}
-          onNext={handleNextWallpaper}
-          hasPrevious={selectedIndex > 0}
-          hasNext={selectedIndex < wallpapersState.length - 1}
-        />
-      )}
+      {selectedWallpaper && (() => {
+        const filteredWallpapers = filter === "all" 
+          ? wallpapersState 
+          : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
+        const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+        
+        return (
+          <WallpaperModal
+            isOpen={true}
+            onClose={() => {
+              setSelectedWallpaper(null)
+              setSelectedIndex(-1)
+            }}
+            wallpaper={{
+              ...selectedWallpaper,
+              platform: selectedWallpaper?.tag === "Mobile" ? "Mobile" : "Desktop",
+            }}
+            onPrevious={handlePreviousWallpaper}
+            onNext={handleNextWallpaper}
+            hasPrevious={currentFilteredIndex > 0}
+            hasNext={currentFilteredIndex < filteredWallpapers.length - 1}
+          />
+        );
+      })()}
 
       {/* Load more trigger */}
       {hasMore && (

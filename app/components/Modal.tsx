@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { shouldDisableBlurEffects } from '@/lib/utils'
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,7 +11,12 @@ interface ModalProps {
 }
 
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
+  const [disableBlur, setDisableBlur] = useState(false)
+  
   useEffect(() => {
+    // Check if we should disable blur effects
+    setDisableBlur(shouldDisableBlurEffects())
+    
     if (isOpen) {
       document.body.style.overflow = 'hidden'
     } else {
@@ -26,7 +32,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div 
-        className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+        className={`absolute inset-0 bg-black/95 ${disableBlur ? '' : 'backdrop-blur-sm'}`}
         onClick={onClose}
       />
       <div className="relative z-10 w-full max-w-7xl mx-auto">

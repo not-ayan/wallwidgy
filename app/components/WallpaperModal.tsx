@@ -6,6 +6,7 @@ import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, 
 import Modal from "./Modal"
 import Link from "next/link"
 import SimilarWallpapers from "./SimilarWallpapers"
+import { shouldDisableBlurEffects } from "@/lib/utils"
 
 export interface Wallpaper {
   sha: string
@@ -63,6 +64,7 @@ export default function WallpaperModal({
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(false)
   const [isFullImageLoaded, setIsFullImageLoaded] = useState(false)
   const [showSimilarWallpapers, setShowSimilarWallpapers] = useState(false)
+  const [disableBlur, setDisableBlur] = useState(false)
 
   // Check if we're viewing a recommended wallpaper (has originalWallpaper)
   const isViewingRecommendation = !!originalWallpaperState
@@ -77,6 +79,9 @@ export default function WallpaperModal({
         height: window.innerHeight 
       })
     }
+    
+    // Check if we should disable blur effects
+    setDisableBlur(shouldDisableBlurEffects())
     
     updateViewport()
     window.addEventListener('resize', updateViewport)
@@ -179,8 +184,9 @@ export default function WallpaperModal({
 
   const showNotification = (message: string) => {
     const notification = document.createElement("div")
-    notification.className =
-      "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm z-50"
+    notification.className = disableBlur 
+      ? "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/20 text-white px-4 py-2 rounded-full text-sm z-50"
+      : "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm z-50"
     notification.textContent = message
     document.body.appendChild(notification)
     setTimeout(() => notification.remove(), 2000)
@@ -386,7 +392,7 @@ export default function WallpaperModal({
     <div
       ref={modalRef}
       tabIndex={-1}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm outline-none"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/95 ${disableBlur ? '' : 'backdrop-blur-sm'} outline-none`}
       onClick={handleBackgroundClick}
       onKeyDown={(e) => {
         switch (e.key) {
@@ -410,19 +416,17 @@ export default function WallpaperModal({
     >
       <div className="fixed inset-0 flex items-center justify-center">
         {/* Blurred background */}
-        <div
+          <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30"
           style={{ 
             backgroundImage: `url(${currentWallpaper.preview_url})`,
-            filter: 'blur(20px)',
+            filter: disableBlur ? 'none' : 'blur(20px)',
           }} 
         />
         <div 
-          className="absolute inset-0 bg-black/40 backdrop-blur-2xl"
+          className={`absolute inset-0 bg-black/70 ${disableBlur ? '' : 'backdrop-blur-2xl'}`}
           onClick={onClose}
-        />
-
-        <div 
+        />        <div 
           className="relative max-h-[100vh] md:max-h-[90vh] w-full md:w-auto md:max-w-[90vw] overflow-hidden md:rounded-2xl bg-transparent"
           onClick={handleImageContainerClick}
         >
@@ -494,7 +498,7 @@ export default function WallpaperModal({
               </div>
             </div>
             {isImageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-md rounded-2xl">
+              <div className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 ${disableBlur ? '' : 'backdrop-blur-md'} rounded-2xl`}>
                 <div className="loader"></div>
               </div>
             )}
@@ -591,7 +595,7 @@ export default function WallpaperModal({
                     setPosition({ x: 0, y: 0 });
                   }
                 }}
-                className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-yellow-400/20 backdrop-blur-md shadow-lg border border-yellow-400/30"
+                className={`flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-yellow-400/30 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg border border-yellow-400/30`}
               >
                 <ArrowLeft className="w-5 h-5" />
                 <span className="text-sm hidden sm:inline">Back</span>
@@ -599,7 +603,7 @@ export default function WallpaperModal({
               
               <button 
                 onClick={onClose}
-                className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg"
+                className={`flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/85 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg`}
               >
                 <X className="w-5 h-5" />
                 <span className="text-sm hidden sm:inline">Close</span>
@@ -608,7 +612,7 @@ export default function WallpaperModal({
           ) : (
             <button 
               onClick={onClose} 
-              className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg"
+              className={`flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/85 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg`}
             >
               <ChevronLeft className="w-5 h-5" />
               <span className="text-sm hidden sm:inline">Back</span>
@@ -618,7 +622,7 @@ export default function WallpaperModal({
         
         <div className="flex items-center gap-2">
           {/* Resolution and platform info */}
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/85 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg`}>
             {currentWallpaper.resolution && (
               <div className="text-white/80 text-sm">
                 {formatResolution(currentWallpaper.resolution)}

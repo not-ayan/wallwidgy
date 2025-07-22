@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { Heart, Grid, Info, ArrowLeft } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { shouldDisableBlurEffects } from '@/lib/utils'
 
 interface HeaderProps {
   showBackButton?: boolean;
@@ -7,8 +9,15 @@ interface HeaderProps {
 }
 
 export default function Header({ showBackButton = false, backUrl = "/" }: HeaderProps) {
+  const [disableBlur, setDisableBlur] = useState(false)
+  
+  useEffect(() => {
+    // Check if we should disable blur effects
+    setDisableBlur(shouldDisableBlurEffects())
+  }, [])
+  
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
+    <div className={`fixed top-0 left-0 right-0 z-50 ${disableBlur ? 'bg-[#0A0A0A]/90' : 'bg-[#0A0A0A]/80 backdrop-blur-md'}`}>
       <header className="px-4 sm:px-12 py-5">
         <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
           <div className="flex items-center gap-4">

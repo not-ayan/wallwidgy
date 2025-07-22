@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Image from "next/image"
 import { RefreshCw, Sparkles, X, ArrowLeft } from "lucide-react"
 import { Wallpaper } from "./WallpaperModal"
+import { shouldDisableBlurEffects } from "@/lib/utils"
 
 interface SimilarWallpapersProps {
   currentWallpaper: Wallpaper
@@ -23,6 +24,7 @@ export default function SimilarWallpapers({
   const [currentPage, setCurrentPage] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [disableBlur, setDisableBlur] = useState(false)
   
   // Calculate wallpapers per row based on screen width
   const getWallpapersPerRow = () => {
@@ -43,6 +45,13 @@ export default function SimilarWallpapers({
       setCurrentPage(0) // Reset to first page when wallpaper changes
     }
   }, [currentWallpaper?.sha, isVisible])
+
+  // Check for blur effect support
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setDisableBlur(shouldDisableBlurEffects())
+    }
+  }, [])
 
   // Update wallpapers per row on window resize
   useEffect(() => {
@@ -209,7 +218,7 @@ export default function SimilarWallpapers({
     
     return (
       <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-7xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
-        <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-2 sm:p-4">
+        <div className={`bg-black/${disableBlur ? '80' : '50'} ${disableBlur ? '' : 'backdrop-blur-xl'} rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-2 sm:p-4`}>
           <div className="flex items-center justify-between mb-2 sm:mb-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/10 rounded animate-pulse" />
@@ -238,7 +247,7 @@ export default function SimilarWallpapers({
   if (similarWallpapers.length === 0 && allSimilarWallpapers.length === 0) {
     return (
       <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-4xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
-        <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-6">
+        <div className={`bg-black/${disableBlur ? '80' : '50'} ${disableBlur ? '' : 'backdrop-blur-xl'} rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-6`}>
           <div className="flex items-center justify-between mb-2 sm:mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400/80" />
@@ -267,7 +276,7 @@ export default function SimilarWallpapers({
 
   return (
     <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-7xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
-      <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl">
+      <div className={`bg-black/${disableBlur ? '80' : '50'} ${disableBlur ? '' : 'backdrop-blur-xl'} rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl`}>
         {/* Header */}
         <div className="flex items-center justify-between p-2 sm:p-4 border-b border-white/20">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -321,7 +330,7 @@ export default function SimilarWallpapers({
                   
                   {/* Resolution badge - responsive sizing */}
                   <div className="absolute bottom-0.5 left-0.5 right-0.5 sm:bottom-1 sm:left-1 sm:right-1">
-                    <div className="bg-black/80 backdrop-blur-sm rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                    <div className={`bg-black/80 ${disableBlur ? '' : 'backdrop-blur-sm'} rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200`}>
                       <p className="text-white text-[8px] sm:text-[10px] font-medium truncate text-center">
                         {wallpaper.resolution}
                       </p>

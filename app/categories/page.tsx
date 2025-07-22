@@ -164,6 +164,7 @@ export default function CategoriesPage() {
                   className="absolute inset-0 transition-opacity duration-500 opacity-100 group-hover:opacity-90"
                   style={{
                     background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.3) 100%)"
+                    /* Gradient doesn't use blur, so no need to disable */
                   }}
                 />
               </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,7 +15,8 @@ interface Wallpaper {
   resolution: string
 }
 
-export default function SearchPage() {
+// Create a separate component for the search content that uses useSearchParams
+function SearchContent() {
   const searchParams = useSearchParams()
   const query = searchParams.get('q') || ''
   
@@ -159,5 +160,21 @@ export default function SearchPage() {
         </>
       )}
     </div>
+  )
+}
+
+// Main component that wraps SearchContent in a Suspense boundary
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8 flex justify-center">
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+          <p className="mt-4 text-white/70">Loading search...</p>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   )
 }

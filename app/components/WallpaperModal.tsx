@@ -644,8 +644,8 @@ export default function WallpaperModal({
               <span>Load HD</span>
             </button>
           ) : isHighQuality ? (
-            <div className="bg-black/80 text-white/90 px-3 py-1.5 rounded-xl backdrop-blur-sm text-xs flex items-center gap-1.5 border border-white/10 shadow-lg">
-              <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+            <div className="bg-black/80 text-white/90 px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 border border-white/10 shadow-lg">
+              <Sparkles className="w-4 h-4 text-yellow-400" />
               <span>High Quality</span>
             </div>
           ) : null}
@@ -713,40 +713,40 @@ export default function WallpaperModal({
       >
         <div className="flex items-center gap-2 sm:gap-4">
           {/* Zoom controls */}
-          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
             <button
               onClick={handleZoomOut}
               disabled={zoom === 1}
-              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
+              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
             >
-              <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-white/80 text-xs sm:text-sm px-1 sm:px-2">{zoom}x</span>
+            <span className="text-white/80 text-xs sm:text-sm px-1.5 sm:px-2">{zoom}x</span>
             <button
               onClick={handleZoomIn}
               disabled={zoom === 3}
-              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
+              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
             >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
           {/* Navigation controls - only show if not viewing recommendation */}
           {!isViewingRecommendation && (onPrevious || onNext) && (
-            <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
               <button
                 onClick={onPrevious}
                 disabled={!hasPrevious}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
               >
-                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
               <button
                 onClick={onNext}
                 disabled={!hasNext}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
               >
-                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
           )}
@@ -755,28 +755,28 @@ export default function WallpaperModal({
           {!isViewingRecommendation && (
             <button
               onClick={() => setShowSimilarWallpapers(true)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-yellow-400/20 backdrop-blur-md shadow-lg border border-yellow-400/30 hover:bg-yellow-400/30 transition-all"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-yellow-600/40 backdrop-blur-md shadow-lg border border-yellow-500/40 hover:bg-yellow-500/40 transition-all"
             >
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
               <span className="text-white/90 text-xs sm:text-sm font-medium hidden xs:inline">Similar</span>
             </button>
           )}
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+        <div className="flex items-center gap-2 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
           <button
             onClick={handleShare}
-            className="text-white/90 hover:text-white p-1"
+            className="text-white/90 hover:text-white p-1.5"
           >
-            <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
           </button>
-          <div className="w-px h-3 sm:h-4 bg-white/20" />
+          <div className="w-px h-4 sm:h-4 bg-white/20" />
           <button
             onClick={handleDownload}
-            className="text-white/90 hover:text-white p-1"
+            className="text-white/90 hover:text-white p-1.5"
           >
-            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Download className="w-4 h-4 sm:w-4 sm:h-4" />
           </button>
         </div>
       </div>

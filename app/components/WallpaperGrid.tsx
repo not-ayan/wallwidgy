@@ -664,8 +664,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
               key={wallpaper.sha} 
               className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
               style={{
-                animationDelay: `${isMobile ? index * 20 : index * 50}ms`, // Reduced delay for mobile
-                animation: `${isMobile ? 'fadeInUpMobile' : 'fadeInUp'} ${isMobile ? '0.3s' : '0.6s'} ease-out both`
+                animationDelay: `${isMobile ? index * 10 : index * 50}ms`, // Further reduced delay for mobile
+                animation: `${isMobile ? 'fadeInUpMobile' : 'fadeInUp'} ${isMobile ? '0.2s' : '0.6s'} ease-out both`
               }}
             >
               <div
@@ -873,7 +873,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         @keyframes fadeInUpMobile {
           from {
             opacity: 0;
-            transform: translateY(15px);
+            transform: translateY(10px); /* Reduced distance for faster visual effect */
           }
           to {
             opacity: 1;
@@ -896,6 +896,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           animation: fadeIn 0.3s ease-out forwards;
         }
         
+        @media (max-width: 767px) {
+          .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out forwards;
+          }
+        }
+        
         /* Force hardware acceleration for smoother animations */
         .group {
           -webkit-backface-visibility: hidden;
@@ -907,8 +913,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         /* Optimize transitions for mobile */
         @media (max-width: 767px) {
           .group, .group * {
-            transition-duration: 300ms !important;
-            animation-duration: 300ms !important;
+            transition-duration: 200ms !important; /* Faster transitions */
+            animation-duration: 200ms !important; /* Faster animations */
           }
           
           .group-hover\:translate-y-0 {

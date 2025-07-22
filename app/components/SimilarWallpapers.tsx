@@ -206,7 +206,7 @@ export default function SimilarWallpapers({
   if (isLoading) {
     return (
       <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-7xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
-        <div className="bg-black/90 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-2xl p-2 sm:p-4">
+        <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-2 sm:p-4">
           <div className="flex items-center justify-between mb-2 sm:mb-4">
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-4 h-4 sm:w-5 sm:h-5 bg-white/10 rounded animate-pulse" />
@@ -214,9 +214,9 @@ export default function SimilarWallpapers({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              className="p-2 sm:p-2 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
             >
-              <X className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white/70" />
+              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white/70" />
             </button>
           </div>
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5 sm:gap-2 md:gap-3">
@@ -235,7 +235,7 @@ export default function SimilarWallpapers({
   if (similarWallpapers.length === 0 && allSimilarWallpapers.length === 0) {
     return (
       <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-4xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
-        <div className="bg-black/90 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-2xl p-3 sm:p-6">
+        <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-6">
           <div className="flex items-center justify-between mb-2 sm:mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400/80" />
@@ -243,9 +243,9 @@ export default function SimilarWallpapers({
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              className="p-2 sm:p-2 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
             >
-              <X className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white/70" />
+              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white/70" />
             </button>
           </div>
           <div className="text-center py-3 sm:py-6">
@@ -264,9 +264,9 @@ export default function SimilarWallpapers({
 
   return (
     <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-7xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
-      <div className="bg-black/90 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/10 shadow-2xl">
+      <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-2 sm:p-4 border-b border-white/10">
+        <div className="flex items-center justify-between p-2 sm:p-4 border-b border-white/20">
           <div className="flex items-center gap-2 sm:gap-3">
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400/80" />
             <h3 className="text-white/90 text-sm sm:text-base font-medium">Similar Wallpapers</h3>
@@ -277,9 +277,9 @@ export default function SimilarWallpapers({
               <button
                 onClick={handleShowMore}
                 disabled={isRefreshing}
-                className="flex items-center gap-1 sm:gap-2 px-2.5 py-1.5 sm:px-3.5 sm:py-2 bg-white/5 hover:bg-white/10 rounded-md sm:rounded-lg transition-all duration-200 border border-white/10 hover:border-white/20"
+                className="flex items-center gap-1 sm:gap-2 px-3 py-2 sm:px-3.5 sm:py-2 bg-white/5 hover:bg-white/10 rounded-md sm:rounded-lg transition-all duration-200 border border-white/10 hover:border-white/20"
               >
-                <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 sm:w-4 sm:h-4 text-white/70 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span className="text-white/80 text-xs sm:text-sm font-medium hidden xs:inline">
                   {isRefreshing ? 'Loading...' : 'More'}
                 </span>
@@ -288,9 +288,9 @@ export default function SimilarWallpapers({
             
             <button
               onClick={onClose}
-              className="p-1.5 sm:p-2 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              className="p-2 sm:p-2 rounded-md sm:rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
             >
-              <X className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white/70" />
+              <X className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-white/70" />
             </button>
           </div>
         </div>

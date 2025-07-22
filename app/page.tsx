@@ -25,15 +25,15 @@ export default function Home() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
         <header className="px-4 sm:px-12 py-5">
           <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
-            <Link href="/" className="text-[var(--accent-light)] hover:text-white transition-all font text-xl sm:text-lg pl-4">
-              WallWidgy
+            <Link href="/" className="transition-opacity hover:opacity-80 pl-4">
+              <img src="/logo.svg" alt="WallWidgy" className="h-4 sm:h-5" />
             </Link>
-            <div className="flex items-center gap-4 pr-4">
-              <Link href="/favorites" aria-label="Favorites">
-                <Heart className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
+            <div className="flex items-center gap-2 pr-4">
+              <Link href="/favorites" className="p-2 text-white/80 hover:text-white transition-all" aria-label="Favorites">
+                <Heart className="w-5 h-5 transition-transform hover:scale-110" />
               </Link>
-              <Link href="/categories" aria-label="Categories">
-                <Grid className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
+              <Link href="/categories" className="p-2 text-white/80 hover:text-white transition-all" aria-label="Categories">
+                <Grid className="w-5 h-5 transition-transform hover:scale-110" />
               </Link>
               <Link
                 href="/about"
@@ -49,12 +49,12 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
-        <h1 className="font-title text-[56px] sm:text-[120px] max-w-[900px] mx-auto leading-[1.1] tracking-[-0.02em] animated-gradient">
-          The only wallpaper site you need
+        <h1 className="font-title text-[70px] sm:text-[150px] max-w-[1200px] mx-auto leading-[1.1] tracking-[-0.02em] text-[var(--accent-light)]">
+          <span className="title-animation inline-block" style={{ animationDelay: "0ms" }}>Wall</span>
+          <span className="title-animation inline-block" style={{ animationDelay: "80ms" }}>widgy</span>
         </h1>
-        <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-base sm:text-lg leading-relaxed">
-          Carefully curated wallpapers that bring elegance and simplicity to your screens. Download and enjoy our
-          growing collection.
+        <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-lg sm:text-xl leading-relaxed title-animation font-outfit" style={{ animationDelay: "500ms" }}>
+         Hand-picked high-quality wallpapers, curated just for you.
         </p>
       </section>
 

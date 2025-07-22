@@ -2,7 +2,7 @@
   font-family: "BONNACODENSED";
   font-style: normal;
   font-weight: normal;
-  src: url("/fonts/BONNACOCONDENSEDRegular.woff") format("woff");
+  src: url("/fonts/mooxy.woff") format("woff");
   font-display: swap;
 }
 
@@ -62,6 +62,33 @@
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@keyframes titleReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(15px);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.title-animation {
+  opacity: 0;
+  animation: titleReveal 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  display: inline-block;
+}
+
+/* Remove animation completely on mobile devices */
+@media (max-width: 640px) {
+  .title-animation {
+    animation: none;
+    opacity: 1;
   }
 }
 

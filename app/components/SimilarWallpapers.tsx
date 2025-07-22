@@ -204,6 +204,9 @@ export default function SimilarWallpapers({
   }
 
   if (isLoading) {
+    // Generate the appropriate number of placeholder items based on viewport size
+    const placeholderCount = wallpapersPerRow;
+    
     return (
       <div className="fixed left-2 right-2 sm:left-4 sm:right-4 z-50 max-w-7xl mx-auto" style={{ bottom: 'calc(5rem + 1rem)' }}>
         <div className="bg-black/50 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-2 sm:p-4">
@@ -220,7 +223,7 @@ export default function SimilarWallpapers({
             </button>
           </div>
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5 sm:gap-2 md:gap-3">
-            {[...Array(8)].map((_, i) => (
+            {[...Array(placeholderCount)].map((_, i) => (
               <div 
                 key={i} 
                 className="aspect-[9/16] bg-white/5 rounded-md sm:rounded-lg animate-pulse border border-white/5"

@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"  // This is the Next.js Image component
-import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles } from "lucide-react"
+import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, ArrowLeft } from "lucide-react"
 import Modal from "./Modal"
 import Link from "next/link"
+import SimilarWallpapers from "./SimilarWallpapers"
 
-interface Wallpaper {
+export interface Wallpaper {
   sha: string
   name: string
   download_url: string
@@ -25,17 +26,26 @@ interface WallpaperModalProps {
   onNext?: () => void
   hasPrevious?: boolean
   hasNext?: boolean
+  originalWallpaper?: Wallpaper // For tracking the original wallpaper when viewing recommendations
+  onBackToOriginal?: () => void // For going back to the original wallpaper
+  onSelectWallpaper?: (wallpaper: Wallpaper) => void // For handling recommended wallpaper selection
 }
 
 export default function WallpaperModal({
   isOpen,
   onClose,
-  wallpaper,
+  wallpaper: initialWallpaper,
   onPrevious,
   onNext,
   hasPrevious,
   hasNext,
+  originalWallpaper,
+  onBackToOriginal,
+  onSelectWallpaper,
 }: WallpaperModalProps) {
+  // Use internal state to manage the current wallpaper
+  const [currentWallpaper, setCurrentWallpaper] = useState(initialWallpaper)
+  const [originalWallpaperState, setOriginalWallpaperState] = useState<Wallpaper | null>(null)
   const [aspectRatio, setAspectRatio] = useState(16 / 9)
   const [isLoading, setIsLoading] = useState(true)
   const [isImageLoading, setIsImageLoading] = useState(true)
@@ -52,13 +62,65 @@ export default function WallpaperModal({
   const [isLoadingHighQuality, setIsLoadingHighQuality] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(false)
   const [isFullImageLoaded, setIsFullImageLoaded] = useState(false)
+  const [showSimilarWallpapers, setShowSimilarWallpapers] = useState(false)
+
+  // Check if we're viewing a recommended wallpaper (has originalWallpaper)
+  const isViewingRecommendation = !!originalWallpaperState
+
+  // Responsive viewport helpers
+  const [viewportDimensions, setViewportDimensions] = useState({ width: 0, height: 0 })
+  
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewportDimensions({ 
+        width: window.innerWidth, 
+        height: window.innerHeight 
+      })
+    }
+    
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    return () => window.removeEventListener('resize', updateViewport)
+  }, [])
+
+  // Calculate dynamic positions based on viewport
+  const getButtonPositions = () => {
+    const { width, height } = viewportDimensions
+    const isMobile = width < 768
+    const isShortViewport = height < 600
+    
+    return {
+      topButtons: {
+        top: isMobile ? '1rem' : '1rem',
+        left: '1rem',
+        right: '1rem',
+      },
+      bottomButtons: {
+        bottom: isShortViewport ? '0.5rem' : '1rem',
+        left: '1rem',
+        right: '1rem',
+      },
+      hdButton: {
+        top: isViewingRecommendation ? (isMobile ? '4.5rem' : '5rem') : (isMobile ? '3.5rem' : '4rem'),
+        right: '1rem',
+      }
+    }
+  }
+
+  const positions = getButtonPositions()
+
+  // Sync with prop changes
+  useEffect(() => {
+    setCurrentWallpaper(initialWallpaper)
+    setOriginalWallpaperState(originalWallpaper || null)
+  }, [initialWallpaper, originalWallpaper])
 
   useEffect(() => {
-    if (wallpaper.resolution) {
-      const [width, height] = wallpaper.resolution.split("x").map(Number)
+    if (currentWallpaper.resolution) {
+      const [width, height] = currentWallpaper.resolution.split("x").map(Number)
       setAspectRatio(width / height)
     }
-  }, [wallpaper.resolution])
+  }, [currentWallpaper.resolution])
 
   useEffect(() => {
     setIsLoading(true)
@@ -67,7 +129,8 @@ export default function WallpaperModal({
     setPosition({ x: 0, y: 0 })
     setIsHighQuality(false)
     setIsLoadingHighQuality(false)
-  }, [wallpaper.sha])
+    setShowSimilarWallpapers(false) // Reset similar wallpapers when wallpaper changes
+  }, [currentWallpaper.sha])
 
   useEffect(() => {
     setIsMobile(window.innerWidth < 768)
@@ -85,23 +148,23 @@ export default function WallpaperModal({
 
   // Preload the high-resolution image when preview is loaded
   useEffect(() => {
-    if (isOpen && wallpaper && isPreviewLoaded) {
+    if (isOpen && currentWallpaper && isPreviewLoaded) {
       const img = new window.Image();  // Use window.Image to reference the browser's Image constructor
-      img.src = wallpaper.download_url;
+      img.src = currentWallpaper.download_url;
       img.onload = () => {
         setIsFullImageLoaded(true);
       };
     }
-  }, [isOpen, wallpaper, isPreviewLoaded]);
+  }, [isOpen, currentWallpaper, isPreviewLoaded]);
 
   const handleShare = async () => {
     try {
-      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(wallpaper.sha)}`
+      const shareUrl = `${window.location.origin}/wallpaper/${encodeURIComponent(currentWallpaper.sha)}`
 
       if (navigator.share) {
         await navigator.share({
           title: "Wallpaper",
-          text: `Check out this wallpaper: ${wallpaper.name}`,
+          text: `Check out this wallpaper: ${currentWallpaper.name}`,
           url: shareUrl,
         })
       } else {
@@ -125,15 +188,28 @@ export default function WallpaperModal({
 
   const handleDownload = async () => {
     try {
-      const response = await fetch(wallpaper.download_url)
-      if (!response.ok) throw new Error('Failed to download')
+      // Validate URL before attempting download
+      if (!currentWallpaper.download_url) {
+        showNotification("Download URL not available")
+        return
+      }
+      
+      // Add debug logging
+      console.log("Attempting to download:", currentWallpaper.download_url)
+      console.log("Wallpaper object:", currentWallpaper)
+      
+      const response = await fetch(currentWallpaper.download_url)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
       
       // Extract file extension from the URL or Content-Type
-      let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
+      let fileExtension = currentWallpaper.download_url.split('.').pop()?.toLowerCase() || ''
       // Remove any query parameters from the extension
       fileExtension = fileExtension.split('?')[0]
       
@@ -153,11 +229,11 @@ export default function WallpaperModal({
       }
       
       // Ensure the filename has the correct extension
-      const fileName = wallpaper.name.includes('.') ? 
+      const fileName = currentWallpaper.name.includes('.') ? 
         // If filename already has an extension, use it as is
-        wallpaper.name : 
+        currentWallpaper.name : 
         // Otherwise add the extension
-        `${wallpaper.name}.${fileExtension}`
+        `${currentWallpaper.name}.${fileExtension}`
       
       link.download = fileName
       document.body.appendChild(link)
@@ -167,7 +243,17 @@ export default function WallpaperModal({
       showNotification(`Downloading ${fileName}`)
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
-      showNotification("Failed to download wallpaper")
+      console.error("Download URL was:", currentWallpaper.download_url)
+      console.error("Full wallpaper object:", currentWallpaper)
+      
+      // Try to provide more specific error messages
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        showNotification("Network error - please check your connection")
+      } else if (error instanceof Error) {
+        showNotification(`Download failed: ${error.message}`)
+      } else {
+        showNotification("Failed to download wallpaper")
+      }
     }
   }
 
@@ -279,6 +365,15 @@ export default function WallpaperModal({
   };
 
   const loadHighQualityImage = () => {
+    // Add debug logging to check if currentWallpaper has the right data
+    console.log("Loading high quality for:", currentWallpaper);
+    console.log("Download URL:", currentWallpaper.download_url);
+    
+    if (!currentWallpaper.download_url) {
+      showNotification("High quality image not available");
+      return;
+    }
+    
     setIsLoadingHighQuality(true)
     // The actual loading happens in the Image component
     setIsHighQuality(true)
@@ -318,7 +413,7 @@ export default function WallpaperModal({
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30"
           style={{ 
-            backgroundImage: `url(${wallpaper.preview_url})`,
+            backgroundImage: `url(${currentWallpaper.preview_url})`,
             filter: 'blur(20px)',
           }} 
         />
@@ -361,10 +456,10 @@ export default function WallpaperModal({
                   onClick={handleImageContainerClick}
                 >
                   <Image
-                    src={isHighQuality ? wallpaper.download_url : wallpaper.preview_url}
-                    alt={wallpaper.name}
-                    width={wallpaper.width}
-                    height={wallpaper.height}
+                    src={isHighQuality ? currentWallpaper.download_url : currentWallpaper.preview_url}
+                    alt={currentWallpaper.name}
+                    width={currentWallpaper.width}
+                    height={currentWallpaper.height}
                     className={`max-h-full max-w-full object-contain ${
                       window.innerWidth < 768 ? "" : "rounded-2xl"
                     } ${
@@ -384,6 +479,10 @@ export default function WallpaperModal({
                         setIsLoadingHighQuality(false)
                         showNotification("High quality image loaded!")
                       }
+                    }}
+                    onError={() => {
+                      console.error("Failed to load image:", isHighQuality ? currentWallpaper.download_url : currentWallpaper.preview_url)
+                      setIsImageLoading(false)
                     }}
                     priority
                     quality={isHighQuality ? 100 : 75}
@@ -413,108 +512,272 @@ export default function WallpaperModal({
         </div>
       </div>
 
-      {/* High quality button - show only when not already in high quality mode */}
-      {!isHighQuality && !isLoadingHighQuality && (
-        <button
-          onClick={loadHighQualityImage}
-          className="fixed top-20 sm:top-16 right-4 z-20 bg-black/80 text-white/90 hover:text-white px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 transition-all hover:bg-black/90 border border-white/10 shadow-lg"
-        >
-          <Sparkles className="w-4 h-4 text-yellow-400" />
-          <span>Load HD</span>
-        </button>
-      )}
-
-      {/* Quality indicator */}
-      {isHighQuality && (
-        <div className="fixed top-20 sm:top-16 right-4 z-20 bg-black/80 text-white/90 px-3 py-1.5 rounded-xl backdrop-blur-sm text-xs flex items-center gap-1.5 border border-white/10 shadow-lg">
-          <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-          <span>High Quality</span>
-        </div>
-      )}
+      {/* Similar Wallpapers Modal */}
+      <SimilarWallpapers 
+        currentWallpaper={currentWallpaper}
+        isVisible={showSimilarWallpapers}
+        onClose={() => setShowSimilarWallpapers(false)}
+        onSelectWallpaper={(newWallpaper) => {
+          // Close the similar wallpapers modal
+          setShowSimilarWallpapers(false);
+          
+          // Add debug logging to see what wallpaper data we're receiving
+          console.log("Selected wallpaper data:", newWallpaper);
+          
+          // Set the original wallpaper if we're not already viewing a recommendation
+          if (!originalWallpaperState) {
+            setOriginalWallpaperState(currentWallpaper);
+          }
+          
+          // Validate and fix URL construction
+          const validateUrl = (url: string) => {
+            try {
+              new URL(url);
+              return url;
+            } catch {
+              console.warn("Invalid URL:", url);
+              return null;
+            }
+          };
+          
+          // Ensure the new wallpaper has all required fields with proper URLs
+          const completeWallpaper = {
+            ...newWallpaper,
+            // Ensure all required fields are present
+            width: newWallpaper.width || 1920,
+            height: newWallpaper.height || 1080,
+            download_url: validateUrl(newWallpaper.download_url) || newWallpaper.preview_url,
+            preview_url: validateUrl(newWallpaper.preview_url) || newWallpaper.download_url,
+          };
+          
+          console.log("Complete wallpaper with validated URLs:", completeWallpaper);
+          
+          // Update the current wallpaper directly
+          setCurrentWallpaper(completeWallpaper);
+          // Reset states for the new wallpaper
+          setIsImageLoaded(false);
+          setIsImageLoading(true);
+          setIsPreviewLoaded(false);
+          setIsHighQuality(false);
+          setIsLoadingHighQuality(false);
+          setZoom(1);
+          setPosition({ x: 0, y: 0 });
+        }}
+      />
 
       {/* Top header with back button and info */}
-      <div className="absolute top-0 left-0 right-0 z-10 p-4 sm:p-4 pt-12 sm:pt-4 flex items-center justify-between">
-        <button 
-          onClick={onClose} 
-          className="fixed top-4 left-4 flex items-center gap-2 text-white/90 hover:text-white px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg"
-        >
-          <ChevronLeft className="w-6 h-6 sm:w-5 sm:h-5" />
-          <span className="text-base sm:text-sm hidden sm:block">Back</span>
-        </button>
-        <div className="fixed top-4 right-4 flex items-center gap-2 px-5 py-3.5 sm:px-3 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
-          {wallpaper.resolution && (
-            <div className="text-white/80 text-base sm:text-sm">
-              {formatResolution(wallpaper.resolution)}
-            </div>
-          )}
-          {wallpaper.platform && (
+      <div 
+        className="absolute left-0 right-0 z-10 p-4 flex items-center justify-between"
+        style={{ top: positions.topButtons.top }}
+      >
+        <div className="flex items-center gap-2">
+          {/* When viewing a recommendation, show both Back (to original) and Close (to home) */}
+          {isViewingRecommendation ? (
             <>
-              <div className="w-px h-4 sm:h-3 bg-white/20" />
-              <div className="text-white/80 text-base sm:text-sm">
-                {wallpaper.platform}
-              </div>
+              <button 
+                onClick={() => {
+                  if (originalWallpaperState) {
+                    // Go back to the original wallpaper
+                    setCurrentWallpaper(originalWallpaperState);
+                    setOriginalWallpaperState(null);
+                    
+                    // Reset states for the original wallpaper
+                    setIsImageLoaded(false);
+                    setIsImageLoading(true);
+                    setIsPreviewLoaded(false);
+                    setIsHighQuality(false);
+                    setIsLoadingHighQuality(false);
+                    setZoom(1);
+                    setPosition({ x: 0, y: 0 });
+                  }
+                }}
+                className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-yellow-400/20 backdrop-blur-md shadow-lg border border-yellow-400/30"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span className="text-sm hidden sm:inline">Back</span>
+              </button>
+              
+              <button 
+                onClick={onClose}
+                className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg"
+              >
+                <X className="w-5 h-5" />
+                <span className="text-sm hidden sm:inline">Close</span>
+              </button>
             </>
+          ) : (
+            <button 
+              onClick={onClose} 
+              className="flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="text-sm hidden sm:inline">Back</span>
+            </button>
           )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Resolution and platform info */}
+          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+            {currentWallpaper.resolution && (
+              <div className="text-white/80 text-sm">
+                {formatResolution(currentWallpaper.resolution)}
+              </div>
+            )}
+            {currentWallpaper.platform && (
+              <>
+                <div className="w-px h-3 bg-white/20" />
+                <div className="text-white/80 text-sm">
+                  {currentWallpaper.platform}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* HD Button or Quality Indicator */}
+          {!isHighQuality && !isLoadingHighQuality && currentWallpaper.download_url ? (
+            <button
+              onClick={loadHighQualityImage}
+              className="bg-black/80 text-white/90 hover:text-white px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 transition-all hover:bg-black/90 border border-white/10 shadow-lg"
+            >
+              <Sparkles className="w-4 h-4 text-yellow-400" />
+              <span>Load HD</span>
+            </button>
+          ) : isHighQuality ? (
+            <div className="bg-black/80 text-white/90 px-3 py-1.5 rounded-xl backdrop-blur-sm text-xs flex items-center gap-1.5 border border-white/10 shadow-lg">
+              <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+              <span>High Quality</span>
+            </div>
+          ) : null}
         </div>
       </div>
 
+      {/* Similar Wallpapers Modal */}
+      <SimilarWallpapers 
+        currentWallpaper={currentWallpaper}
+        isVisible={showSimilarWallpapers}
+          onClose={() => setShowSimilarWallpapers(false)}
+        onSelectWallpaper={(newWallpaper) => {
+          // Close the similar wallpapers modal
+          setShowSimilarWallpapers(false);
+          
+          // Add debug logging to see what wallpaper data we're receiving
+          console.log("Selected wallpaper data:", newWallpaper);
+          
+          // Set the original wallpaper if we're not already viewing a recommendation
+          if (!originalWallpaperState) {
+            setOriginalWallpaperState(currentWallpaper);
+          }
+          
+          // Validate and fix URL construction
+          const validateUrl = (url: string) => {
+            try {
+              new URL(url);
+              return url;
+            } catch {
+              console.warn("Invalid URL:", url);
+              return null;
+            }
+          };
+          
+          // Ensure the new wallpaper has all required fields with proper URLs
+          const completeWallpaper = {
+            ...newWallpaper,
+            // Ensure all required fields are present
+            width: newWallpaper.width || 1920,
+            height: newWallpaper.height || 1080,
+            download_url: validateUrl(newWallpaper.download_url) || newWallpaper.preview_url,
+            preview_url: validateUrl(newWallpaper.preview_url) || newWallpaper.download_url,
+          };
+          
+          console.log("Complete wallpaper with validated URLs:", completeWallpaper);
+          
+          // Update the current wallpaper directly
+          setCurrentWallpaper(completeWallpaper);          // Reset states for the new wallpaper
+          setIsImageLoaded(false);
+          setIsImageLoading(true);
+          setIsPreviewLoaded(false);
+          setIsHighQuality(false);
+          setIsLoadingHighQuality(false);
+          setZoom(1);
+          setPosition({ x: 0, y: 0 });
+        }}
+      />
+      
       {/* Bottom controls */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-4 pb-12 sm:pb-4">
-        <div className="w-full md:w-auto md:max-w-[90vw] mx-auto flex items-center justify-between">
-          {/* Navigation and zoom controls */}
-          <div className="fixed bottom-4 left-4 flex items-center gap-4">
-            <div className="flex items-center gap-2 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
-              <button
-                onClick={handleZoomOut}
-                disabled={zoom === 1}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
-              >
-                <Minus className="w-5 h-5 sm:w-4 sm:h-4" />
-              </button>
-              <span className="text-white/80 text-base sm:text-sm px-3">{zoom}x</span>
-              <button
-                onClick={handleZoomIn}
-                disabled={zoom === 3}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
-              >
-                <Plus className="w-5 h-5 sm:w-4 sm:h-4" />
-              </button>
-            </div>
+      <div 
+        className="absolute left-0 right-0 p-2 sm:p-4 flex items-center justify-between"
+        style={{ 
+          bottom: positions.bottomButtons.bottom 
+        }}
+      >
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Zoom controls */}
+          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+            <button
+              onClick={handleZoomOut}
+              disabled={zoom === 1}
+              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
+            >
+              <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+            </button>
+            <span className="text-white/80 text-xs sm:text-sm px-1 sm:px-2">{zoom}x</span>
+            <button
+              onClick={handleZoomIn}
+              disabled={zoom === 3}
+              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
+            >
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+            </button>
+          </div>
 
-            <div className="flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+          {/* Navigation controls - only show if not viewing recommendation */}
+          {!isViewingRecommendation && (onPrevious || onNext) && (
+            <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
               <button
                 onClick={onPrevious}
                 disabled={!hasPrevious}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
               >
-                <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
+                <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
               <button
                 onClick={onNext}
                 disabled={!hasNext}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80"
+                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-0.5 sm:p-0"
               >
-                <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
+                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
-          </div>
+          )}
+          
+          {/* Similar wallpapers button - only show if not viewing recommendation */}
+          {!isViewingRecommendation && (
+            <button
+              onClick={() => setShowSimilarWallpapers(true)}
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-yellow-400/20 backdrop-blur-md shadow-lg border border-yellow-400/30 hover:bg-yellow-400/30 transition-all"
+            >
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
+              <span className="text-white/90 text-xs sm:text-sm font-medium hidden xs:inline">Similar</span>
+            </button>
+          )}
+        </div>
 
-          {/* Action buttons */}
-          <div className="fixed bottom-4 right-4 flex items-center gap-4 px-5 py-3.5 sm:px-4 sm:py-2 rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
-            <button
-              onClick={handleShare}
-              className="text-white/90 hover:text-white"
-            >
-              <Share2 className="w-5 h-5 sm:w-4 sm:h-4" />
-            </button>
-            <div className="w-px h-4 sm:h-3 bg-white/20" />
-            <button
-              onClick={handleDownload}
-              className="text-white/90 hover:text-white"
-            >
-              <Download className="w-5 h-5 sm:w-4 sm:h-4" />
-            </button>
-          </div>
+        {/* Action buttons */}
+        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+          <button
+            onClick={handleShare}
+            className="text-white/90 hover:text-white p-1"
+          >
+            <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+          </button>
+          <div className="w-px h-3 sm:h-4 bg-white/20" />
+          <button
+            onClick={handleDownload}
+            className="text-white/90 hover:text-white p-1"
+          >
+            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+          </button>
         </div>
       </div>
     </div>
@@ -523,9 +786,31 @@ export default function WallpaperModal({
 
 function formatResolution(resolution: string): string {
   const [width, height] = resolution.split("x").map(Number)
-  if (width && height) {
-    return `${width} x ${height}`
+  
+  if (!width || !height) {
+    return resolution
   }
-  return resolution
-}
 
+  // Common resolution mappings
+  const resolutionMap: { [key: string]: string } = {
+    '1920x1080': '1080p',
+    '2560x1440': '1440p',
+    '3840x2160': '4K',
+    '7680x4320': '8K',
+    '1280x720': '720p',
+    '1366x768': 'HD',
+    '1600x900': 'HD+',
+    '2048x1152': 'QWXGA',
+    '2560x1600': 'WQXGA',
+    '3440x1440': 'UWQHD',
+    '5120x2880': '5K',
+    '1080x1920': '1080p Portrait',
+    '1440x2560': '1440p Portrait',
+    '2160x3840': '4K Portrait',
+  }
+
+  const key = `${width}x${height}`
+  
+  // Return mapped resolution name if available, otherwise format as "width x height"
+  return resolutionMap[key] || `${width} x ${height}`
+}

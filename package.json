@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0",
+    "dev": "node scripts/dev.js",
+    "dev:next": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build || echo 'Ensure supabaseUrl is set in the environment variables.'",
     "start": "next start",
     "lint": "next lint"

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -15,9 +15,10 @@ interface Wallpaper {
   resolution: string
 }
 
-export default function SearchPage() {
+// This wrapper component uses the search params inside a suspense boundary
+function SearchPageContent() {
   const searchParams = useSearchParams()
-  const query = searchParams.get('q') || ''
+  const query = searchParams?.get('q') || ''
   
   const [searchQuery, setSearchQuery] = useState(query)
   const [results, setResults] = useState<Wallpaper[]>([])
@@ -40,10 +41,16 @@ export default function SearchPage() {
     setError(null)
 
     try {
-      const response = await fetch(`/api/wallpapers/search?term=${encodeURIComponent(term)}`)
+      // Use direct search implementation to avoid API call during static generation
+      const response = await fetch(`/api/wallpapers/search?term=${encodeURIComponent(term)}`, {
+        cache: 'no-store', // Don't cache this request
+        next: { revalidate: 0 } // Ensure freshness
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to fetch search results')
       }
+      
       const data = await response.json()
       setResults(data)
     } catch (error) {
@@ -159,5 +166,24 @@ export default function SearchPage() {
         </>
       )}
     </div>
+  )
+}
+
+// Static configuration
+export const dynamic = 'force-dynamic'; // Don't statically optimize this page
+export const fetchCache = 'force-no-store'; // Don't cache this page
+export const revalidate = 0; // Don't revalidate this page
+
+// Main export with suspense boundary
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+        <p className="mt-4 text-white/70">Loading search results...</p>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   )
 }

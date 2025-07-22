@@ -239,11 +239,13 @@ export default function SearchBar() {
   // Set up infinite scroll with intersection observer
   useEffect(() => {
     // Don't set up observer if there are no more results to load
-    if (results.length <= visibleResults) return;
+    if (!isOpen || results.length <= visibleResults) return;
     
+    // Create the observer only when the search modal is open
     const observer = new IntersectionObserver((entries) => {
       const [entry] = entries;
-      if (entry.isIntersecting && !loadingMore) {
+      if (entry.isIntersecting && !loadingMore && results.length > visibleResults) {
+        console.log('Intersection observer triggered, loading more results');
         setLoadingMore(true);
         
         // Load more results
@@ -253,22 +255,24 @@ export default function SearchBar() {
         }, 300);
       }
     }, { 
-      rootMargin: '0px 0px 200px 0px', // Trigger earlier before reaching the bottom
+      rootMargin: '0px 0px 300px 0px', // Trigger 300px before reaching the bottom
       threshold: 0.1 // Trigger when 10% of the element is visible
     });
     
-    // Observe the loading element if it exists
+    // Reset and observe the loading element when modal is open
     const loaderElement = observerRef.current;
     if (loaderElement) {
       observer.observe(loaderElement);
+      console.log('Observer attached to loader element');
     }
     
     return () => {
       if (loaderElement) {
         observer.unobserve(loaderElement);
+        console.log('Observer detached from loader element');
       }
     };
-  }, [results.length, visibleResults, loadingMore]);
+  }, [results.length, visibleResults, loadingMore, isOpen]);
 
   return (
     <>

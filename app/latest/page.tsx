@@ -28,7 +28,7 @@ export default function LatestWallpapers() {
 
       <div className="pt-28 px-8 max-w-[1400px] mx-auto text-center">
         <h1 className="text-4xl font-bold mb-8 text-white">Latest Wallpapers</h1>
-        <WallpaperGrid sortBy="newest" limit={25} />
+        <WallpaperGrid />
       </div>
 
       <Footer />

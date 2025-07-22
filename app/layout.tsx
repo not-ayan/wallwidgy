@@ -39,10 +39,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Check if Supabase URL is defined to avoid build errors
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const hasSupabaseConfig = !!supabaseUrl;
-  
   return (
     <html lang="en" className={`${outfit.variable} ${sagite.variable}`}>
       <head>
@@ -58,7 +54,6 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://hebbkx1anhila5yf.public.blob.vercel-storage.com" />
       </head>
       <body className={`bg-[#0A0A0A] text-white antialiased ${outfit.variable} ${sagite.variable} font-sans`}>
-        {/* Only use Supabase if configuration is available */}
         {children}
       </body>
     </html>

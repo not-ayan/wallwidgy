@@ -7,7 +7,6 @@ import { ChevronLeft } from "lucide-react"
 import Header from "../../components/Header"
 import Footer from "../../components/Footer"
 import BackToTop from "../../components/BackToTop"
-import AdBanner from "../../components/AdBanner"
 
 const WallpaperGrid = dynamic(() => import("../../components/WallpaperGrid"), {
   loading: () => (
@@ -81,8 +80,6 @@ export default function CategoryPage({ params }: { params: { category: string } 
             {category.name}
           </h1>
         </div>
-
-        <AdBanner />
 
         <WallpaperGrid categoryFilter={`#${params.category}`} />
       </div>

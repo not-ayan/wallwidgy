@@ -15,8 +15,6 @@ import {
   Share2,
 } from "lucide-react"
 import WallpaperModal from "./WallpaperModal"
-import { getDatabase, ref, set, onValue, push, serverTimestamp } from "firebase/database"
-import { useAuthState } from "react-firebase-hooks/auth"
 import Masonry from "react-masonry-css"
 import path from "path"
 

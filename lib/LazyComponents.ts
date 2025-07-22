@@ -19,10 +19,4 @@ export const LazyShareFavoritesModal = dynamic(
   }
 );
 
-export const LazyBottomSheet = dynamic(
-  () => import('../app/components/BottomSheet'),
-  { 
-    loading: () => null,
-    ssr: false
-  }
-);
+// BottomSheet component removed as it was unused

@@ -1,21 +1,24 @@
+import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Heart, Grid, ArrowDownAZ, Clock, History, Code, Info } from "lucide-react"
+import { Heart, Grid, Info } from "lucide-react"
 import Footer from "./components/Footer"
 import BackToTop from "./components/BackToTop"
+import SearchBar from "./components/SearchBar"
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "WallWidgy",
 }
 
-// Lazy load the WallpaperGrid component
+// Lazy load components that are not immediately visible
 const WallpaperGrid = dynamic(() => import("./components/WallpaperGrid"), {
   loading: () => (
     <div className="flex items-center justify-center py-20">
       <div className="loader"></div>
     </div>
   ),
+  ssr: false // Disable SSR for better mobile performance
 })
 
 export default function Home() {
@@ -28,6 +31,9 @@ export default function Home() {
             <Link href="/" className="transition-opacity hover:opacity-80 pl-4">
               <img src="/logo.svg" alt="WallWidgy" className="h-4 sm:h-5" />
             </Link>
+            
+            <div className="flex-1"></div>
+            
             <div className="flex items-center gap-2 pr-4">
               <Link href="/favorites" className="p-2 text-white/80 hover:text-white transition-all" aria-label="Favorites">
                 <Heart className="w-5 h-5 transition-transform hover:scale-110" />
@@ -66,6 +72,9 @@ export default function Home() {
 
       {/* Back to Top Button */}
       <BackToTop />
+      
+      {/* Persistent Search Bar */}
+      <SearchBar />
     </main>
   )
 }

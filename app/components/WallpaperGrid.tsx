@@ -57,6 +57,7 @@ interface ImageDimensions {
 const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
   const [error, setError] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   
   // Use a stable ID to identify this specific image and prevent reloads
   const stableId = `image-${wallpaper.sha}`;
@@ -73,7 +74,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
     <>
       {!isImageLoaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/5">
-          <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
         </div>
       )}
       <Image
@@ -81,12 +82,12 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         src={wallpaper.preview_url}
         alt={wallpaper.name}
         fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        className={`object-cover transition-all duration-500 group-hover:scale-[1.02] ${isImageLoaded ? 'opacity-100' : 'opacity-0'}`}
-        priority={index < 6}
-        quality={75}
-        placeholder="blur"
-        loading={index < 12 ? "eager" : "lazy"}
+        sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+        className={`object-cover will-change-transform ${isImageLoaded ? 'opacity-100 transition-opacity' : 'opacity-0'} ${!isMobile ? 'group-hover:scale-[1.02] transition-transform duration-300' : ''}`}
+        priority={index < 4}
+        quality={isMobile ? 65 : 75}
+        loading={index < 8 ? "eager" : "lazy"}
+        decoding="async"
         onLoadingComplete={() => setIsImageLoaded(true)}
         onError={() => setError(true)}
         blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
@@ -94,7 +95,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
     </>
   );
 }, (prevProps, nextProps) => {
-  // Only re-render if the wallpaper sha changes (which should never happen for the same card)
+  // Only re-render if the wallpaper sha changes
   return prevProps.wallpaper.sha === nextProps.wallpaper.sha;
 });
 

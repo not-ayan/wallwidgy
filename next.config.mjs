@@ -36,13 +36,17 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    unoptimized: true,
+    minimumCacheTTL: 604800, // 1 week cache
+    deviceSizes: [320, 640, 750, 828, 1080, 1200, 1920],
   },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
+    optimizePackageImports: ['lucide-react'],
   },
+  poweredByHeader: false,
+  compress: true,
 }
 
 mergeConfig(nextConfig, userConfig)

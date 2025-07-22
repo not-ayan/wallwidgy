@@ -29,9 +29,10 @@ export default function BackToTop() {
   return (
     <button
       onClick={scrollToTop}
-      className={`fixed bottom-8 right-8 p-3 rounded-full bg-black/80 text-white/90 backdrop-blur-sm 
+      className={`fixed bottom-24 sm:bottom-8 right-6 sm:right-8 p-3 rounded-full bg-black/80 text-white/90 backdrop-blur-sm 
         transition-all duration-300 hover:bg-black hover:text-white
         ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0 pointer-events-none'}`}
+      aria-label="Back to top"
     >
       <ChevronUp className="w-5 h-5" />
     </button>

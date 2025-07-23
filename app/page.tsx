@@ -1,5 +1,7 @@
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
+// Dynamically import Vercel Analytics (client-only)
+const VercelAnalytics = dynamic(() => import("./components/VercelAnalytics"), { ssr: false })
 import Link from "next/link"
 import { Heart, Grid, Info } from "lucide-react"
 import Footer from "./components/Footer"
@@ -24,6 +26,8 @@ const WallpaperGrid = dynamic(() => import("./components/WallpaperGrid"), {
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#0A0A0A]">
+      {/* Vercel Analytics */}
+      <VercelAnalytics />
       {/* Header */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
         <header className="px-4 sm:px-12 py-5">

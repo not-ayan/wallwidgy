@@ -781,7 +781,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
       {/* Only show download button if not currently downloading */}
       {selectedWallpapers.length > 0 && !isDownloading && (
-        <div className="fixed bottom-24 sm:bottom-8 left-1/2 -translate-x-1/2 z-50">
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-50"
+          style={{
+            bottom:
+              typeof window !== 'undefined' && window.innerWidth >= 768
+                ? '80px' // Move slightly down on desktop (sm and above)
+                : '24px', // Keep original on mobile
+          }}
+        >
           <button
             onClick={downloadSelectedWallpapers}
             className="bg-black/80 text-white px-5 py-2.5 rounded-full hover:bg-black/90 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg border border-white/10"

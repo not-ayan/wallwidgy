@@ -787,7 +787,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
             bottom:
               typeof window !== 'undefined' && window.innerWidth >= 768
                 ? '80px' // Move slightly down on desktop (sm and above)
-                : '24px', // Keep original on mobile
+                : '80px', // Keep original on mobile
           }}
         >
           <button

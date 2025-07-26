@@ -92,6 +92,7 @@ export default function SearchBar() {
   const [isMac, setIsMac] = useState(false)
   const [previousSearch, setPreviousSearch] = useState("")
   const [searchHistoryEnabled, setSearchHistoryEnabled] = useState(false)
+  const [showMap, setShowMap] = useState<{ [sha: string]: boolean | undefined }>({});
   const router = useRouter()
   
   // Detect platform for keyboard shortcut display
@@ -110,6 +111,7 @@ export default function SearchBar() {
   const performSearch = async (query: string) => {
     setIsSearching(true)
     setResults([]) // Clear old results first
+    setShowMap({}); // Reset showMap for new search
     setVisibleResults(20) // Reset visible results counter when doing a new search
     try {
       // Fetch all wallpapers from the index
@@ -183,6 +185,7 @@ export default function SearchBar() {
       // Only clear if we don't have search history enabled
       if (!searchHistoryEnabled) {
         setResults([])
+        setShowMap({}); // Reset showMap when clearing results
         setSearchQuery("")
         setVisibleResults(20) // Reset visible results counter when closing
       }
@@ -411,6 +414,7 @@ export default function SearchBar() {
                       <button 
                         onClick={() => {
                           setResults([])
+                          setShowMap({}); // Reset showMap when clearing results
                           setSearchQuery("")
                         }}
                         className="p-2 rounded-full bg-white/10 hover:bg-white/15 transition-all duration-200 transform hover:scale-110 hover:translate-x-[-2px] active:scale-95"
@@ -451,73 +455,73 @@ export default function SearchBar() {
                       </div>
                     ) : results.length > 0 ? (
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5 will-change-contents">
-                        {results.slice(0, visibleResults).map((wallpaper, index) => (
-                          <Link
-                            key={wallpaper.sha}
-                            href={`/wallpaper/${wallpaper.name.replace(/\.\w+$/, '')}`}
-                            className="group"
-                            data-index={index}
-                            style={{ 
-                              animation: `fadeInUp 0.25s ease forwards`,
-                              animationDelay: `${Math.min(index < 20 ? index * 0.03 : 0.05, 0.6)}s`,
-                              opacity: 0,
-                              transform: 'translateY(10px)'
-                            }}
-                            onClick={() => {
-                              // Save search state for back navigation
-                              setPreviousSearch(searchQuery)
-                              setSearchHistoryEnabled(true)
-                              setIsOpen(false)
-                            }}
-                          >
-                            <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-300 aspect-[9/16] transform group-hover:translate-y-[-5px] group-hover:shadow-xl">
-                              <StableImageComponent
-                                src={wallpaper.preview_url}
-                                alt={wallpaper.name}
-                                sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
-                              />
-
-                              {/* Download button overlay */}
-                              <button
-                                className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
-                                title="Download wallpaper"
-                                tabIndex={-1}
-                                onClick={async e => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  try {
-                                    const response = await fetch(wallpaper.download_url);
-                                    const blob = await response.blob();
-                                    const url = window.URL.createObjectURL(blob);
-                                    const link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = wallpaper.name;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-                                  } catch (err) {
-                                    alert('Failed to download image.');
-                                  }
-                                }}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
-                              </button>
-
-                              {/* Hover overlay */}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
-
-                              {/* Resolution badge */}
-                              <div className="absolute bottom-2 left-2 right-2">
-                                <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                                  <p className="text-white text-xs font-medium truncate">
-                                    {wallpaper.resolution}
-                                  </p>
+                        {/* Robust 404 image hiding logic: parent-managed showMap */}
+                        {results.filter(wallpaper => showMap[wallpaper.sha] !== false)
+                          .slice(0, visibleResults)
+                          .map((wallpaper, index) => (
+                            <Link
+                              key={wallpaper.sha}
+                              href={`/wallpaper/${wallpaper.name.replace(/\.\w+$/, '')}`}
+                              className="group"
+                              data-index={index}
+                              style={{ 
+                                animation: `fadeInUp 0.25s ease forwards`,
+                                animationDelay: `${Math.min(index < 20 ? index * 0.03 : 0.05, 0.6)}s`,
+                                opacity: 0,
+                                transform: 'translateY(10px)'
+                              }}
+                              onClick={() => {
+                                setPreviousSearch(searchQuery)
+                                setSearchHistoryEnabled(true)
+                                setIsOpen(false)
+                              }}
+                            >
+                              <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-300 aspect-[9/16] transform group-hover:translate-y-[-5px] group-hover:shadow-xl">
+                                <StableImageComponent
+                                  src={wallpaper.preview_url}
+                                  alt={wallpaper.name}
+                                  sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
+                                  onError404={() => setShowMap(prev => ({ ...prev, [wallpaper.sha]: false }))}
+                                />
+                                {/* Download button overlay */}
+                                <button
+                                  className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
+                                  title="Download wallpaper"
+                                  tabIndex={-1}
+                                  onClick={async e => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    try {
+                                      const response = await fetch(wallpaper.download_url);
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const link = document.createElement('a');
+                                      link.href = url;
+                                      link.download = wallpaper.name;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                                    } catch (err) {
+                                      alert('Failed to download image.');
+                                    }
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                                </button>
+                                {/* Hover overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
+                                {/* Resolution badge */}
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                    <p className="text-white text-xs font-medium truncate">
+                                      {wallpaper.resolution}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </Link>
-                        ))}
+                            </Link>
+                          ))}
                         
                         {/* Loader element for intersection observer with loading indicator */}
                         {results.length > visibleResults && (

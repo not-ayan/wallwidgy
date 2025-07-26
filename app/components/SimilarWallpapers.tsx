@@ -2,6 +2,49 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useState as useStableState } from "react"
+// StableImageComponent: robust image loader with fallback to unoptimized and error UI (copied from WallpaperGrid/SearchBar)
+function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt: string; on404?: () => void; [key: string]: any }) {
+  const [unoptimized, setUnoptimized] = useStableState(false);
+  const [error, setError] = useStableState(false);
+  const [loading, setLoading] = useStableState(true);
+
+  // If error is set, do not render anything (skip image)
+  if (error) {
+    if (on404) on404();
+    return null;
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      loading="lazy"
+      decoding="async"
+      unoptimized={unoptimized}
+      onError={async (e: any) => {
+        // Try to detect 404 (Not Found) and skip rendering
+        if (e?.target?.src) {
+          try {
+            const res = await fetch(e.target.src, { method: 'HEAD' });
+            if (res.status === 404) {
+              setError(true);
+              return;
+            }
+          } catch {}
+        }
+        if (!unoptimized) setUnoptimized(true); else setError(true);
+      }}
+      onLoad={() => setLoading(false)}
+      className={
+        "object-cover transition-all duration-200 group-hover:brightness-110" +
+        (loading ? " animate-pulse bg-white/10" : "")
+      }
+      {...props}
+    />
+  );
+}
 import { RefreshCw, Sparkles, X, ArrowLeft } from "lucide-react"
 import { Wallpaper } from "./WallpaperModal"
 import { shouldDisableBlurEffects } from "@/lib/utils"
@@ -12,6 +55,7 @@ interface SimilarWallpapersProps {
   onClose: () => void
   onSelectWallpaper: (wallpaper: Wallpaper) => void
 }
+
 
 export default function SimilarWallpapers({
   currentWallpaper,
@@ -25,7 +69,9 @@ export default function SimilarWallpapers({
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [disableBlur, setDisableBlur] = useState(false)
-  
+  // Track which wallpapers to show (not 404)
+  const [showMap, setShowMap] = useState<{ [sha: string]: boolean }>({});
+
   // Calculate wallpapers per row based on screen width
   const getWallpapersPerRow = () => {
     if (typeof window === 'undefined') return 8 // Default for SSR
@@ -36,13 +82,14 @@ export default function SimilarWallpapers({
     if (width < 1024) return 8       // lg: 8 columns
     return 10                        // xl: 10 columns
   }
-  
+
   const [wallpapersPerRow, setWallpapersPerRow] = useState(getWallpapersPerRow())
 
   useEffect(() => {
     if (currentWallpaper?.sha && isVisible) {
       fetchSimilarWallpapers(currentWallpaper)
       setCurrentPage(0) // Reset to first page when wallpaper changes
+      setShowMap({}); // Reset showMap on new wallpaper
     }
   }, [currentWallpaper?.sha, isVisible])
 
@@ -58,7 +105,6 @@ export default function SimilarWallpapers({
     const handleResize = () => {
       setWallpapersPerRow(getWallpapersPerRow())
     }
-    
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
@@ -310,40 +356,39 @@ export default function SimilarWallpapers({
         {/* Wallpapers Grid */}
         <div className="p-2 sm:p-4">
           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1.5 sm:gap-2 md:gap-3 max-h-52 sm:max-h-60 lg:max-h-72 overflow-y-auto scrollbar-hide">
-            {similarWallpapers.map((wallpaper, index) => (
-              <div 
-                key={`${wallpaper.sha}-${currentPage}-${index}`}
-                className="group cursor-pointer transform transition-all duration-200 hover:scale-105"
-                onClick={() => onSelectWallpaper(wallpaper)}
-              >
-                <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-200 aspect-[9/16]">
-                  <Image
-                    src={wallpaper.preview_url}
-                    alt={wallpaper.name}
-                    fill
-                    sizes="(max-width: 480px) 25vw, (max-width: 640px) 20vw, (max-width: 768px) 16.66vw, (max-width: 1024px) 14.28vw, (max-width: 1280px) 12.5vw, 10vw"
-                    className="object-cover transition-all duration-200 group-hover:brightness-110"
-                  />
-                  
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
-                  
-                  {/* Resolution badge - responsive sizing */}
-                  <div className="absolute bottom-0.5 left-0.5 right-0.5 sm:bottom-1 sm:left-1 sm:right-1">
-                    <div className={`bg-black/80 ${disableBlur ? '' : 'backdrop-blur-sm'} rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200`}>
-                      <p className="text-white text-[8px] sm:text-[10px] font-medium truncate text-center">
-                        {wallpaper.resolution}
-                      </p>
+            {similarWallpapers.map((wallpaper, index) => {
+              if (showMap[wallpaper.sha] === false) return null;
+              return (
+                <div 
+                  key={`${wallpaper.sha}-${currentPage}-${index}`}
+                  className="group cursor-pointer transform transition-all duration-200 hover:scale-105"
+                  onClick={() => onSelectWallpaper(wallpaper)}
+                >
+                  <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-200 aspect-[9/16]">
+                    <StableImageComponent
+                      src={wallpaper.preview_url}
+                      alt={wallpaper.name}
+                      sizes="(max-width: 480px) 25vw, (max-width: 640px) 20vw, (max-width: 768px) 16.66vw, (max-width: 1024px) 14.28vw, (max-width: 1280px) 12.5vw, 10vw"
+                      on404={() => setShowMap(prev => ({ ...prev, [wallpaper.sha]: false }))}
+                    />
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
+                    {/* Resolution badge - responsive sizing */}
+                    <div className="absolute bottom-0.5 left-0.5 right-0.5 sm:bottom-1 sm:left-1 sm:right-1">
+                      <div className={`bg-black/80 ${disableBlur ? '' : 'backdrop-blur-sm'} rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-all duration-200`}>
+                        <p className="text-white text-[8px] sm:text-[10px] font-medium truncate text-center">
+                          {wallpaper.resolution}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Platform indicator - responsive sizing */}
+                    <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1">
+                      <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-yellow-400/60 opacity-0 group-hover:opacity-100 transition-all duration-200" />
                     </div>
                   </div>
-                  
-                  {/* Platform indicator - responsive sizing */}
-                  <div className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1">
-                    <div className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-yellow-400/60 opacity-0 group-hover:opacity-100 transition-all duration-200" />
-                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

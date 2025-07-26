@@ -4,80 +4,60 @@ import { useEffect, useState, Suspense, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 // import Image from "next/image" // Removed: not used, SmartImage uses <img>
 import { useCallback } from "react"
-// SmartImage: robust direct image loader with fallback and error UI
-interface SmartImageProps {
-  src: string;
-  alt: string;
-  width?: number;
-  height?: number;
-  className?: string;
-  style?: React.CSSProperties;
-  placeholderSrc?: string;
-  [key: string]: any;
-}
-function SmartImage({
-  src,
-  alt,
-  width,
-  height,
-  className = '',
-  style = {},
-  placeholderSrc = '',
-  ...rest
-}: SmartImageProps) {
+import Image from "next/image"
+import React from "react"
+// StableImageComponent: same as WallpaperGrid
+const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
   const [error, setError] = useState(false);
-  const [showPlaceholder, setShowPlaceholder] = useState(false);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [forceUnoptimized, setForceUnoptimized] = useState(false);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  const stableId = `image-${wallpaper.sha}`;
 
   const handleImageError = useCallback(() => {
-    if (placeholderSrc && !showPlaceholder) {
-      setShowPlaceholder(true);
+    if (!forceUnoptimized) {
+      setForceUnoptimized(true);
+      setError(false);
     } else {
       setError(true);
     }
-  }, [placeholderSrc, showPlaceholder]);
+  }, [forceUnoptimized]);
 
   if (error) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-md sm:rounded-lg">
-        <span className="text-white/60 text-xs">Failed to load</span>
+      <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+        <span className="text-white/50">Failed to load image</span>
       </div>
     );
   }
 
-  if (showPlaceholder && placeholderSrc) {
-    return (
-      <img
-        src={placeholderSrc}
-        alt={alt}
-        width={width}
-        height={height}
-        className={className}
-        style={style}
-        loading="lazy"
-        decoding="async"
-        crossOrigin="anonymous"
-        onError={() => setError(true)}
-        {...rest}
-      />
-    );
-  }
-
   return (
-    <img
-      src={src}
-      alt={alt}
-      width={width}
-      height={height}
-      className={className}
-      style={style}
-      loading="lazy"
-      decoding="async"
-      crossOrigin="anonymous"
-      onError={handleImageError}
-      {...rest}
-    />
+    <>
+      {!isImageLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/5">
+          <div className="w-5 h-5 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+        </div>
+      )}
+      <Image
+        id={stableId}
+        src={wallpaper.preview_url}
+        alt={wallpaper.name}
+        fill
+        sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
+        className={`object-cover transition-all duration-300 group-hover:brightness-110 group-hover:scale-105 ${isImageLoaded ? 'opacity-100 transition-opacity' : 'opacity-0'}`}
+        priority={index < 4}
+        quality={isMobile ? 65 : 75}
+        loading={index < 8 ? "eager" : "lazy"}
+        decoding="async"
+        onLoadingComplete={() => setIsImageLoaded(true)}
+        onError={handleImageError}
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+        unoptimized={forceUnoptimized}
+      />
+    </>
   );
-}
+}, (prevProps, nextProps) => prevProps.wallpaper.sha === nextProps.wallpaper.sha);
 import Link from "next/link"
 import { Loader2, Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -194,33 +174,39 @@ function SearchContent() {
               </h2>
             </div>
           )}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {results.map((wallpaper) => (
-              <Link
-                key={wallpaper.sha}
-                href={`/wallpaper/${wallpaper.name.replace(/\.[^.]+$/, '')}`}
-                className="group"
-              >
-                <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-300 aspect-[9/16] transform group-hover:translate-y-[-5px] group-hover:shadow-xl">
-                  <SmartImage
-                    src={wallpaper.preview_url}
-                    alt={wallpaper.name}
-                    width={400}
-                    height={711}
-                    className="object-cover transition-all duration-300 group-hover:brightness-110 group-hover:scale-105"
+              <div key={wallpaper.sha} className="group relative bg-white/5 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all border border-white/10">
+                <Link href={`/wallpaper/${wallpaper.name.replace(/\.[^.]+$/, '')}`}
+                  className="block aspect-[9/16] relative">
+                  <StableImageComponent
+                    wallpaper={wallpaper}
+                    index={0}
                   />
-                  {/* Hover overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
-                  {/* Resolution badge */}
-                  <div className="absolute bottom-2 left-2 right-2">
-                    <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                      <p className="text-white text-xs font-medium truncate">
-                        {wallpaper.resolution}
-                      </p>
-                    </div>
-                  </div>
+                  {/* Overlay for hover effect */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none" />
+                </Link>
+                {/* Bottom bar with resolution and download */}
+                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 bg-black/70 backdrop-blur-sm gap-2">
+                  <span className="text-xs text-white/80 font-medium truncate">{wallpaper.resolution}</span>
+                  <button
+                    className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                    title="Download"
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      const link = document.createElement('a');
+                      link.href = wallpaper.preview_url;
+                      link.download = wallpaper.name;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         </>

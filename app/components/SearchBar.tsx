@@ -4,6 +4,41 @@ import { useState, useEffect, useRef } from "react"
 import { Search, X, Sparkles, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useState as useStableState } from "react"
+// StableImageComponent: robust image loader with fallback to unoptimized and error UI (copied from WallpaperGrid)
+function StableImageComponent({ src, alt, ...props }: { src: string; alt: string; [key: string]: any }) {
+  const [unoptimized, setUnoptimized] = useStableState(false);
+  const [error, setError] = useStableState(false);
+  const [loading, setLoading] = useStableState(true);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center w-full h-full bg-white/10 text-white/60 text-xs rounded-md">
+        Failed to load
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      loading="lazy"
+      decoding="async"
+      unoptimized={unoptimized}
+      onError={() => {
+        if (!unoptimized) setUnoptimized(true); else setError(true);
+      }}
+      onLoad={() => setLoading(false)}
+      className={
+        "object-cover transition-all duration-300 group-hover:brightness-110 group-hover:scale-105" +
+        (loading ? " animate-pulse bg-white/10" : "")
+      }
+      {...props}
+    />
+  );
+}
 import Link from "next/link"
 
 // Add custom animation styles
@@ -436,19 +471,34 @@ export default function SearchBar() {
                             }}
                           >
                             <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-300 aspect-[9/16] transform group-hover:translate-y-[-5px] group-hover:shadow-xl">
-                              <Image
+                              <StableImageComponent
                                 src={wallpaper.preview_url}
                                 alt={wallpaper.name}
-                                fill
-                                loading="lazy"
-                                decoding="async"
                                 sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
-                                className="object-cover transition-all duration-300 group-hover:brightness-110 group-hover:scale-105"
                               />
-                              
+
+                              {/* Download button overlay */}
+                              <button
+                                className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
+                                title="Download wallpaper"
+                                tabIndex={-1}
+                                onClick={e => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const link = document.createElement('a');
+                                  link.href = wallpaper.download_url;
+                                  link.download = wallpaper.name;
+                                  document.body.appendChild(link);
+                                  link.click();
+                                  document.body.removeChild(link);
+                                }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                              </button>
+
                               {/* Hover overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
-                              
+
                               {/* Resolution badge */}
                               <div className="absolute bottom-2 left-2 right-2">
                                 <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">

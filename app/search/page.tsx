@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useRef } from "react"
 import { useSearchParams } from "next/navigation"
-import Image from "next/image"
+// import Image from "next/image" // Removed: not used, SmartImage uses <img>
 import { useCallback } from "react"
 // SmartImage: tries optimized, then unoptimized, then shows error UI
 function SmartImage({

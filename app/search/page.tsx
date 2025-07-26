@@ -3,6 +3,68 @@
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import Image from "next/image"
+import { useCallback } from "react"
+// SmartImage: tries optimized, then unoptimized, then shows error UI
+function SmartImage({
+  src,
+  alt,
+  fill = false,
+  width,
+  height,
+  className = '',
+  style = {},
+  sizes,
+  priority = false,
+  ...rest
+}: {
+  src: string;
+  alt: string;
+  fill?: boolean;
+  width?: number;
+  height?: number;
+  className?: string;
+  style?: React.CSSProperties;
+  sizes?: string;
+  priority?: boolean;
+  [key: string]: any;
+}) {
+  const [forceUnoptimized, setForceUnoptimized] = useState(false);
+  const [error, setError] = useState(false);
+
+  const handleImageError = useCallback(() => {
+    if (!forceUnoptimized) {
+      setForceUnoptimized(true);
+      setError(false);
+    } else {
+      setError(true);
+    }
+  }, [forceUnoptimized]);
+
+  if (error) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-md sm:rounded-lg">
+        <span className="text-white/60 text-xs">Failed to load</span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill={fill}
+      width={width}
+      height={height}
+      className={className}
+      style={style}
+      sizes={sizes}
+      priority={priority}
+      unoptimized={forceUnoptimized}
+      onError={handleImageError}
+      {...rest}
+    />
+  );
+}
 import Link from "next/link"
 import { Loader2, Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -132,7 +194,7 @@ function SearchContent() {
                 className="group"
               >
                 <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-300 aspect-[9/16] transform group-hover:translate-y-[-5px] group-hover:shadow-xl">
-                  <Image
+                  <SmartImage
                     src={wallpaper.preview_url}
                     alt={wallpaper.name}
                     fill

@@ -55,11 +55,22 @@ interface ImageDimensions {
 const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
   const [error, setError] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [forceUnoptimized, setForceUnoptimized] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-  
+
   // Use a stable ID to identify this specific image and prevent reloads
   const stableId = `image-${wallpaper.sha}`;
-  
+
+  // Custom error handler: if first load fails, try unoptimized, else show error
+  const handleImageError = useCallback(() => {
+    if (!forceUnoptimized) {
+      setForceUnoptimized(true);
+      setError(false);
+    } else {
+      setError(true);
+    }
+  }, [forceUnoptimized]);
+
   if (error) {
     return (
       <div className="absolute inset-0 flex items-center justify-center bg-white/5">
@@ -87,8 +98,9 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         loading={index < 8 ? "eager" : "lazy"}
         decoding="async"
         onLoadingComplete={() => setIsImageLoaded(true)}
-        onError={() => setError(true)}
+        onError={handleImageError}
         blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+        unoptimized={forceUnoptimized}
       />
     </>
   );

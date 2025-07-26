@@ -482,15 +482,23 @@ export default function SearchBar() {
                                 className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
                                 title="Download wallpaper"
                                 tabIndex={-1}
-                                onClick={e => {
+                                onClick={async e => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  const link = document.createElement('a');
-                                  link.href = wallpaper.download_url;
-                                  link.download = wallpaper.name;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
+                                  try {
+                                    const response = await fetch(wallpaper.download_url);
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = wallpaper.name;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                                  } catch (err) {
+                                    alert('Failed to download image.');
+                                  }
                                 }}
                               >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>

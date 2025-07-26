@@ -4,7 +4,17 @@ import { useEffect, useState, Suspense, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 // import Image from "next/image" // Removed: not used, SmartImage uses <img>
 import { useCallback } from "react"
-// SmartImage: tries optimized, then unoptimized, then shows error UI
+// SmartImage: robust direct image loader with fallback and error UI
+interface SmartImageProps {
+  src: string;
+  alt: string;
+  width?: number;
+  height?: number;
+  className?: string;
+  style?: React.CSSProperties;
+  placeholderSrc?: string;
+  [key: string]: any;
+}
 function SmartImage({
   src,
   alt,
@@ -14,16 +24,7 @@ function SmartImage({
   style = {},
   placeholderSrc = '',
   ...rest
-}: {
-  src: string;
-  alt: string;
-  width?: number;
-  height?: number;
-  className?: string;
-  style?: React.CSSProperties;
-  placeholderSrc?: string;
-  [key: string]: any;
-}) {
+}: SmartImageProps) {
   const [error, setError] = useState(false);
   const [showPlaceholder, setShowPlaceholder] = useState(false);
 
@@ -43,21 +44,25 @@ function SmartImage({
     );
   }
 
-  return showPlaceholder && placeholderSrc ? (
-    <img
-      src={placeholderSrc}
-      alt={alt}
-      width={width}
-      height={height}
-      className={className}
-      style={style}
-      loading="lazy"
-      decoding="async"
-      crossOrigin="anonymous"
-      onError={() => setError(true)}
-      {...rest}
-    />
-  ) : (
+  if (showPlaceholder && placeholderSrc) {
+    return (
+      <img
+        src={placeholderSrc}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        style={style}
+        loading="lazy"
+        decoding="async"
+        crossOrigin="anonymous"
+        onError={() => setError(true)}
+        {...rest}
+      />
+    );
+  }
+
+  return (
     <img
       src={src}
       alt={alt}
@@ -79,62 +84,57 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 interface Wallpaper {
-  name: string
-  sha: string
-
-  preview_url: string
-  resolution: string
+  name: string;
+  sha: string;
+  preview_url: string;
+  resolution: string;
 }
 
-// Create a separate component for the search content that uses useSearchParams
+// SearchContent: handles search state, fetch, and rendering
 function SearchContent() {
-  const searchParams = useSearchParams()
-  const query = searchParams.get('q') || ''
-  
-  const [searchQuery, setSearchQuery] = useState(query)
-  const [results, setResults] = useState<Wallpaper[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+  const [searchQuery, setSearchQuery] = useState<string>(initialQuery);
+  const [results, setResults] = useState<Wallpaper[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (query) {
-      searchWallpapers(query)
+    if (initialQuery) {
+      fetchWallpapers(initialQuery);
+    } else {
+      setResults([]);
     }
-  }, [query])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
-  const searchWallpapers = async (term: string) => {
+  const fetchWallpapers = async (term: string) => {
     if (!term.trim()) {
-      setResults([])
-      return
+      setResults([]);
+      return;
     }
-
-    setIsLoading(true)
-    setError(null)
-
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`/api/wallpapers/search?term=${encodeURIComponent(term)}`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch search results')
-      }
-      const data = await response.json()
-      setResults(data)
-    } catch (error) {
-      console.error('Error searching wallpapers:', error)
-      setError('Failed to load search results. Please try again.')
+      const response = await fetch(`/api/wallpapers/search?term=${encodeURIComponent(term)}`);
+      if (!response.ok) throw new Error('Failed to fetch search results');
+      const data = await response.json();
+      setResults(data);
+    } catch (err) {
+      setError('Failed to load search results. Please try again.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    searchWallpapers(searchQuery)
-    
-    // Update URL with search query
-    const url = new URL(window.location.href)
-    url.searchParams.set('q', searchQuery)
-    window.history.pushState({}, '', url.toString())
-  }
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    fetchWallpapers(searchQuery);
+    // Update URL
+    const url = new URL(window.location.href);
+    url.searchParams.set('q', searchQuery);
+    window.history.pushState({}, '', url.toString());
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -144,7 +144,7 @@ function SearchContent() {
             type="text"
             placeholder="Search wallpapers..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={e => setSearchQuery(e.target.value)}
             className="pr-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 h-12 rounded-lg"
             autoFocus
           />
@@ -175,47 +175,42 @@ function SearchContent() {
         <div className="text-center py-12">
           <p className="text-red-400">{error}</p>
           <button
-            onClick={() => searchWallpapers(searchQuery)}
+            onClick={() => fetchWallpapers(searchQuery)}
             className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/15 rounded-md text-sm text-white"
           >
             Try Again
           </button>
         </div>
-      ) : results.length === 0 && query ? (
+      ) : results.length === 0 && initialQuery ? (
         <div className="text-center py-12">
-          <p className="text-white/70">No wallpapers found for "{query}"</p>
+          <p className="text-white/70">No wallpapers found for "{initialQuery}"</p>
         </div>
       ) : (
         <>
           {results.length > 0 && (
             <div className="mb-6">
               <h2 className="text-xl font-medium text-white/90">
-                {results.length} {results.length === 1 ? 'result' : 'results'} for "{query}"
+                {results.length} {results.length === 1 ? 'result' : 'results'} for "{initialQuery}"
               </h2>
             </div>
           )}
-          
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {results.map((wallpaper) => (
               <Link
                 key={wallpaper.sha}
-                href={`/wallpaper/${wallpaper.name.replace(/\.\w+$/, '')}`}
+                href={`/wallpaper/${wallpaper.name.replace(/\.[^.]+$/, '')}`}
                 className="group"
               >
                 <div className="relative overflow-hidden rounded-md sm:rounded-lg border border-white/10 group-hover:border-white/30 transition-all duration-300 aspect-[9/16] transform group-hover:translate-y-[-5px] group-hover:shadow-xl">
                   <SmartImage
                     src={wallpaper.preview_url}
                     alt={wallpaper.name}
-                    fill
-                    loading="lazy"
-                    decoding="async"
-                    sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
+                    width={400}
+                    height={711}
                     className="object-cover transition-all duration-300 group-hover:brightness-110 group-hover:scale-105"
                   />
-                  
                   {/* Hover overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
-                  
                   {/* Resolution badge */}
                   <div className="absolute bottom-2 left-2 right-2">
                     <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
@@ -231,7 +226,7 @@ function SearchContent() {
         </>
       )}
     </div>
-  )
+  );
 }
 
 // Main component that wraps SearchContent in a Suspense boundary

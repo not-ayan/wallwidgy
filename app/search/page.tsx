@@ -15,7 +15,6 @@ function SmartImage({
   style = {},
   sizes,
   priority = false,
-  timeoutMs = 2000,
   ...rest
 }: {
   src: string;
@@ -27,38 +26,12 @@ function SmartImage({
   style?: React.CSSProperties;
   sizes?: string;
   priority?: boolean;
-  timeoutMs?: number;
   [key: string]: any;
 }) {
-  const [forceUnoptimized, setForceUnoptimized] = useState(false);
   const [error, setError] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Fallback to unoptimized if not loaded after timeout
-  useEffect(() => {
-    if (!forceUnoptimized && !loaded) {
-      timeoutRef.current = setTimeout(() => {
-        setForceUnoptimized(true);
-      }, timeoutMs);
-    }
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [forceUnoptimized, loaded, timeoutMs]);
 
   const handleImageError = useCallback(() => {
-    if (!forceUnoptimized) {
-      setForceUnoptimized(true);
-      setError(false);
-    } else {
-      setError(true);
-    }
-  }, [forceUnoptimized]);
-
-  const handleImageLoad = useCallback(() => {
-    setLoaded(true);
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setError(true);
   }, []);
 
   if (error) {
@@ -80,9 +53,8 @@ function SmartImage({
       style={style}
       sizes={sizes}
       priority={priority}
-      unoptimized={forceUnoptimized}
+      unoptimized={true}
       onError={handleImageError}
-      onLoad={handleImageLoad}
       {...rest}
     />
   );

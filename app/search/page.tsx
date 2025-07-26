@@ -12,6 +12,7 @@ function SmartImage({
   height,
   className = '',
   style = {},
+  placeholderSrc = '',
   ...rest
 }: {
   src: string;
@@ -20,13 +21,19 @@ function SmartImage({
   height?: number;
   className?: string;
   style?: React.CSSProperties;
+  placeholderSrc?: string;
   [key: string]: any;
 }) {
   const [error, setError] = useState(false);
+  const [showPlaceholder, setShowPlaceholder] = useState(false);
 
   const handleImageError = useCallback(() => {
-    setError(true);
-  }, []);
+    if (placeholderSrc && !showPlaceholder) {
+      setShowPlaceholder(true);
+    } else {
+      setError(true);
+    }
+  }, [placeholderSrc, showPlaceholder]);
 
   if (error) {
     return (
@@ -36,7 +43,21 @@ function SmartImage({
     );
   }
 
-  return (
+  return showPlaceholder && placeholderSrc ? (
+    <img
+      src={placeholderSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      style={style}
+      loading="lazy"
+      decoding="async"
+      crossOrigin="anonymous"
+      onError={() => setError(true)}
+      {...rest}
+    />
+  ) : (
     <img
       src={src}
       alt={alt}
@@ -46,6 +67,7 @@ function SmartImage({
       style={style}
       loading="lazy"
       decoding="async"
+      crossOrigin="anonymous"
       onError={handleImageError}
       {...rest}
     />
@@ -59,6 +81,7 @@ import { cn } from "@/lib/utils"
 interface Wallpaper {
   name: string
   sha: string
+
   preview_url: string
   resolution: string
 }

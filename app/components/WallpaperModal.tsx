@@ -1,6 +1,73 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
+// SmartImage: tries optimized, then unoptimized, then shows error UI
+function SmartImage({
+  src,
+  alt,
+  width,
+  height,
+  className = '',
+  style = {},
+  onLoad,
+  onError,
+  quality = 75,
+  priority = false,
+  sizes = '100vw',
+  ...rest
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  className?: string;
+  style?: React.CSSProperties;
+  onLoad?: () => void;
+  onError?: () => void;
+  quality?: number;
+  priority?: boolean;
+  sizes?: string;
+  [key: string]: any;
+}) {
+  const [forceUnoptimized, setForceUnoptimized] = useState(false);
+  const [error, setError] = useState(false);
+
+  const handleImageError = useCallback(() => {
+    if (!forceUnoptimized) {
+      setForceUnoptimized(true);
+      setError(false);
+    } else {
+      setError(true);
+      if (onError) onError();
+    }
+  }, [forceUnoptimized, onError]);
+
+  if (error) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl">
+        <span className="text-white/60">Failed to load image</span>
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      style={style}
+      onLoad={onLoad}
+      onError={handleImageError}
+      quality={quality}
+      priority={priority}
+      sizes={sizes}
+      unoptimized={forceUnoptimized}
+      {...rest}
+    />
+  );
+}
 import Image from "next/image"  // This is the Next.js Image component
 import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, ArrowLeft } from "lucide-react"
 import Modal from "./Modal"
@@ -459,7 +526,7 @@ export default function WallpaperModal({
                   className="relative w-full h-full flex items-center justify-center"
                   onClick={handleImageContainerClick}
                 >
-                  <Image
+                  <SmartImage
                     src={isHighQuality ? currentWallpaper.download_url : currentWallpaper.preview_url}
                     alt={currentWallpaper.name}
                     width={currentWallpaper.width}
@@ -485,13 +552,11 @@ export default function WallpaperModal({
                       }
                     }}
                     onError={() => {
-                      console.error("Failed to load image:", isHighQuality ? currentWallpaper.download_url : currentWallpaper.preview_url)
                       setIsImageLoading(false)
                     }}
                     priority
                     quality={isHighQuality ? 100 : 75}
                     sizes="100vw"
-                    unoptimized={isHighQuality}
                     onClick={handleImageContainerClick}
                   />
                 </div>

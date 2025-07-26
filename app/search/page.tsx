@@ -8,24 +8,18 @@ import { useCallback } from "react"
 function SmartImage({
   src,
   alt,
-  fill = false,
   width,
   height,
   className = '',
   style = {},
-  sizes,
-  priority = false,
   ...rest
 }: {
   src: string;
   alt: string;
-  fill?: boolean;
   width?: number;
   height?: number;
   className?: string;
   style?: React.CSSProperties;
-  sizes?: string;
-  priority?: boolean;
   [key: string]: any;
 }) {
   const [error, setError] = useState(false);
@@ -43,17 +37,15 @@ function SmartImage({
   }
 
   return (
-    <Image
+    <img
       src={src}
       alt={alt}
-      fill={fill}
       width={width}
       height={height}
       className={className}
       style={style}
-      sizes={sizes}
-      priority={priority}
-      unoptimized={true}
+      loading="lazy"
+      decoding="async"
       onError={handleImageError}
       {...rest}
     />

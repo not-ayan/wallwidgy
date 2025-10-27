@@ -39,7 +39,7 @@ function AgeCounter({ birthDate }: { birthDate: string }) {
   }, [birthDate]);
   
   return (
-    <span className="bg-white/5 text-white/80 text-xs h-9 px-3 rounded-lg border border-white/10 flex items-center gap-1.5">
+    <span className="bg-white/5 text-white/80 text-xs h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 flex items-center gap-1.5">
       <CalendarDays className="w-3 h-3 text-[#F7F06D]" />
       <span>{age} years</span>
     </span>
@@ -144,76 +144,77 @@ export default function News() {
             </div>
             
             <div className="grid md:grid-cols-2 gap-6 md:gap-8">
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-white/10 hover:border-white/20 transition-all duration-300">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 sm:p-6 md:p-8 border border-white/10 hover:border-white/20 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
                   <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-                  <h3 className="text-xl font-semibold text-white">The Platform</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold text-white">The Platform</h3>
                 </div>
-                <p className="text-white/80 leading-relaxed mb-6 max-w-prose">
+                <p className="text-white/80 leading-relaxed mb-5 sm:mb-6 max-w-prose text-sm sm:text-base">
                   Wallwidgy is a curated collection of high-quality wallpapers designed for enthusiasts 
                   who appreciate clean, minimalist, and artistic designs. Our platform focuses on providing 
                   a seamless experience for discovering and downloading beautiful wallpapers.
                 </p>
-                <div className="flex flex-wrap gap-3">
-                  <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium text-white/80">Minimalist Design</span>
-                  <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium text-white/80">High Quality</span>
-                  <span className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm font-medium text-white/80">Free to Use</span>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm font-medium text-white/80">Minimalist Design</span>
+                  <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm font-medium text-white/80">High Quality</span>
+                  <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-xs sm:text-sm font-medium text-white/80">Free to Use</span>
                 </div>
               </div>
               
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 hover:border-white/20 transition-all duration-300 group">
-                <div className="flex items-center gap-3 mb-6">
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 sm:p-6 md:p-8 border border-white/10 hover:border-white/20 transition-all duration-300 group">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
                   <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-                  <h3 className="text-xl font-semibold text-white">About the Creator</h3>
+                  <h3 className="text-lg sm:text-xl font-semibold text-white">About the Creator</h3>
                 </div>
                 
-                <div className="space-y-5">
+                <div className="space-y-4 sm:space-y-5">
                   {/* Name only */}
                   <div>
-                    <h4 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <h4 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                       Ayan
                       <div className="w-2 h-2 rounded-full bg-[#F7F06D] animate-pulse"></div>
                     </h4>
                   </div>
                   
                   {/* Bio */}
-                  <p className="text-white/70 text-sm leading-relaxed">
+                  <p className="text-white/70 text-sm sm:text-base leading-relaxed">
                     A designer from Assam, India trying to make cool stuff that works well.
                   </p>
                   
                   {/* Social Links with badges */}
                   <div className="space-y-3">
                     <p className="text-white/50 text-xs uppercase tracking-wider font-medium">Connect</p>
-                    <div className="flex items-center gap-3">
+                    
+                    {/* Social Links - Mobile responsive */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                       <Link 
                         href="https://github.com/not-ayan" 
                         target="_blank" 
                         aria-label="GitHub" 
-                        className="group/link relative h-9 px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
+                        className="group/link relative h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
                       >
-                        <Github className="w-4 h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
+                        <Github className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
                       </Link>
                       <Link 
                         href="mailto:notayan99@gmail.com" 
                         aria-label="Email" 
-                        className="group/link relative h-9 px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
+                        className="group/link relative h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
                       >
-                        <Mail className="w-4 h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
+                        <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
                       </Link>
                       <Link 
                         href="#" 
                         target="_blank" 
                         aria-label="Handle" 
-                        className="group/link relative h-9 px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
+                        className="group/link relative h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
                       >
-                        <AtSign className="w-4 h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
+                        <AtSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
                       </Link>
-                      
-                      {/* Divider */}
-                      <div className="w-px h-6 bg-white/10 mx-1"></div>
-                      
-                      {/* Male and Age badges */}
-                      <span className="bg-white/5 text-white/80 text-xs uppercase font-medium tracking-wider h-9 px-3 rounded-lg border border-white/10 flex items-center gap-1.5">
+                    </div>
+                    
+                    {/* Info badges - Separate row on mobile */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <span className="bg-white/5 text-white/80 text-xs uppercase font-medium tracking-wider h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 flex items-center gap-1.5">
                         <UserRound className="w-3 h-3 text-[#F7F06D]" />
                         <span>Male</span>
                       </span>

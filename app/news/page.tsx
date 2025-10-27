@@ -203,9 +203,9 @@ export default function News() {
                         <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
                       </Link>
                       <Link 
-                        href="#" 
+                        href="https://t.me/Not_ayan99" 
                         target="_blank" 
-                        aria-label="Handle" 
+                        aria-label="Telegram" 
                         className="group/link relative h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
                       >
                         <AtSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />

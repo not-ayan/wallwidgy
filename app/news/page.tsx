@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { Shield, Info, FileText, Code, ExternalLink, ArrowLeft, Star, Users, Zap, Globe, Sparkles, CheckCircle, Clock, TrendingUp, Github, Mail, AtSign, UserRound, CalendarDays } from "lucide-react"
+import { Shield, Info, FileText, Code, ExternalLink, ArrowLeft, Star, Users, Zap, Globe, Sparkles, CheckCircle, Clock, TrendingUp, Github, Mail, AtSign, UserRound, CalendarDays, MessageCircle, Send } from "lucide-react"
 import { useEffect, useState } from "react"
 import Footer from "../components/Footer"
 import BackToTop from "../components/BackToTop"
@@ -208,7 +208,7 @@ export default function News() {
                         aria-label="Telegram" 
                         className="group/link relative h-8 sm:h-9 px-2.5 sm:px-3 rounded-lg border border-white/10 hover:border-[#F7F06D]/30 bg-white/5 hover:bg-[#F7F06D]/10 flex items-center justify-center transition-all duration-300"
                       >
-                        <AtSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
+                        <Send className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/70 group-hover/link:text-[#F7F06D] transition-colors duration-300" />
                       </Link>
                     </div>
                     

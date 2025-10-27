@@ -80,7 +80,7 @@ export default function ApiDocs() {
               </p>
               
               <CodeBlock 
-                code="curl https://wallwidgy.me/api/wallpapers"
+                code="curl https://wallwidgy.vercel.app/api/wallpapers"
                 language="bash"
               />
               
@@ -216,14 +216,14 @@ export default function ApiDocs() {
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4">Get a Random Wallpaper</h3>
                 <CodeBlock 
-                  code="curl https://wallwidgy.me/api/wallpapers"
+                  code="curl https://wallwidgy.vercel.app/api/wallpapers"
                 />
                 <div className="mt-4">
                   <h4 className="text-white/80 font-medium mb-2">Response:</h4>
                   <CodeBlock 
                     code={`{
   "wallpapers": [
-    "https://wallwidgy.me/wallpapers/nature/mountain-sunset.jpg"
+    "https://wallwidgy.vercel.app/wallpapers/nature/mountain-sunset.jpg"
   ]
 }`}
                     language="json"
@@ -235,7 +235,7 @@ export default function ApiDocs() {
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4">Get Desktop Wallpapers</h3>
                 <CodeBlock 
-                  code="curl https://wallwidgy.me/api/wallpapers?type=desktop&count=3"
+                  code="curl https://wallwidgy.vercel.app/api/wallpapers?type=desktop&count=3"
                 />
               </div>
 
@@ -243,7 +243,7 @@ export default function ApiDocs() {
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4">Get Wallpapers by Category</h3>
                 <CodeBlock 
-                  code="curl https://wallwidgy.me/api/wallpapers?category=minimal&count=2"
+                  code="curl https://wallwidgy.vercel.app/api/wallpapers?category=minimal&count=2"
                 />
               </div>
 
@@ -251,7 +251,7 @@ export default function ApiDocs() {
               <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
                 <h3 className="text-lg font-semibold text-white mb-4">JavaScript/Fetch Example</h3>
                 <CodeBlock 
-                  code={`fetch('https://wallwidgy.me/api/wallpapers?type=mobile&count=5')
+                  code={`fetch('https://wallwidgy.vercel.app/api/wallpapers?type=mobile&count=5')
   .then(response => response.json())
   .then(data => {
     console.log('Wallpapers:', data.wallpapers);
@@ -324,7 +324,7 @@ export default function ApiDocs() {
                   </h3>
                   <ul className="space-y-2 text-white/70 text-sm">
                     <li>• Attribution is appreciated but not required</li>
-                    <li>• Link back to wallwidgy.me</li>
+                    <li>• Link back to wallwidgy.vercel.app</li>
                     <li>• Respect copyright of original creators</li>
                     <li>• Report any issues via GitHub</li>
                   </ul>

@@ -62,26 +62,25 @@ export async function GET(request: Request) {
     // Parse query parameters
     const type = url.searchParams.get('type')?.toLowerCase() // 'desktop' | 'mobile'
     const category = url.searchParams.get('category')
+    const color = url.searchParams.get('color')?.toLowerCase()
     const count = Math.min(10, Math.max(1, parseInt(url.searchParams.get('count') || '1')))
 
-    // Base wallpapers directory
-    const wallpapersRoot = path.join(process.cwd(), 'public', 'wallpapers')
+    // Fetch wallpapers from index.json (same as categories page)
+    const indexResponse = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json')
+    if (!indexResponse.ok) {
+      throw new Error('Failed to fetch wallpapers index')
+    }
+    
+    const indexData = await indexResponse.json()
+    let wallpaperItems = indexData
 
-    // Determine target directory
-    let targetDir = wallpapersRoot
+    // Filter by category if specified
     if (category) {
-      const categoryDir = path.join(wallpapersRoot, category)
-      try {
-        const stat = await fs.stat(categoryDir)
-        if (stat.isDirectory()) {
-          targetDir = categoryDir
-        } else {
-          return NextResponse.json(
-            { error: `Category '${category}' not found` }, 
-            { status: 404 }
-          )
-        }
-      } catch {
+      wallpaperItems = indexData.filter((item: any) => 
+        item.category === `#${category}`
+      )
+      
+      if (wallpaperItems.length === 0) {
         return NextResponse.json(
           { error: `Category '${category}' not found` }, 
           { status: 404 }
@@ -89,47 +88,69 @@ export async function GET(request: Request) {
       }
     }
 
-    // Collect all image files
-    const allFiles = await collectFiles(targetDir)
+    // Filter by color if specified
+    if (color) {
+      wallpaperItems = wallpaperItems.filter((item: any) => {
+        if (!item.data) return false
+        const primaryColors = item.data.primary_colors?.toLowerCase() || ''
+        const secondaryColors = item.data.secondary_colors?.toLowerCase() || ''
+        // Split by spaces and check if any color matches
+        const allColors = `${primaryColors} ${secondaryColors}`.split(' ')
+        return allColors.some(c => c.trim() === color.trim())
+      })
+      
+      if (wallpaperItems.length === 0) {
+        return NextResponse.json(
+          { error: `No wallpapers found with color '${color}'` }, 
+          { status: 404 }
+        )
+      }
+    }
 
-    if (allFiles.length === 0) {
+    if (wallpaperItems.length === 0) {
       return NextResponse.json(
         { error: 'No wallpapers found' }, 
         { status: 404 }
       )
     }
 
-    // Filter by type if specified
-    let filteredFiles = allFiles
+    // Filter by type if specified (using orientation from index data)
     if (type === 'mobile') {
-      filteredFiles = allFiles.filter(file => isMobileName(path.basename(file)))
+      wallpaperItems = wallpaperItems.filter((item: any) => item.orientation === 'Mobile')
     } else if (type === 'desktop') {
-      filteredFiles = allFiles.filter(file => isDesktopName(path.basename(file)))
+      wallpaperItems = wallpaperItems.filter((item: any) => item.orientation === 'Desktop')
     }
 
-    // If no files match the type filter, fall back to all files
-    if (filteredFiles.length === 0 && type) {
-      filteredFiles = allFiles
+    // If no files match the type filter, keep original wallpaperItems
+    if (wallpaperItems.length === 0 && type) {
+      // Restore original wallpaperItems if filter didn't match anything
+      if (category) {
+        wallpaperItems = indexData.filter((item: any) => item.category === `#${category}`)
+      } else {
+        wallpaperItems = indexData
+      }
     }
+
+    // Get filenames after type filtering
+    const filenames = wallpaperItems.map((item: any) => item.file_name)
 
     // Shuffle and select requested count
-    const shuffledFiles = shuffle(filteredFiles)
-    const selectedFiles = shuffledFiles.slice(0, count)
+    const shuffledFilenames = shuffle(filenames)
+    const selectedFilenames = shuffledFilenames.slice(0, count)
 
-    // Convert file paths to public URLs
+    // Convert filenames to public URLs
     const baseUrl = url.origin
-    const wallpapers = selectedFiles.map(filePath => {
-      const relativePath = path.relative(wallpapersRoot, filePath)
-      const urlPath = relativePath.split(path.sep).join('/')
-      return `${baseUrl}/wallpapers/${urlPath}`
-    })
+    const wallpapers = selectedFilenames.map((filename) => 
+      `${baseUrl}/wallpapers/${filename as string}`
+    )
 
     // Prepare response
     const response = NextResponse.json({
       wallpapers,
       count: wallpapers.length,
       category: category || 'all',
-      type: type || 'all'
+      type: type || 'all',
+      color: color || 'all'
     })
 
     // Add CORS headers for cross-origin access

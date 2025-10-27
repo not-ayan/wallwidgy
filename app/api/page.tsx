@@ -189,6 +189,19 @@ export default function ApiDocs() {
                   
                   <div className="grid md:grid-cols-3 gap-4 p-4 bg-black/20 rounded-lg border border-white/10">
                     <div>
+                      <code className="text-[#F7F06D] text-sm">color</code>
+                      <p className="text-white/60 text-xs mt-1">Optional</p>
+                    </div>
+                    <div>
+                      <span className="text-white/80 text-sm">string</span>
+                    </div>
+                    <div>
+                      <span className="text-white/60 text-sm">Filter by primary/secondary colors</span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-3 gap-4 p-4 bg-black/20 rounded-lg border border-white/10">
+                    <div>
                       <code className="text-[#F7F06D] text-sm">count</code>
                       <p className="text-white/60 text-xs mt-1">Optional</p>
                     </div>
@@ -224,7 +237,11 @@ export default function ApiDocs() {
                     code={`{
   "wallpapers": [
     "https://wallwidgy.vercel.app/wallpapers/nature/mountain-sunset.jpg"
-  ]
+  ],
+  "count": 1,
+  "category": "all",
+  "type": "all",
+  "color": "all"
 }`}
                     language="json"
                   />
@@ -245,6 +262,36 @@ export default function ApiDocs() {
                 <CodeBlock 
                   code="curl https://wallwidgy.vercel.app/api/wallpapers?category=minimal&count=2"
                 />
+              </div>
+
+              {/* Color Example */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-4">Get Wallpapers by Color</h3>
+                <CodeBlock 
+                  code="curl https://wallwidgy.vercel.app/api/wallpapers?color=blue&count=3"
+                />
+                <p className="text-white/70 text-sm mt-4">
+                  Filter wallpapers by primary or secondary colors. Common colors include: 
+                  <code className="text-[#F7F06D] text-xs mx-1">blue</code>
+                  <code className="text-[#F7F06D] text-xs mx-1">red</code>
+                  <code className="text-[#F7F06D] text-xs mx-1">green</code>
+                  <code className="text-[#F7F06D] text-xs mx-1">purple</code>
+                  <code className="text-[#F7F06D] text-xs mx-1">pink</code>
+                  <code className="text-[#F7F06D] text-xs mx-1">black</code>
+                  <code className="text-[#F7F06D] text-xs mx-1">white</code>
+                  and more.
+                </p>
+              </div>
+
+              {/* Combined Filters Example */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-4">Combine Multiple Filters</h3>
+                <CodeBlock 
+                  code="curl https://wallwidgy.vercel.app/api/wallpapers?category=art&type=desktop&color=purple&count=4"
+                />
+                <p className="text-white/70 text-sm mt-4">
+                  You can combine category, type, color, and count parameters for precise filtering.
+                </p>
               </div>
 
               {/* JavaScript Example */}
@@ -290,6 +337,61 @@ export default function ApiDocs() {
               <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                 <p className="text-blue-400 text-sm">
                   <strong>Note:</strong> Categories are based on folder structure in /public/wallpapers/
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Available Colors */}
+          <section>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
+              <h2 className="text-2xl font-bold text-white">Available Colors</h2>
+            </div>
+            
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+              <p className="text-white/70 mb-6">
+                Filter wallpapers by their primary or secondary colors. Here are the most common colors available:
+              </p>
+              
+              <div className="grid sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
+                {[
+                  { name: 'blue', bg: 'bg-blue-500' },
+                  { name: 'red', bg: 'bg-red-500' },
+                  { name: 'green', bg: 'bg-green-500' },
+                  { name: 'purple', bg: 'bg-purple-500' },
+                  { name: 'pink', bg: 'bg-pink-500' },
+                  { name: 'orange', bg: 'bg-orange-500' },
+                  { name: 'yellow', bg: 'bg-yellow-500' },
+                  { name: 'cyan', bg: 'bg-cyan-500' },
+                  { name: 'black', bg: 'bg-gray-900' },
+                  { name: 'white', bg: 'bg-white' },
+                  { name: 'gray', bg: 'bg-gray-500' },
+                  { name: 'brown', bg: 'bg-amber-800' },
+                  { name: 'gold', bg: 'bg-yellow-400' },
+                  { name: 'silver', bg: 'bg-gray-300' },
+                  { name: 'crimson', bg: 'bg-red-700' },
+                  { name: 'navy', bg: 'bg-blue-900' },
+                  { name: 'teal', bg: 'bg-teal-500' },
+                  { name: 'violet', bg: 'bg-violet-500' },
+                  { name: 'magenta', bg: 'bg-fuchsia-500' },
+                  { name: 'azure', bg: 'bg-sky-500' },
+                  { name: 'lime', bg: 'bg-lime-500' },
+                  { name: 'tan', bg: 'bg-yellow-600' },
+                  { name: 'coral', bg: 'bg-orange-400' },
+                  { name: 'lavender', bg: 'bg-purple-300' }
+                ].map((color) => (
+                  <div key={color.name} className="bg-black/20 rounded-lg p-3 border border-white/10 flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${color.bg} ${color.name === 'white' ? 'border border-gray-300' : ''}`}></div>
+                    <code className="text-[#F7F06D] text-xs">{color.name}</code>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <p className="text-green-400 text-sm">
+                  <strong>Tip:</strong> Colors are matched against both primary and secondary color data from our wallpaper index. 
+                  Try specific color names for best results!
                 </p>
               </div>
             </div>

@@ -46,9 +46,9 @@ export default function Home() {
                 <Grid className="w-5 h-5 transition-transform hover:scale-110" />
               </Link>
               <Link
-                href="/about"
+                href="/news"
                 className="p-2 text-white/80 hover:text-white transition-all"
-                aria-label="About"
+                aria-label="News"
               >
                 <Info className="w-5 h-5" />
               </Link>
@@ -58,12 +58,12 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <section className="px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
-        <h1 className="font-title text-[70px] sm:text-[150px] max-w-[1200px] mx-auto leading-[1.1] tracking-[-0.02em] text-[var(--accent-light)]">
+      <section className="px-4 sm:px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
+        <h1 className="font-title text-[12vw] xs:text-[10vw] sm:text-[8vw] md:text-[7vw] lg:text-[6vw] xl:text-[5.5vw] 2xl:text-[120px] max-w-[1200px] mx-auto leading-[1.1] tracking-[-0.02em] text-[var(--accent-light)]">
           <span className="title-animation inline-block" style={{ animationDelay: "0ms" }}>Wall</span>
           <span className="title-animation inline-block" style={{ animationDelay: "80ms" }}>widgy</span>
         </h1>
-        <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-lg sm:text-xl leading-relaxed title-animation font-outfit" style={{ animationDelay: "500ms" }}>
+        <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-base sm:text-lg lg:text-xl leading-relaxed title-animation font-outfit" style={{ animationDelay: "500ms" }}>
          Hand-picked high-quality wallpapers, curated just for you.
         </p>
       </section>

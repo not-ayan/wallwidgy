@@ -41,9 +41,9 @@ export default function Header({ showBackButton = false, backUrl = "/" }: Header
               <Grid className="w-5 h-5 text-white/80 transition-transform hover:scale-110" />
             </Link>
             <Link
-              href="/about"
+              href="/news"
               className="p-2 text-white/80 hover:text-white transition-all"
-              aria-label="About"
+              aria-label="News"
             >
               <Info className="w-5 h-5" />
             </Link>

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Search, X, Sparkles, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useBackHandler } from "@/hooks/use-back-handler"
 import { useState as useStableState } from "react"
 // StableImageComponent: robust image loader with fallback to unoptimized and error UI (copied from WallpaperGrid)
 function StableImageComponent({ src, alt, ...props }: { src: string; alt: string; [key: string]: any }) {
@@ -94,6 +95,13 @@ export default function SearchBar() {
   const [searchHistoryEnabled, setSearchHistoryEnabled] = useState(false)
   const [showMap, setShowMap] = useState<{ [sha: string]: boolean | undefined }>({});
   const router = useRouter()
+  
+  // Handle browser back button when search is open
+  useBackHandler({
+    isActive: isOpen,
+    onBack: () => setIsOpen(false),
+    priority: 1
+  })
   
   // Detect platform for keyboard shortcut display
   useEffect(() => {

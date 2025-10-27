@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { X, Copy, Share2 } from "lucide-react"
+import { useBackHandler } from "@/hooks/use-back-handler"
 
 interface ShareFavoritesModalProps {
   isOpen: boolean
@@ -12,6 +13,13 @@ interface ShareFavoritesModalProps {
 export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds }: ShareFavoritesModalProps) {
   const [wallpaperLinks, setWallpaperLinks] = useState<{ name: string; url: string }[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // Handle browser back button when modal is open
+  useBackHandler({
+    isActive: isOpen,
+    onBack: onClose,
+    priority: 1
+  })
 
   useEffect(() => {
     if (isOpen && favoriteIds.length > 0) {

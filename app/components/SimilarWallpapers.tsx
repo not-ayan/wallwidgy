@@ -48,6 +48,7 @@ function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt:
 import { RefreshCw, Sparkles, X, ArrowLeft } from "lucide-react"
 import { Wallpaper } from "./WallpaperModal"
 import { shouldDisableBlurEffects } from "@/lib/utils"
+import { useBackHandler } from "@/hooks/use-back-handler"
 
 interface SimilarWallpapersProps {
   currentWallpaper: Wallpaper
@@ -71,6 +72,13 @@ export default function SimilarWallpapers({
   const [disableBlur, setDisableBlur] = useState(false)
   // Track which wallpapers to show (not 404)
   const [showMap, setShowMap] = useState<{ [sha: string]: boolean }>({});
+
+  // Handle browser back button when similar wallpapers view is open
+  useBackHandler({
+    isActive: isVisible,
+    onBack: onClose,
+    priority: 3 // Higher priority than wallpaper modal
+  })
 
   // Calculate wallpapers per row based on screen width
   const getWallpapersPerRow = () => {

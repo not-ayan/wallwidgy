@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { shouldDisableBlurEffects } from '@/lib/utils'
+import { useBackHandler } from '@/hooks/use-back-handler'
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,6 +13,13 @@ interface ModalProps {
 
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
   const [disableBlur, setDisableBlur] = useState(false)
+  
+  // Handle browser back button when modal is open
+  useBackHandler({
+    isActive: isOpen,
+    onBack: onClose,
+    priority: 1
+  })
   
   useEffect(() => {
     // Check if we should disable blur effects

@@ -74,6 +74,7 @@ import Modal from "./Modal"
 import Link from "next/link"
 import SimilarWallpapers from "./SimilarWallpapers"
 import { shouldDisableBlurEffects } from "@/lib/utils"
+import { useBackHandler } from "@/hooks/use-back-handler"
 
 export interface Wallpaper {
   sha: string
@@ -132,6 +133,24 @@ export default function WallpaperModal({
   const [isFullImageLoaded, setIsFullImageLoaded] = useState(false)
   const [showSimilarWallpapers, setShowSimilarWallpapers] = useState(false)
   const [disableBlur, setDisableBlur] = useState(false)
+
+  // Handle browser back button when modal is open
+  useBackHandler({
+    isActive: isOpen,
+    onBack: () => {
+      if (showSimilarWallpapers) {
+        // If similar wallpapers are shown, close them first
+        setShowSimilarWallpapers(false)
+      } else if (isViewingRecommendation && onBackToOriginal) {
+        // If viewing a recommendation, go back to original
+        onBackToOriginal()
+      } else {
+        // Otherwise close the modal
+        onClose()
+      }
+    },
+    priority: 2 // Higher priority than basic modals
+  })
 
   // Check if we're viewing a recommended wallpaper (has originalWallpaper)
   const isViewingRecommendation = !!originalWallpaperState

@@ -47,7 +47,7 @@ export function useBackHandler({ isActive, onBack, priority = 0 }: UseBackHandle
       
       setTimeout(() => {
         isHandlingPopState = false
-      }, 100)
+      }, 50) // Reduced timeout for faster response
     }
   }, [])
 

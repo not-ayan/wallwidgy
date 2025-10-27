@@ -141,9 +141,19 @@ export default function WallpaperModal({
       if (showSimilarWallpapers) {
         // If similar wallpapers are shown, close them first
         setShowSimilarWallpapers(false)
-      } else if (isViewingRecommendation && onBackToOriginal) {
-        // If viewing a recommendation, go back to original
-        onBackToOriginal()
+      } else if (originalWallpaperState) {
+        // If we have an original wallpaper to go back to
+        setCurrentWallpaper(originalWallpaperState);
+        setOriginalWallpaperState(null);
+        
+        // Reset states for the original wallpaper
+        setIsImageLoaded(false);
+        setIsImageLoading(true);
+        setIsPreviewLoaded(false);
+        setIsHighQuality(false);
+        setIsLoadingHighQuality(false);
+        setZoom(1);
+        setPosition({ x: 0, y: 0 });
       } else {
         // Otherwise close the modal
         onClose()

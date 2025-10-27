@@ -91,12 +91,19 @@ export async function GET(request: Request) {
     // Filter by color if specified
     if (color) {
       wallpaperItems = wallpaperItems.filter((item: any) => {
-        if (!item.data) return false
-        const primaryColors = item.data.primary_colors?.toLowerCase() || ''
-        const secondaryColors = item.data.secondary_colors?.toLowerCase() || ''
-        // Split by spaces and check if any color matches
-        const allColors = `${primaryColors} ${secondaryColors}`.split(' ')
-        return allColors.some(c => c.trim() === color.trim())
+        try {
+          if (!item || !item.data) return false
+          
+          const primaryColors = (item.data.primary_colors || '').toString().toLowerCase()
+          const secondaryColors = (item.data.secondary_colors || '').toString().toLowerCase()
+          
+          // Split by spaces and check if any color matches
+          const allColors = `${primaryColors} ${secondaryColors}`.split(/\s+/).filter(c => c.length > 0)
+          return allColors.some(c => c.trim() === color.trim())
+        } catch (error) {
+          console.error('Error filtering by color:', error, item)
+          return false
+        }
       })
       
       if (wallpaperItems.length === 0) {
@@ -162,8 +169,15 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('API Error:', error)
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { 
+        error: 'Internal server error',
+        debug: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.message : 'Unknown error' : undefined
+      }, 
       { status: 500 }
     )
   }

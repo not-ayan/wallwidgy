@@ -94,6 +94,7 @@ export default function SearchBar() {
   const [previousSearch, setPreviousSearch] = useState("")
   const [searchHistoryEnabled, setSearchHistoryEnabled] = useState(false)
   const [showMap, setShowMap] = useState<{ [sha: string]: boolean | undefined }>({});
+  const [deviceFilter, setDeviceFilter] = useState<"all" | "desktop" | "mobile">("all")
   const router = useRouter()
   
   // Handle browser back button when search is open
@@ -107,6 +108,13 @@ export default function SearchBar() {
   useEffect(() => {
     setIsMac(navigator?.platform?.includes('Mac') || false)
   }, [])
+
+  // Re-filter results when device filter changes
+  useEffect(() => {
+    if (results.length > 0 && searchQuery) {
+      performSearch(searchQuery)
+    }
+  }, [deviceFilter])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -176,8 +184,13 @@ export default function SearchBar() {
           }
         })
       
-      setResults(matchedWallpapers)
-      setTotalResults(matchedWallpapers.length)
+      // Apply device filter
+      const filteredResults = deviceFilter === "all" 
+        ? matchedWallpapers 
+        : matchedWallpapers.filter((wallpaper: Wallpaper) => wallpaper.platform.toLowerCase() === deviceFilter)
+      
+      setResults(filteredResults)
+      setTotalResults(filteredResults.length)
     } catch (error) {
       console.error("Error searching wallpapers:", error)
       setResults([])
@@ -363,6 +376,34 @@ export default function SearchBar() {
                 </button>
               </div>
               
+              {/* Device Filter - Only show when there are results */}
+              {results.length > 0 && (
+                <div className="px-3 sm:px-6 py-3 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/70 text-sm font-medium">Device:</span>
+                    <div className="flex items-center gap-1 bg-white/5 rounded-full p-1">
+                      {[
+                        { key: "all", label: "All" },
+                        { key: "desktop", label: "Desktop" },
+                        { key: "mobile", label: "Mobile" }
+                      ].map((option) => (
+                        <button
+                          key={option.key}
+                          onClick={() => setDeviceFilter(option.key as "all" | "desktop" | "mobile")}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+                            deviceFilter === option.key
+                              ? "bg-white/20 text-white shadow-sm"
+                              : "text-white/60 hover:text-white/80 hover:bg-white/10"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Main content area - scrollable */}
               <div className="flex-1 overflow-y-auto max-h-[calc(90vh-4rem)] md:max-h-[calc(90vh-4rem)]">
                 {results.length === 0 && !isSearching ? (
@@ -492,6 +533,17 @@ export default function SearchBar() {
                                   onError404={() => setShowMap(prev => ({ ...prev, [wallpaper.sha]: false }))}
                                 />
                                 {/* Download button overlay */}
+                                {/* Platform indicator - always visible */}
+                                <div className="absolute top-2 left-2 z-10">
+                                  <span className={`text-xs font-medium px-2 py-1 rounded-full shadow-sm bg-black/80 border border-white/20 ${
+                                    wallpaper.platform === "Mobile" 
+                                      ? "text-blue-400" 
+                                      : "text-green-400"
+                                  }`}>
+                                    {wallpaper.platform === "Mobile" ? "Mobile" : "PC"}
+                                  </span>
+                                </div>
+                                
                                 <button
                                   className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
                                   title="Download wallpaper"
@@ -519,12 +571,21 @@ export default function SearchBar() {
                                 </button>
                                 {/* Hover overlay */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-200" />
-                                {/* Resolution badge */}
+                                {/* Device and Resolution badge */}
                                 <div className="absolute bottom-2 left-2 right-2">
                                   <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                                    <p className="text-white text-xs font-medium truncate">
-                                      {wallpaper.resolution}
-                                    </p>
+                                    <div className="flex items-center justify-between gap-2">
+                                      <p className="text-white text-xs font-medium truncate">
+                                        {wallpaper.resolution}
+                                      </p>
+                                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                                        wallpaper.platform === "Mobile" 
+                                          ? "bg-blue-500/20 text-blue-300" 
+                                          : "bg-green-500/20 text-green-300"
+                                      }`}>
+                                        {wallpaper.platform}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>

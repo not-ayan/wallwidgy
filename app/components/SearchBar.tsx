@@ -545,7 +545,7 @@ export default function SearchBar() {
                                 </div>
                                 
                                 <button
-                                  className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
+                                  className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 hover:bg-black/80 text-white/90 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 shadow-md border border-white/10"
                                   title="Download wallpaper"
                                   tabIndex={-1}
                                   onClick={async e => {
@@ -574,18 +574,9 @@ export default function SearchBar() {
                                 {/* Device and Resolution badge */}
                                 <div className="absolute bottom-2 left-2 right-2">
                                   <div className="bg-black/80 backdrop-blur-sm rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <p className="text-white text-xs font-medium truncate">
-                                        {wallpaper.resolution}
-                                      </p>
-                                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                        wallpaper.platform === "Mobile" 
-                                          ? "bg-blue-500/20 text-blue-300" 
-                                          : "bg-green-500/20 text-green-300"
-                                      }`}>
-                                        {wallpaper.platform}
-                                      </span>
-                                    </div>
+                                    <p className="text-white text-xs font-medium truncate">
+                                      {wallpaper.resolution}
+                                    </p>
                                   </div>
                                 </div>
                               </div>

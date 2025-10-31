@@ -46,6 +46,33 @@ function AgeCounter({ birthDate }: { birthDate: string }) {
   );
 }
 
+// Birthday Indicator Component
+function BirthdayIndicator({ birthDate }: { birthDate: string }) {
+  const [isBirthday, setIsBirthday] = useState(false);
+  
+  useEffect(() => {
+    // Check if today is the birthday
+    const checkBirthday = () => {
+      const today = new Date();
+      const birth = new Date(birthDate);
+      
+      // Compare month and day only
+      return today.getMonth() === birth.getMonth() && today.getDate() === birth.getDate();
+    };
+    
+    setIsBirthday(checkBirthday());
+  }, [birthDate]);
+  
+  if (!isBirthday) return null;
+  
+  return (
+    <div className="bg-gradient-to-r from-[#F7F06D]/20 to-pink-500/20 border border-[#F7F06D]/50 rounded-lg px-3 py-2 flex items-center gap-2 animate-pulse">
+      <span className="text-2xl">🎉</span>
+      <span className="text-[#F7F06D] font-semibold text-sm">It&apos;s my birthday today!</span>
+    </div>
+  );
+}
+
 export default function News() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] relative">
@@ -59,6 +86,11 @@ export default function News() {
             <ArrowLeft className="w-4 h-4 text-[#F7F06D] group-hover:-translate-x-1 transition-transform" />
             <span className="font-medium">Back</span>
           </Link>
+        </div>
+
+        {/* Birthday Indicator */}
+        <div className="mb-12">
+          <BirthdayIndicator birthDate="2002-10-31" />
         </div>
 
         {/* Main Content Sections */}
@@ -84,9 +116,9 @@ export default function News() {
               
               <div className="flex items-center gap-4 mb-6">
                 <div className="bg-white/5 border border-white/10 rounded-lg px-4 py-2">
-                  <span className="text-[#F7F06D] font-mono font-semibold">v1.5.x</span>
+                  <span className="text-[#F7F06D] font-mono font-semibold">v2.0</span>
                 </div>
-                <span className="text-white/60">August 8, 2025</span>
+                <span className="text-white/60">October 31, 2025</span>
               </div>
               
               <h3 className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4 leading-snug">Enhanced Search & Performance</h3>

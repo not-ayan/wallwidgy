@@ -173,30 +173,31 @@ export default function CategoriesPage() {
     <main className="min-h-screen bg-[#0A0A0A]">
       <Header showBackButton />
 
-      <div className="max-w-[1400px] mx-auto px-6 pt-28 pb-32">
-        <div className="mb-16 text-center">
-          <h1 className="font-title text-[46px] sm:text-[64px] animated-gradient mb-4">
-            Categories
-          </h1>
-          <p className="text-white/60 max-w-xl mx-auto">
-            Explore our curated collection of wallpapers organized by themes. Select a category to discover stunning backgrounds for your devices.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {categories.map((category, index) => (
-            <Link
-              key={category.id}
-              href={`/categories/${category.id}`}
-              className="group relative aspect-[5/4] rounded-3xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30"
-              style={{
-                animationDelay: `${index * 100}ms`,
-                animation: "fadeInUp 0.6s ease-out both"
-              }}
-            >
-              {/* Background image with overlay */}
-              <div className="absolute inset-0 bg-white/5">
-                {categoryImages[category.id] ? (
+      <div className="pt-24 pb-32">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-16">
+            <h1 className="font-title text-[48px] sm:text-[64px] animated-gradient mb-4 leading-tight">
+              Explore Categories
+            </h1>
+            <p className="text-white/60 max-w-2xl text-base sm:text-lg leading-relaxed">
+              Discover our curated collection of wallpapers organized by themes. Select a category to explore stunning backgrounds for your devices.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            {categories.map((category, index) => (
+              <Link
+                key={category.id}
+                href={`/categories/${category.id}`}
+                className="group relative aspect-[5/4] rounded-3xl overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30"
+                style={{
+                  animationDelay: `${index * 100}ms`,
+                  animation: "fadeInUp 0.6s ease-out both"
+                }}
+              >
+                {/* Background image with overlay */}
+                <div className="absolute inset-0 bg-white/5">
+                  {categoryImages[category.id] ? (
                   <SmartImage
                     src={categoryImages[category.id]}
                     alt={category.name}
@@ -258,6 +259,7 @@ export default function CategoriesPage() {
               <div className="absolute inset-0 rounded-3xl border-2 border-transparent transition-all duration-500 group-hover:border-white/20"></div>
             </Link>
           ))}
+        </div>
         </div>
       </div>
 

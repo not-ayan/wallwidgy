@@ -73,12 +73,19 @@ export default function CategoryPage({ params }: { params: { category: string } 
     <main className="min-h-screen bg-[#0A0A0A]">
       <Header showBackButton backUrl="/categories" />
 
-      <div className="max-w-[1400px] mx-auto px-6 pt-24 pb-32">
-        <div className="flex items-center gap-4 mb-12">
-          <h1 className="font-title text-[32px] sm:text-[40px] animated-gradient flex items-center gap-3">
-            <span className="text-[32px] sm:text-[40px]">{category.icon}</span>
-            {category.name}
-          </h1>
+      <div className="pt-24 pb-32">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-12">
+            <div className="flex items-center gap-4 mb-4">
+              <span className="text-5xl sm:text-6xl">{category.icon}</span>
+              <h1 className="font-title text-4xl sm:text-5xl animated-gradient leading-tight">
+                {category.name}
+              </h1>
+            </div>
+            <p className="text-white/60 text-base sm:text-lg max-w-2xl">
+              Discover beautiful {category.name.toLowerCase()} wallpapers perfect for your device
+            </p>
+          </div>
         </div>
 
         <WallpaperGrid categoryFilter={`#${params.category}`} />

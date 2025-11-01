@@ -137,6 +137,21 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const [showDownloadConfirmation, setShowDownloadConfirmation] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadInfo, setDownloadInfo] = useState({ fileName: "", fileType: "" });
+  const [layoutMode, setLayoutMode] = useState<"masonry" | "grid">("masonry");
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+
+  // Auto-select layout based on device type
+  useEffect(() => {
+    const checkDeviceType = () => {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      setIsMobileDevice(isMobile);
+      setLayoutMode(isMobile ? "grid" : "masonry");
+    };
+
+    checkDeviceType();
+    window.addEventListener("resize", checkDeviceType);
+    return () => window.removeEventListener("resize", checkDeviceType);
+  }, []);
 
   // Define this function higher up in the component
   const toggleWallpaperSelection = useCallback((sha: string) => {
@@ -330,6 +345,10 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
   const handleFilterChange = useCallback((newFilter: "all" | "desktop" | "mobile") => {
     setFilter(newFilter);
+    // Auto-switch to masonry layout when mobile filter is selected
+    if (newFilter === "mobile") {
+      setLayoutMode("masonry");
+    }
     if (newFilter === "all") {
       setDisplayedWallpapers(wallpapersState.slice(0, initialLoadSize));
     } else {
@@ -616,7 +635,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const ImageComponent = StableImageComponent;
 
   return (
-    <div className={`${favoriteIds ? 'w-[85vw] sm:w-[70vw]' : categoryFilter ? 'w-[90vw] sm:w-[75vw]' : 'w-[90vw]'} mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative`}>
+    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative max-w-[1400px]">
       {favoriteIds && displayedWallpapers.length > 0 && (
         <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8">
           <button
@@ -662,6 +681,38 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           </button>
         </div>
       )}
+      
+      {/* Layout Toggle - Only show on desktop, but allow manual selection */}
+      {!favoriteIds && !categoryFilter && (
+        <div className="mb-8 flex items-center justify-start">
+          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full p-1 border border-white/10">
+            <button
+              onClick={() => setLayoutMode("masonry")}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                layoutMode === "masonry"
+                  ? "bg-[var(--accent-light)] text-black"
+                  : "text-white/70 hover:text-white"
+              }`}
+              title="Masonry layout"
+            >
+              Masonry
+            </button>
+            <button
+              onClick={() => setLayoutMode("grid")}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                layoutMode === "grid"
+                  ? "bg-[var(--accent-light)] text-black"
+                  : "text-white/70 hover:text-white"
+              }`}
+              title="Grid layout"
+            >
+              Grid
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {layoutMode === "masonry" ? (
       <Masonry
         breakpointCols={breakpointColumnsObj}
         className="my-masonry-grid"
@@ -680,7 +731,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
               }}
             >
               <div
-                className={`group relative ${favoriteIds ? 'aspect-[4/3]' : 'aspect-[3/2]'} overflow-hidden rounded-2xl bg-white/5 transition-all ${isMobile ? 'duration-300' : 'duration-500'} hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
+                className={`group relative ${
+                  wallpaper.platform === "Mobile"
+                    ? 'aspect-[9/16]' 
+                    : favoriteIds 
+                      ? 'aspect-[4/3]' 
+                      : 'aspect-[3/2]'
+                } overflow-hidden rounded-2xl bg-white/5 transition-all ${isMobile ? 'duration-300' : 'duration-500'} hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
               >
                 <ImageComponent wallpaper={wallpaper} index={index} />
                 
@@ -790,6 +847,143 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           );
         })}
       </Masonry>
+      ) : (
+      <div className={`grid gap-4 sm:gap-6 ${
+        filter === "mobile"
+          ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4"
+          : favoriteIds
+            ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4"
+      }`}>
+        {displayedWallpapers.map((wallpaper, index) => {
+          const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          
+          return (
+            <div 
+              key={wallpaper.sha}
+              style={{
+                animationDelay: `${isMobile ? index * 10 : index * 50}ms`,
+                animation: `${isMobile ? 'fadeInUpMobile' : 'fadeInUp'} ${isMobile ? '0.2s' : '0.6s'} ease-out both`
+              }}
+            >
+              <div
+                className={`group relative ${
+                  filter === "mobile" 
+                    ? 'aspect-[9/16]' 
+                    : favoriteIds 
+                      ? 'aspect-[4/3]' 
+                      : 'aspect-[3/2]'
+                } overflow-hidden rounded-2xl bg-white/5 transition-all ${isMobile ? 'duration-300' : 'duration-500'} hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
+              >
+                <ImageComponent wallpaper={wallpaper} index={index} />
+                
+                {/* Enhanced gradient overlay with smoother transition */}
+                <div className="absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100"
+                  style={{
+                    background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 30%, rgba(0,0,0,0.4) 60%, rgba(0,0,0,0.2) 100%)",
+                    willChange: "opacity"
+                  }}
+                />
+                
+                {/* Clickable area for modal - only active on desktop */}
+                <div 
+                  className="absolute inset-0 cursor-pointer hidden sm:block"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleClick(wallpaper, false);
+                  }}
+                />
+                
+                {/* Content with enhanced animations - optimized for mobile */}
+                <div className="absolute inset-0 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 transition-all duration-300 group-hover:translate-y-0 pointer-events-none"
+                     style={{ willChange: "opacity, transform" }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                      {wallpaper.name}
+                    </h3>
+                  </div>
+                  
+                  {/* Action buttons with simplified animation */}
+                  <div className="flex items-center gap-2 pointer-events-auto">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                        toggleWallpaperSelection(wallpaper.sha);
+                        return false;
+                      }}
+                      className={`p-2 rounded-full ${
+                        selectedWallpapers.includes(wallpaper.sha)
+                          ? "bg-[var(--accent-light)] text-black"
+                          : "bg-black/60 text-white hover:bg-black/70"
+                      } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
+                      style={{ transitionDelay: isMobile ? '0ms' : '0ms', willChange: "transform" }}
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                        handleFavorite(wallpaper);
+                        return false;
+                      }}
+                      className={`p-2 rounded-full ${
+                        favorites.includes(wallpaper.sha)
+                          ? "bg-black/60 text-[#FF0000]"
+                          : "bg-black/60 text-white hover:bg-black/70"
+                      } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
+                      style={{ transitionDelay: isMobile ? '0ms' : '50ms', willChange: "transform" }}
+                    >
+                      <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                        handleShare(wallpaper);
+                      }}
+                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10"
+                      style={{ transitionDelay: isMobile ? '0ms' : '100ms', willChange: "transform" }}
+                    >
+                      <Share2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.nativeEvent.stopImmediatePropagation();
+                        handleOpenModal(wallpaper);
+                      }}
+                      className="p-2 rounded-full bg-black/60 text-white hover:bg-black/70 backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10"
+                      style={{ transitionDelay: isMobile ? '0ms' : '150ms', willChange: "transform" }}
+                    >
+                      <Expand className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Simplified badges with shorter animations */}
+                <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:shadow-lg"
+                     style={{ willChange: "transform" }}>
+                  {wallpaper.resolution}
+                </div>
+                <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
+                     style={{ willChange: "transform" }}>
+                  {wallpaper.tag}
+                </div>
+                
+                {/* Simplified highlight border */}
+                <div className="absolute inset-0 rounded-2xl border-2 border-transparent transition-all duration-300 group-hover:border-white/20 pointer-events-none"></div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      )}
 
       {/* Only show download button if not currently downloading */}
       {selectedWallpapers.length > 0 && !isDownloading && (

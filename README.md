@@ -1,57 +1,123 @@
-![Banner](./thumb.png)  
+![WallWidgy](/thumb.png)
+# WallWidgy
 
-**A minimal & fast wallpaper site**  
+A minimal and fast wallpaper site built with Next.js.   
 
-WallWidgy powers [wallwidgy.me](https://wallwidgy.me), providing an efficient, visually appealing, and user-friendly platform for browsing and downloading high-quality wallpapers.  
+## Features
 
-## Features  
+- Fast and optimized image delivery
+- Beautiful wallpaper browser with modal view and navigation
+- Real-time search with device filtering (PC/Mobile)
+- Favorites system with local storage
+- AI-based similar wallpaper recommendations
+- Fully responsive mobile design
+- Dark theme with smooth animations
+- RESTful API with color and category filtering
+- Android back gesture support
+- Improved search functionality with device-based filtering
+- AI-powered wallpaper suggestions based on style
 
-### 🚀 Optimized Performance  
-- Wallpapers are served using optimized links, ensuring fast downloads and previews without quality compromise.  
-- Integrated **Cloudinary** for faster image rendering and seamless previews.  
+## Tech Stack
 
-### 🖼️ Enhanced User Interface  
-- A smooth **expanded view** with functional download options and loader animations for "Previous" and "Next" buttons, ensuring smooth transitions.  
-- Custom **sort-by options** to easily organize wallpapers based on user preferences.  
+- Framework: Next.js 14.2.16
+- Language: TypeScript
+- Styling: Tailwind CSS
+- Data: GitHub-hosted index.json
+- Deployment: Vercel
 
-### 🛠️ Streamlined Organization  
-- Clean navigation with refined categories for better usability.  
-- Integrated a robust API to enhance dynamic capabilities.  
+## Getting Started
 
-### 💻 Customizable and Open Source  
-- WallWidgy is open-source and fully customizable.  
-- You are free to use this project, modify it, and repurpose it for any personal or commercial applications.  
+```bash
+npm install
+npm run dev
+```
 
+Visit `http://localhost:3000`
 
-## Getting Started  
+## Build
 
-1. Clone the repository:  
-   ```bash
-   git clone https://github.com/not-ayan/wallwidgy.git
-   cd wallwidgy
-   ```  
+```bash
+npm run build
+npm start
+```
 
-2. Update configuration settings (e.g., Cloudinary API, database, or deployment preferences).  
+## API
 
-3. Deploy on your preferred hosting platform and enjoy!  
+The platform provides a comprehensive REST API for wallpaper data:
 
----
+### Random Wallpaper
+```
+GET /api/random-wallpaper
+```
 
-## Contributions  
+### Multiple Random Wallpapers
+```
+GET /api/random-wallpapers?count=5
+```
 
-We welcome contributions, bug fixes, and ideas for improvement. Open an issue or submit a pull request to help make WallWidgy even better.  
+### Search Wallpapers
+```
+GET /api/wallpapers/search?q=anime&count=10
+```
 
----
+### Filter by Device Type
+```
+GET /api/wallpapers?type=desktop&count=20
+GET /api/wallpapers?type=mobile&count=20
+```
 
-## License  
+### Filter by Color
+```
+GET /api/wallpapers?color=blue&count=10
+```
 
-WallWidgy is licensed under the **MIT License**. Feel free to use it for personal or commercial purposes without restriction.  
+Supported colors: red, blue, green, yellow, purple, orange, pink, brown, black, white, gray, cyan, magenta, and more.
 
----
+### Filter by Category
+```
+GET /api/wallpapers?category=anime&count=15
+```
 
-### Live Demo  
+### Get Available Colors
+```
+GET /api/colors
+```
 
-Visit the live site: [wallwidgy.me](https://wallwidgy.me)  
+**Features:**
+- No authentication required
+- CORS enabled for cross-origin requests
+- Comprehensive documentation at `/api`
+- Support for combining multiple filters
 
-Happy browsing! 🌟  
+## Latest Updates (v2.0)
 
+- Enhanced search and performance improvements
+- AI-based recommendations for wallpaper discovery
+- Device filtering (Desktop/Mobile) with visual indicators
+- Color-based filtering API
+- Bug fixes and stability improvements
+
+## About
+
+WallWidgy is a curated collection of high-quality wallpapers designed for enthusiasts who appreciate clean, minimalist, and artistic designs. The platform provides a seamless experience for discovering and downloading beautiful wallpapers optimized for both desktop and mobile devices.
+
+### The Platform
+
+- Minimalist design with clean interfaces
+- High-quality wallpapers from trusted sources
+- Free to use for personal and commercial purposes
+- Fast image delivery via GitHub CDN
+- Responsive design for all devices
+
+### Created by
+
+Ayan - A designer from Assam, India trying to make cool stuff that works well.
+
+Reach out:
+- GitHub: https://github.com/not-ayan
+- Email: notayan99@gmail.com
+- Telegram: https://t.me/Not_ayan99
+
+## License
+
+MIT - Feel free to use, modify, and repurpose.

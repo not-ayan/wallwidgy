@@ -1,13 +1,21 @@
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
-// Dynamically import Vercel Analytics (client-only)
-const VercelAnalytics = dynamic(() => import("./components/VercelAnalytics"), { ssr: false })
 import Link from "next/link"
 import { Heart, Grid, Info } from "lucide-react"
 import Footer from "./components/Footer"
 import BackToTop from "./components/BackToTop"
 import SearchBar from "./components/SearchBar"
 import { Metadata } from "next"
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs"
+
+// Dynamically import Vercel Analytics (client-only component handles its own client directive)
+const VercelAnalytics = dynamic(() => import("./components/VercelAnalytics"))
 
 export const metadata: Metadata = {
   title: "WallWidgy",
@@ -20,7 +28,6 @@ const WallpaperGrid = dynamic(() => import("./components/WallpaperGrid"), {
       <div className="loader"></div>
     </div>
   ),
-  ssr: false // Disable SSR for better mobile performance
 })
 
 export default function Home() {
@@ -52,6 +59,22 @@ export default function Home() {
               >
                 <Info className="w-5 h-5" />
               </Link>
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+              </SignedOut>
+              <SignedIn>
+                <UserButton 
+                  appearance={{
+                    elements: {
+                      avatarBox: "w-8 h-8"
+                    }
+                  }}
+                />
+              </SignedIn>
             </div>
           </nav>
         </header>

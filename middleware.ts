@@ -1,7 +1,21 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
- 
-export function middleware(request: NextRequest) {
+
+// Define public routes that don't require authentication
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/categories(.*)',
+  '/color(.*)',
+  '/wallpaper(.*)',
+  '/latest(.*)',
+  '/search(.*)',
+  '/favorites(.*)',
+  '/news(.*)',
+  '/api(.*)',
+])
+
+export default clerkMiddleware(async (auth, request) => {
   // Add security headers
   const response = NextResponse.next()
   
@@ -21,12 +35,19 @@ export function middleware(request: NextRequest) {
     response.headers.set('Cache-Control', 'public, max-age=31536000, immutable')
   }
   
+  // Protect non-public routes (uncomment below to enforce auth)
+  // if (!isPublicRoute(request)) {
+  //   await auth.protect()
+  // }
+  
   return response
-}
- 
+})
+
 export const config = {
   matcher: [
-    // Match all request paths except for these
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
   ],
 }

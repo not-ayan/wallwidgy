@@ -17,6 +17,7 @@ import {
 import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
 import path from "path"
+import { useFavorites } from "@/hooks/use-favorites"
 
 interface WallpaperFile {
   file_name: string;
@@ -114,7 +115,7 @@ StableImageComponent.displayName = 'StableImageComponent';
 export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter }: WallpaperGridProps) {
   const [wallpapersState, setWallpapersState] = useState<Wallpaper[]>([])
   const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>([])
-  const [favorites, setFavorites] = useState<string[]>([])
+  const { favorites, toggleFavorite, isFavorite, isLoading: favoritesLoading, clearAllFavorites } = useFavorites()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedWallpaper, setSelectedWallpaper] = useState<Wallpaper | null>(null)
@@ -167,7 +168,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
     fetchAvailableColors()
-    loadFavorites()
   }, []) // Removed currentSort dependency
 
   useEffect(() => {
@@ -320,27 +320,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     [categoryFilter, favoriteIds],
   )
 
-  const loadFavorites = useCallback(() => {
-    const storedFavorites = localStorage.getItem("favorites")
-    if (storedFavorites) {
-      try {
-        const parsedFavorites = JSON.parse(storedFavorites)
-        setFavorites(parsedFavorites)
-      } catch (error) {
-        console.error("Error parsing favorites:", error)
-        localStorage.setItem("favorites", "[]")
-        setFavorites([])
-      }
-    }
-  }, [])
-
   const handleFavorite = (wallpaper: Wallpaper) => {
-    const newFavorites = favorites.includes(wallpaper.sha)
-      ? favorites.filter(id => id !== wallpaper.sha)
-      : [...favorites, wallpaper.sha];
-    
-    setFavorites(newFavorites);
-    localStorage.setItem("favorites", JSON.stringify(newFavorites));
+    toggleFavorite(wallpaper.sha)
   };
 
   const handleFilterChange = useCallback((newFilter: "all" | "desktop" | "mobile") => {
@@ -670,8 +651,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           </button>
           <button
             onClick={() => {
-              localStorage.setItem("favorites", "[]")
-              setFavorites([])
+              clearAllFavorites()
               showNotification("Removed all favorites")
             }}
             className="bg-black/60 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-black/70 transition-all text-xs sm:text-sm font-medium flex items-center gap-2 backdrop-blur-sm"

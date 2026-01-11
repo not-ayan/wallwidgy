@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Heart, Grid, Info } from "lucide-react"
+import { Heart, Grid, Info, User } from "lucide-react"
 import Footer from "./components/Footer"
 import BackToTop from "./components/BackToTop"
 import SearchBar from "./components/SearchBar"
@@ -61,7 +61,12 @@ export default function Home() {
               </Link>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <button className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors">
+                  <button className="p-2 text-white/80 hover:text-white transition-all sm:hidden" aria-label="Sign In">
+                    <User className="w-5 h-5 transition-transform hover:scale-110" />
+                  </button>
+                </SignInButton>
+                <SignInButton mode="modal">
+                  <button className="hidden sm:flex px-4 py-2 rounded-full bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors">
                     Sign In
                   </button>
                 </SignInButton>

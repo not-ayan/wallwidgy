@@ -7,7 +7,6 @@ import { ArrowLeft, Heart, User, Loader2, AlertCircle } from "lucide-react"
 import Link from "next/link"
 import Footer from "../../components/Footer"
 import BackToTop from "../../components/BackToTop"
-import Image from "next/image"
 
 interface UserProfile {
   username: string
@@ -74,12 +73,12 @@ export default function SharedFavoritesPage() {
               {userProfile && (
                 <div className="flex items-center gap-3 justify-center">
                   {userProfile.imageUrl ? (
-                    <Image 
+                    <img 
                       src={userProfile.imageUrl} 
                       alt={userProfile.displayName}
                       width={32}
                       height={32}
-                      className="rounded-full"
+                      className="rounded-full w-8 h-8"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">

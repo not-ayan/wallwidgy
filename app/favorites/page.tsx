@@ -23,15 +23,16 @@ export default function FavoritesPage() {
           <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
             <Link 
               href="/" 
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-all duration-300 group bg-white/5 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 hover:border-white/20"
+              className="flex items-center justify-center text-white/70 hover:text-white transition-all duration-300 group bg-white/5 backdrop-blur-sm p-2 sm:px-4 sm:py-2 rounded-full border border-white/10 hover:border-white/20"
+              aria-label="Back to home"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Back</span>
+              <span className="hidden sm:inline text-sm font-medium ml-2">Back</span>
             </Link>
             <div className="text-center flex-1">
-              <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 sm:gap-3 justify-center">
-                <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF0000]" />
-                My Favorites
+              <h1 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2 justify-center">
+                <Heart className="w-5 h-5 text-[#FF0000]" />
+                Favorites
               </h1>
             </div>
             <div className="flex items-center gap-2">

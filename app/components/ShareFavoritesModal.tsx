@@ -1,18 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Copy, Share2 } from "lucide-react"
+import { X, Copy, Share2, Link as LinkIcon, Check, LogIn } from "lucide-react"
 import { useBackHandler } from "@/hooks/use-back-handler"
+import { SignInButton } from "@clerk/nextjs"
 
 interface ShareFavoritesModalProps {
   isOpen: boolean
   onClose: () => void
   favoriteIds: string[]
+  username?: string | null
+  isSignedIn?: boolean
 }
 
-export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds }: ShareFavoritesModalProps) {
+export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, username, isSignedIn }: ShareFavoritesModalProps) {
   const [wallpaperLinks, setWallpaperLinks] = useState<{ name: string; url: string }[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [copiedProfile, setCopiedProfile] = useState(false)
 
   // Handle browser back button when modal is open
   useBackHandler({
@@ -186,7 +190,24 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds }: Sh
     setTimeout(() => notification.remove(), 2000)
   }
 
+  const handleCopyProfileLink = async () => {
+    if (!username) return
+    
+    const shareUrl = `${window.location.origin}/share/${username}`
+    
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopiedProfile(true)
+      showNotification("Profile link copied!")
+      setTimeout(() => setCopiedProfile(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
   if (!isOpen) return null
+
+  const profileUrl = username ? `${window.location.origin}/share/${username}` : null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
@@ -199,6 +220,66 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds }: Sh
         </div>
         
         <div className="flex-1 overflow-y-auto p-6">
+          {/* Share Profile Section */}
+          <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+            <h3 className="text-sm font-medium text-white mb-2">Share your collection</h3>
+            {isSignedIn ? (
+              username ? (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <p className="text-white/50 text-xs sm:text-sm truncate flex-1">
+                    {profileUrl}
+                  </p>
+                  {/* Mobile: Icon only */}
+                  <button
+                    onClick={handleCopyProfileLink}
+                    className="sm:hidden p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/70 hover:text-white self-end"
+                    aria-label="Copy link"
+                  >
+                    {copiedProfile ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <LinkIcon className="w-4 h-4" />
+                    )}
+                  </button>
+                  {/* Desktop: Button with text */}
+                  <button
+                    onClick={handleCopyProfileLink}
+                    className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm text-white/70 hover:text-white"
+                  >
+                    {copiedProfile ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-500" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <LinkIcon className="w-4 h-4" />
+                        <span>Copy Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <p className="text-yellow-500/80 text-sm">
+                  Set a username in your profile to get a shareable link
+                </p>
+              )
+            ) : (
+              <div className="flex items-center gap-3">
+                <p className="text-white/50 text-sm flex-1">
+                  Sign in to create a shareable profile page
+                </p>
+                <SignInButton mode="modal">
+                  <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors">
+                    <LogIn className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </button>
+                </SignInButton>
+              </div>
+            )}
+          </div>
+
+          {/* Wallpaper Links Section */}
           {isLoading ? (
             <div className="flex items-center justify-center py-10">
               <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
@@ -234,7 +315,7 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds }: Sh
             className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
           >
             <Copy className="w-4 h-4" />
-            <span>Copy</span>
+            <span>Copy All Links</span>
           </button>
         </div>
       </div>

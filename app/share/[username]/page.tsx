@@ -64,34 +64,34 @@ export default function SharedFavoritesPage() {
           <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
             <Link 
               href="/" 
-              className="flex items-center gap-2 text-white/70 hover:text-white transition-all duration-300 group bg-white/5 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 hover:border-white/20"
+              className="flex items-center justify-center text-white/70 hover:text-white transition-all duration-300 bg-white/5 backdrop-blur-sm p-2 rounded-full border border-white/10 hover:border-white/20"
+              aria-label="Back to home"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Home</span>
             </Link>
             <div className="text-center flex-1">
               {userProfile && (
-                <div className="flex items-center gap-3 justify-center">
+                <div className="flex items-center gap-2 sm:gap-3 justify-center">
                   {userProfile.imageUrl ? (
                     <img 
                       src={userProfile.imageUrl} 
                       alt={userProfile.displayName}
-                      width={32}
-                      height={32}
-                      className="rounded-full w-8 h-8"
+                      width={28}
+                      height={28}
+                      className="rounded-full w-7 h-7"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-white/60" />
+                    <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 text-white/60" />
                     </div>
                   )}
-                  <h1 className="text-xl sm:text-2xl font-bold text-white">
+                  <h1 className="text-base sm:text-lg font-medium text-white">
                     {userProfile.displayName}&apos;s Favorites
                   </h1>
                 </div>
               )}
             </div>
-            <div className="w-[100px]"></div>
+            <div className="w-[40px]"></div>
           </nav>
         </header>
       </div>

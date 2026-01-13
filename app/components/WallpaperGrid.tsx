@@ -706,8 +706,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
               key={wallpaper.sha} 
               className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
               style={{
-                animationDelay: `${isMobile ? index * 10 : index * 50}ms`, // Further reduced delay for mobile
-                animation: `${isMobile ? 'fadeInUpMobile' : 'fadeInUp'} ${isMobile ? '0.2s' : '0.6s'} ease-out both`
+                animationName: isMobile ? 'fadeInUpMobile' : 'fadeInUp',
+                animationDuration: isMobile ? '0.2s' : '0.6s',
+                animationTimingFunction: 'ease-out',
+                animationFillMode: 'both',
+                animationDelay: `${isMobile ? index * 10 : index * 50}ms`
               }}
             >
               <div
@@ -842,8 +845,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
             <div 
               key={wallpaper.sha}
               style={{
-                animationDelay: `${isMobile ? index * 10 : index * 50}ms`,
-                animation: `${isMobile ? 'fadeInUpMobile' : 'fadeInUp'} ${isMobile ? '0.2s' : '0.6s'} ease-out both`
+                animationName: isMobile ? 'fadeInUpMobile' : 'fadeInUp',
+                animationDuration: isMobile ? '0.2s' : '0.6s',
+                animationTimingFunction: 'ease-out',
+                animationFillMode: 'both',
+                animationDelay: `${isMobile ? index * 10 : index * 50}ms`
               }}
             >
               <div

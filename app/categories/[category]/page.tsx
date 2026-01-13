@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
@@ -28,9 +28,10 @@ const categories = {
   amoled: { name: "AMOLED", icon: "🌑" },
 }
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
+export default function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  const { category: categorySlug } = use(params)
   const [wallpapers, setWallpapers] = useState<string[]>([])
-  const category = categories[params.category as keyof typeof categories]
+  const category = categories[categorySlug as keyof typeof categories]
 
   useEffect(() => {
     const fetchWallpapers = async () => {
@@ -40,7 +41,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
         
         const data = await response.json()
         const filteredWallpapers = data.filter((item: any) => 
-          item.category === `#${params.category}`
+          item.category === `#${categorySlug}`
         ).map((item: any) => item.file_name)
         
         setWallpapers(filteredWallpapers)
@@ -50,7 +51,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
     }
 
     fetchWallpapers()
-  }, [params.category])
+  }, [categorySlug])
 
   if (!category) {
     return (
@@ -88,7 +89,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
           </div>
         </div>
 
-        <WallpaperGrid categoryFilter={`#${params.category}`} />
+        <WallpaperGrid categoryFilter={`#${categorySlug}`} />
       </div>
 
       <Footer />

@@ -1,7 +1,6 @@
 ![WallWidgy](/thumb.png)
 # WallWidgy
-
-A minimal and fast wallpaper site built with Next.js.   
+**[Wallwidgy.app](https://www.wallwidgy.app)** is a minimal and fast wallpaper site built with Next.js.   
 
 ## Features
 

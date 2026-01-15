@@ -235,7 +235,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           loadMoreWallpapers();
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.1, rootMargin: '200px' }
     );
 
     if (loadMoreRef.current) {
@@ -700,6 +700,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       >
         {displayedWallpapers.map((wallpaper, index) => {
           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          // Use modulo to reset animation delay for each batch, preventing long delays
+          const batchIndex = index % loadMoreSize;
+          const isNewlyLoaded = index >= initialLoadSize;
           
           return (
             <div 
@@ -707,10 +710,10 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
               className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
               style={{
                 animationName: isMobile ? 'fadeInUpMobile' : 'fadeInUp',
-                animationDuration: isMobile ? '0.2s' : '0.6s',
-                animationTimingFunction: 'ease-out',
+                animationDuration: isMobile ? '0.2s' : '0.4s',
+                animationTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
                 animationFillMode: 'both',
-                animationDelay: `${isMobile ? index * 10 : index * 50}ms`
+                animationDelay: isNewlyLoaded ? `${isMobile ? batchIndex * 5 : batchIndex * 20}ms` : `${isMobile ? index * 10 : index * 30}ms`
               }}
             >
               <div
@@ -840,16 +843,19 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       }`}>
         {displayedWallpapers.map((wallpaper, index) => {
           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          // Use modulo to reset animation delay for each batch, preventing long delays
+          const batchIndex = index % loadMoreSize;
+          const isNewlyLoaded = index >= initialLoadSize;
           
           return (
             <div 
               key={wallpaper.sha}
               style={{
                 animationName: isMobile ? 'fadeInUpMobile' : 'fadeInUp',
-                animationDuration: isMobile ? '0.2s' : '0.6s',
-                animationTimingFunction: 'ease-out',
+                animationDuration: isMobile ? '0.2s' : '0.4s',
+                animationTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
                 animationFillMode: 'both',
-                animationDelay: `${isMobile ? index * 10 : index * 50}ms`
+                animationDelay: isNewlyLoaded ? `${isMobile ? batchIndex * 5 : batchIndex * 20}ms` : `${isMobile ? index * 10 : index * 30}ms`
               }}
             >
               <div

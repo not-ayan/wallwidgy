@@ -9,7 +9,6 @@ const isPublicRoute = createRouteMatcher([
   '/color(.*)',
   '/wallpaper(.*)',
   '/latest(.*)',
-  '/search(.*)',
   '/favorites(.*)',
   '/news(.*)',
   '/api(.*)',

@@ -9,6 +9,7 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs"
+import { dark } from "@clerk/themes"
 import "./globals.css"
 
 const outfit = Outfit({
@@ -48,7 +49,29 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        baseTheme: dark,
+        variables: {
+          colorPrimary: "#ffffff",
+          colorBackground: "#0A0A0A",
+          colorInputBackground: "#1a1a1a",
+          colorInputText: "#ffffff",
+        },
+        elements: {
+          formButtonPrimary: "bg-white text-black hover:bg-white/90",
+          card: "bg-[#0A0A0A] border border-white/10",
+          headerTitle: "text-white",
+          headerSubtitle: "text-white/60",
+          socialButtonsBlockButton: "bg-[#1a1a1a] border border-white/10 text-white hover:bg-[#252525]",
+          formFieldLabel: "text-white/80",
+          formFieldInput: "bg-[#1a1a1a] border-white/10 text-white",
+          footerActionLink: "text-white hover:text-white/80",
+          identityPreviewText: "text-white",
+          identityPreviewEditButton: "text-white/60 hover:text-white",
+        }
+      }}
+    >
       <html lang="en" className={`${outfit.variable} ${sagite.variable}`} suppressHydrationWarning>
         <head>
           <script

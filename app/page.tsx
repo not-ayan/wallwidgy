@@ -61,12 +61,12 @@ export default function Home() {
               </Link>
               <SignedOut>
                 <SignInButton mode="modal">
-                  <button className="p-2 text-white/80 hover:text-white transition-all sm:hidden" aria-label="Sign In">
-                    <User className="w-5 h-5 transition-transform hover:scale-110" />
+                  <button className="premium-signin-btn p-2.5 rounded-full text-white/90 hover:text-white transition-all sm:hidden" aria-label="Sign In">
+                    <User className="w-5 h-5 relative z-10" />
                   </button>
                 </SignInButton>
                 <SignInButton mode="modal">
-                  <button className="hidden sm:flex px-4 py-2 rounded-full bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors">
+                  <button className="premium-signin-btn hidden sm:flex px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all duration-300 ease-out">
                     Sign In
                   </button>
                 </SignInButton>

@@ -79,31 +79,3 @@ export default function WallpaperPage() {
 
   return <WallpaperModal isOpen={true} onClose={() => (window.location.href = "/")} wallpaper={wallpaper} />
 }
-
-function cloudinaryUrl(
-  publicId: string,
-  options: {
-    width?: number
-    height?: number
-    crop?: string
-    quality?: string
-    format?: string
-    isDownload?: boolean
-  },
-) {
-  const transformations = options.isDownload ? [] : ["f_auto", "q_auto"]
-
-  if (options.width) transformations.push(`w_${options.width}`)
-  if (options.height) transformations.push(`h_${options.height}`)
-  if (options.crop) transformations.push(`c_${options.crop}`)
-
-  const transformationString = transformations.join(",")
-  const fileNameWithoutExtension = publicId.split(".")[0]
-
-  if (options.isDownload) {
-    return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/v1737134442/wallpapers/${publicId}`
-  } else {
-    return `https://res.cloudinary.com/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/v1/wallpapers/${fileNameWithoutExtension}`
-  }
-}
-

@@ -1,5 +1,5 @@
 name = "wallwidgy"
-main = ".open-next/worker/index.mjs"
+main = ".open-next/worker.js"
 compatibility_date = "2025-05-28"
 compatibility_flags = ["nodejs_compat"]
 

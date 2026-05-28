@@ -13,6 +13,7 @@
 - Dark theme with smooth animations
 - RESTful API with color and category filtering
 - Android back gesture support
+- Ai powered search
 - Improved search functionality with device-based filtering
 - AI-powered wallpaper suggestions based on style
 

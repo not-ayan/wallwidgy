@@ -1,5 +1,14 @@
 import { NextResponse } from "next/server"
 
+const STORAGE_INDEX_URL =
+  process.env.WALLWIDGY_INDEX_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/index.json"
+const STORAGE_CACHE_BASE_URL =
+  process.env.WALLWIDGY_CACHE_BASE_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/cache"
+const STORAGE_MAIN_BASE_URL =
+  process.env.WALLWIDGY_MAIN_BASE_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/main"
+const WALLPAPER_LOCAL_BASE_URL = process.env.WALLWIDGY_PUBLIC_BASE_URL || ""
+const MAX_COUNT = 100
+
 interface IndexWallpaper {
   file_name: string
   file_main_name?: string
@@ -48,12 +57,21 @@ export async function GET(request: Request) {
   const resolution = searchParams.get("resolution")
 
   try {
-    const indexResponse = await fetch("https://raw.githubusercontent.com/not-ayan/storage/main/index.json")
-    if (!indexResponse.ok) {
-      throw new Error("Failed to fetch wallpapers index")
+    if (Number.isNaN(count) || count < 1 || count > MAX_COUNT) {
+      return NextResponse.json({ error: `Count must be between 1 and ${MAX_COUNT}` }, { status: 400 })
     }
 
-    const indexData: IndexWallpaper[] = await indexResponse.json()
+    const indexResponse = await fetch(STORAGE_INDEX_URL)
+    if (!indexResponse.ok) {
+      throw new Error(`Failed to fetch wallpapers index: ${indexResponse.status} ${indexResponse.statusText}`)
+    }
+
+    const rawData = await indexResponse.json()
+    if (!Array.isArray(rawData)) {
+      throw new Error("Invalid wallpapers index format")
+    }
+
+    const indexData: IndexWallpaper[] = rawData
     let wallpapers = [...indexData]
 
     if (tag === "desktop") {
@@ -66,7 +84,7 @@ export async function GET(request: Request) {
       wallpapers = wallpapers.filter((wallpaper) => matchesResolution(wallpaper, resolution))
     }
 
-    wallpapers = shuffle(wallpapers).slice(0, Math.max(1, count))
+    wallpapers = shuffle(wallpapers).slice(0, count)
 
     const mappedWallpapers = wallpapers.map((wallpaper) => {
       const mainName = wallpaper.file_main_name || wallpaper.file_name
@@ -74,21 +92,25 @@ export async function GET(request: Request) {
       const colorsRaw = `${wallpaper.data?.primary_colors || ""} ${wallpaper.data?.secondary_colors || ""}`
       const colors = colorsRaw
         .split(/\s+/)
-        .map((color) => color.trim())
         .filter(Boolean)
+      const lastDotIndex = wallpaper.file_name.lastIndexOf(".")
+      const extension =
+        lastDotIndex > -1 ? wallpaper.file_name.substring(lastDotIndex + 1) || "unknown" : "unknown"
+      const localBase = WALLPAPER_LOCAL_BASE_URL || origin
+      const encodedFileName = encodeURIComponent(wallpaper.file_name)
 
       return {
         public_id: wallpaper.file_name,
         name: wallpaper.file_name,
         width: wallpaper.width || 0,
         height: wallpaper.height || 0,
-        format: wallpaper.file_name.split(".").pop() || "unknown",
+        format: extension,
         created_at: wallpaper.timestamp || null,
         tags: wallpaper.orientation ? [wallpaper.orientation] : [],
         colors,
-        preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${cacheName}`,
-        download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${mainName}`,
-        local_url: `${origin}/wallpapers/${wallpaper.file_name}`,
+        preview_url: `${STORAGE_CACHE_BASE_URL}/${cacheName}`,
+        download_url: `${STORAGE_MAIN_BASE_URL}/${mainName}`,
+        local_url: new URL(`/wallpapers/${encodedFileName}`, localBase).toString(),
       }
     })
 

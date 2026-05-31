@@ -236,7 +236,7 @@ export default function ApiDocs() {
                   <CodeBlock 
                     code={`{
   "wallpapers": [
-    "https://wallwidgy.vercel.app/wallpapers/nature/mountain-sunset.jpg"
+      "https://wallwidgy.vercel.app/wallpaper/nature/mountain-sunset.jpg"
   ],
   "count": 1,
   "category": "all",

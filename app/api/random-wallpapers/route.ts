@@ -110,7 +110,7 @@ export async function GET(request: Request) {
         colors,
         preview_url: `${STORAGE_CACHE_BASE_URL}/${cacheName}`,
         download_url: `${STORAGE_MAIN_BASE_URL}/${mainName}`,
-        local_url: new URL(`/wallpapers/${encodedFileName}`, localBase).toString(),
+        local_url: new URL(`/wallpaper/${encodedFileName}`, localBase).toString(),
       }
     })
 

@@ -779,8 +779,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           )}
 
           {/* Categories Scrollable (Mobile) */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 overflow-x-auto scrollbar-none flex items-center gap-1.5 select-none -webkit-overflow-scrolling-touch py-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex-1 overflow-x-auto scrollbar-none -mx-4 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex items-center gap-1.5 pb-1 pt-0.5 pr-2">
               <button
                 onClick={() => setSelectedCategories([])}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
@@ -820,6 +821,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                   </button>
                 )
               })}
+              </div>
             </div>
 
             {selectedCategories.length > 0 && (

@@ -39,8 +39,8 @@ export default function HomeHeader() {
       <header className="px-4 sm:px-6 lg:px-8 py-4">
         <nav className="flex justify-between items-center max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto">
           <div className="flex items-center gap-3">
-            <Link href="/" className="transition-opacity hover:opacity-80">
-              <img src="/logo.svg" alt="WallWidgy" className="h-4 sm:h-5" />
+            <Link href="/" className="flex items-center transition-opacity hover:opacity-80">
+              <img src="/logo.svg" alt="WallWidgy" className="h-[18px] sm:h-5 block" />
             </Link>
             <span className="hidden sm:inline-block font-mono text-[9px] text-white/30 tracking-widest uppercase border-l border-white/10 pl-3 select-none">
               SYS.V2

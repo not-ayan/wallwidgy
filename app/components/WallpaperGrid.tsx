@@ -13,6 +13,16 @@ import {
   Clock,
   History,
   Share2,
+  Leaf,
+  Film,
+  Building,
+  Palette,
+  Car,
+  Sparkles,
+  Cpu,
+  Moon,
+  Atom,
+  Search,
 } from "lucide-react"
 import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
@@ -47,6 +57,18 @@ interface WallpaperGridProps {
   wallpapers?: string[]; // Array of favorite wallpaper IDs
   categoryFilter?: string; // Category filter string
 }
+
+const CATEGORY_LIST = [
+  { id: "abstract", name: "Abstract", icon: Atom },
+  { id: "anime", name: "Anime", icon: Film },
+  { id: "architecture", name: "Architecture", icon: Building },
+  { id: "art", name: "Art", icon: Palette },
+  { id: "cars", name: "Cars", icon: Car },
+  { id: "minimal", name: "Minimal", icon: Sparkles },
+  { id: "nature", name: "Nature", icon: Leaf },
+  { id: "tech", name: "Tech", icon: Cpu },
+  { id: "amoled", name: "AMOLED", icon: Moon },
+]
 
 interface ImageDimensions {
   width: number;
@@ -141,6 +163,33 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const [layoutMode, setLayoutMode] = useState<"masonry" | "grid">("masonry");
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    categoryFilter ? [categoryFilter] : []
+  )
+
+  useEffect(() => {
+    if (categoryFilter) {
+      setSelectedCategories([categoryFilter])
+    }
+  }, [categoryFilter])
+
+  const getFilteredWallpapers = useCallback(() => {
+    let list = wallpapersState;
+    if (filter !== "all") {
+      list = list.filter((wallpaper) => wallpaper.platform?.toLowerCase() === filter);
+    }
+    if (selectedCategories.length > 0) {
+      list = list.filter((wallpaper) => selectedCategories.includes(wallpaper.category));
+    }
+    return list;
+  }, [wallpapersState, filter, selectedCategories]);
+
+  useEffect(() => {
+    const filtered = getFilteredWallpapers();
+    setDisplayedWallpapers(filtered.slice(0, initialLoadSize));
+    setHasMore(filtered.length > initialLoadSize);
+  }, [selectedCategories, filter, wallpapersState, getFilteredWallpapers]);
+
   // Auto-select layout based on device type
   useEffect(() => {
     const checkDeviceType = () => {
@@ -210,10 +259,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const loadMoreWallpapers = useCallback(() => {
     if (isLoading || !hasMore) return;
 
-    // Get the filtered wallpapers based on current filter
-    const filteredWallpapers = filter === "all" 
-      ? wallpapersState 
-      : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
+    const filteredWallpapers = getFilteredWallpapers();
 
     const startIndex = displayedWallpapers.length;
     const endIndex = startIndex + loadMoreSize;
@@ -225,7 +271,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     } else {
       setHasMore(false);
     }
-  }, [displayedWallpapers.length, wallpapersState, isLoading, hasMore, loadMoreSize, filter]);
+  }, [displayedWallpapers.length, getFilteredWallpapers, isLoading, hasMore, loadMoreSize]);
 
   // Update the useEffect for loading more wallpapers
   useEffect(() => {
@@ -329,17 +375,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     // Auto-switch to masonry layout when mobile filter is selected
     if (newFilter === "mobile") {
       setLayoutMode("masonry");
-    }
-    if (newFilter === "all") {
-      setDisplayedWallpapers(wallpapersState.slice(0, initialLoadSize));
     } else {
-      const filteredWallpapers = wallpapersState.filter(
-        (wallpaper) => wallpaper.platform?.toLowerCase() === newFilter
-      );
-      setDisplayedWallpapers(filteredWallpapers.slice(0, initialLoadSize));
+      // Revert to the default layout for the device type when switching back
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      setLayoutMode(isMobile ? "grid" : "masonry");
     }
-    setHasMore(true);
-  }, [wallpapersState]);
+  }, []);
 
   const showNotification = useCallback((message: string) => {
     const notification = document.createElement("div")
@@ -616,7 +657,183 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const ImageComponent = StableImageComponent;
 
   return (
-    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative max-w-[1400px]">
+    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative max-w-[90%] md:max-w-[88%] xl:max-w-[85%]">
+      {/* Desktop Controls Toolbar (Unified wrapped layout) */}
+      {!favoriteIds && (
+        <div className="hidden md:flex w-full items-center justify-between gap-4 mb-8">
+          {/* Left: Categories (Wrap) */}
+          <div className="flex flex-col gap-3 flex-1">
+            <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+              Filter by Categories
+            </span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedCategories([])}
+                className={`px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                  selectedCategories.length === 0
+                    ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-lg shadow-[var(--accent-light)]/10"
+                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                All Wallpapers
+              </button>
+              
+              {CATEGORY_LIST.map((category) => {
+                const categoryTag = `#${category.id}`
+                const isSelected = selectedCategories.includes(categoryTag)
+                const Icon = category.icon
+                
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => {
+                      setSelectedCategories((prev) => {
+                        if (prev.includes(categoryTag)) {
+                          return prev.filter((t) => t !== categoryTag)
+                        } else {
+                          return [...prev, categoryTag]
+                        }
+                      })
+                    }}
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                      isSelected
+                        ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-lg shadow-[var(--accent-light)]/10"
+                        : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span>{category.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Right: Layout Switcher */}
+          {!categoryFilter && (
+            <div className="flex flex-col gap-3 justify-end items-end">
+              <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+                Layout
+              </span>
+              <div className="inline-flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10">
+                <button
+                  onClick={() => setLayoutMode("masonry")}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                    layoutMode === "masonry"
+                      ? "bg-[var(--accent-light)] text-black font-semibold"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                  title="Masonry layout"
+                >
+                  Masonry
+                </button>
+                <button
+                  onClick={() => setLayoutMode("grid")}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                    layoutMode === "grid"
+                      ? "bg-[var(--accent-light)] text-black font-semibold"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                  title="Grid layout"
+                >
+                  Grid
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Controls Toolbar (Mobile App Style - Direct floating pills) */}
+      {!favoriteIds && (
+        <div className="flex md:hidden flex-col gap-3.5 w-full mb-6 scroll-mt-28" id="categories-bar">
+          {/* Layout Switcher (Mobile) */}
+          {!categoryFilter && (
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+                Layout Mode
+              </span>
+              <div className="inline-flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/10">
+                <button
+                  onClick={() => setLayoutMode("masonry")}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${
+                    layoutMode === "masonry"
+                      ? "bg-[var(--accent-light)] text-black font-semibold"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  Masonry
+                </button>
+                <button
+                  onClick={() => setLayoutMode("grid")}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${
+                    layoutMode === "grid"
+                      ? "bg-[var(--accent-light)] text-black font-semibold"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  Grid
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Categories Scrollable (Mobile) */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 overflow-x-auto scrollbar-none flex items-center gap-1.5 select-none -webkit-overflow-scrolling-touch py-1">
+              <button
+                onClick={() => setSelectedCategories([])}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
+                  selectedCategories.length === 0
+                    ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)]"
+                    : "bg-white/5 text-white/60 border-white/10"
+                }`}
+              >
+                All
+              </button>
+              
+              {CATEGORY_LIST.map((category) => {
+                const categoryTag = `#${category.id}`
+                const isSelected = selectedCategories.includes(categoryTag)
+                const Icon = category.icon
+                
+                return (
+                  <button
+                    key={category.id}
+                    onClick={() => {
+                      setSelectedCategories((prev) => {
+                        if (prev.includes(categoryTag)) {
+                          return prev.filter((t) => t !== categoryTag)
+                        } else {
+                          return [...prev, categoryTag]
+                        }
+                      })
+                    }}
+                    className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
+                      isSelected
+                        ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)]"
+                        : "bg-white/5 text-white/60 border-white/10"
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span>{category.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {selectedCategories.length > 0 && (
+              <button
+                onClick={() => setSelectedCategories([])}
+                className="flex-shrink-0 font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all px-2"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {favoriteIds && displayedWallpapers.length > 0 && (
         <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8">
           <button
@@ -662,35 +879,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         </div>
       )}
       
-      {/* Layout Toggle - Only show on desktop, but allow manual selection */}
-      {!favoriteIds && !categoryFilter && (
-        <div className="mb-8 flex items-center justify-start">
-          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full p-1 border border-white/10">
-            <button
-              onClick={() => setLayoutMode("masonry")}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                layoutMode === "masonry"
-                  ? "bg-[var(--accent-light)] text-black"
-                  : "text-white/70 hover:text-white"
-              }`}
-              title="Masonry layout"
-            >
-              Masonry
-            </button>
-            <button
-              onClick={() => setLayoutMode("grid")}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                layoutMode === "grid"
-                  ? "bg-[var(--accent-light)] text-black"
-                  : "text-white/70 hover:text-white"
-              }`}
-              title="Grid layout"
-            >
-              Grid
-            </button>
-          </div>
-        </div>
-      )}
+
       
       {layoutMode === "masonry" ? (
       <Masonry
@@ -999,26 +1188,51 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         </div>
       )}
 
-      <div className="fixed bottom-8 left-8 z-50">
-        <div className="bg-black/60 backdrop-blur-sm rounded-full p-2 flex gap-2">
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[90%] md:max-w-[88%] xl:max-w-[85%] px-4 sm:px-6 lg:px-8 pointer-events-none z-50 flex justify-center md:justify-start">
+        <div 
+          className="pointer-events-auto relative flex bg-[#0A0A0A] rounded-full p-1 border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.8)] h-10 items-center transition-all duration-300"
+          style={{
+            width: isMobileDevice ? "210px" : "260px"
+          }}
+        >
+          {/* Sliding Indicator */}
+          <div 
+            className="absolute top-[4px] bottom-[4px] bg-[var(--accent-light)] rounded-full transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+            style={{
+              left: filter === "all" ? "4px" : filter === "desktop" ? (isMobileDevice ? "71px" : "88px") : (isMobileDevice ? "138px" : "172px"),
+              width: isMobileDevice ? "67px" : "84px"
+            }}
+          />
+          
           <button
             onClick={() => handleFilterChange("all")}
-            className={`px-3 py-1 rounded-full text-xs ${filter === "all" ? "bg-[var(--accent-light)] text-black" : "text-white"}`}
+            style={{
+              width: isMobileDevice ? "67px" : "84px"
+            }}
+            className={`h-full rounded-full z-10 flex items-center justify-center font-mono tracking-wider uppercase text-[10px] transition-colors duration-300 ${
+              filter === "all" ? "text-black font-semibold" : "text-white/50 hover:text-white"
+            }`}
           >
             All
           </button>
           <button
             onClick={() => handleFilterChange("desktop")}
-            className={`px-3 py-1 rounded-full text-xs ${
-              filter === "desktop" ? "bg-[var(--accent-light)] text-black" : "text-white"
+            style={{
+              width: isMobileDevice ? "67px" : "84px"
+            }}
+            className={`h-full rounded-full z-10 flex items-center justify-center font-mono tracking-wider uppercase text-[10px] transition-colors duration-300 ${
+              filter === "desktop" ? "text-black font-semibold" : "text-white/50 hover:text-white"
             }`}
           >
             Desktop
           </button>
           <button
             onClick={() => handleFilterChange("mobile")}
-            className={`px-3 py-1 rounded-full text-xs ${
-              filter === "mobile" ? "bg-[var(--accent-light)] text-black" : "text-white"
+            style={{
+              width: isMobileDevice ? "67px" : "84px"
+            }}
+            className={`h-full rounded-full z-10 flex items-center justify-center font-mono tracking-wider uppercase text-[10px] transition-colors duration-300 ${
+              filter === "mobile" ? "text-black font-semibold" : "text-white/50 hover:text-white"
             }`}
           >
             Mobile
@@ -1064,6 +1278,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
       {/* Add optimized animations for mobile */}
       <style jsx global>{`
+        .scrollbar-none::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-none {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
         @keyframes fadeInUp {
           from {
             opacity: 0;

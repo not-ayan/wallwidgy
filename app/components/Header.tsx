@@ -1,5 +1,7 @@
+"use client"
+
 import Link from 'next/link'
-import { Heart, Grid, Info, ArrowLeft } from 'lucide-react'
+import { Heart, Info, ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { shouldDisableBlurEffects } from '@/lib/utils'
 
@@ -10,16 +12,37 @@ interface HeaderProps {
 
 export default function Header({ showBackButton = false, backUrl = "/" }: HeaderProps) {
   const [disableBlur, setDisableBlur] = useState(false)
+  const [isVisible, setIsVisible] = useState(true)
+  const [lastScrollY, setLastScrollY] = useState(0)
   
   useEffect(() => {
     // Check if we should disable blur effects
     setDisableBlur(shouldDisableBlurEffects())
   }, [])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY
+      if (currentScrollY <= 10) {
+        setIsVisible(true)
+      } else if (currentScrollY > lastScrollY) {
+        setIsVisible(false)
+      } else {
+        setIsVisible(true)
+      }
+      setLastScrollY(currentScrollY)
+    }
+
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [lastScrollY])
   
   return (
-    <div className={`fixed top-0 left-0 right-0 z-50 border-b border-white/[0.04] ${disableBlur ? 'bg-[#0A0A0A]/90' : 'bg-[#0A0A0A]/70 backdrop-blur-md'}`}>
-      <header className="px-4 sm:px-12 py-4">
-        <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
+    <div className={`fixed top-0 left-0 right-0 z-50 border-b border-white/[0.04] ${disableBlur ? 'bg-[#0A0A0A]/90' : 'bg-[#0A0A0A]/70 backdrop-blur-md'} transition-all duration-300 ease-in-out ${
+      isVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+    }`}>
+      <header className="px-4 sm:px-6 lg:px-8 py-4">
+        <nav className="flex justify-between items-center max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto">
           <div className="flex items-center gap-4">
             {showBackButton && (
               <Link 
@@ -38,13 +61,10 @@ export default function Header({ showBackButton = false, backUrl = "/" }: Header
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-3 pr-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-0.5 bg-white/[0.02] border border-white/[0.05] rounded-full p-1 backdrop-blur-sm">
               <Link href="/favorites" className="p-2 text-white/60 hover:text-white transition-all rounded-full hover:bg-white/5" aria-label="Favorites">
                 <Heart className="w-4 h-4 transition-transform hover:scale-110" />
-              </Link>
-              <Link href="/categories" className="p-2 text-white/60 hover:text-white transition-all rounded-full hover:bg-white/5" aria-label="Categories">
-                <Grid className="w-4 h-4 transition-transform hover:scale-110" />
               </Link>
               <Link
                 href="/news"

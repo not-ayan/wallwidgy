@@ -45,7 +45,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
                 // FAVORITES
               </Link>
               <Link
-                href="/categories"
+                href="/#categories-bar"
                 className="text-white/50 hover:text-[#F7F06D] transition-colors"
               >
                 // CATEGORIES
@@ -75,7 +75,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
       {/* Visual background details */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[800px] h-[1px] bg-gradient-to-r from-transparent via-[#F7F06D]/15 to-transparent pointer-events-none" />
       
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-12 py-16">
+      <div className="max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8 items-start">
           
           {/* Left: Brand / Logo */}
@@ -105,7 +105,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
               <Link href="/favorites" className="text-white/50 hover:text-white transition-colors duration-200">
                 Favorites
               </Link>
-              <Link href="/categories" className="text-white/50 hover:text-white transition-colors duration-200">
+              <Link href="/#categories-bar" className="text-white/50 hover:text-white transition-colors duration-200">
                 Categories
               </Link>
               <Link href="/news" className="text-white/50 hover:text-white transition-colors duration-200">

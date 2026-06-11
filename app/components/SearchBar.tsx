@@ -272,8 +272,16 @@ export default function SearchBar() {
       }
     }
     
+    const handleOpenSearch = () => {
+      setIsOpen(true)
+    }
+    
     window.addEventListener('keydown', handleKeydown)
-    return () => window.removeEventListener('keydown', handleKeydown)
+    window.addEventListener('open-search', handleOpenSearch)
+    return () => {
+      window.removeEventListener('keydown', handleKeydown)
+      window.removeEventListener('open-search', handleOpenSearch)
+    }
   }, [isOpen])
   
   // Handle search events from redirected search page
@@ -363,20 +371,20 @@ export default function SearchBar() {
       {/* Add custom animation styles */}
       <style jsx global>{animationStyles}</style>
       
-      {/* Fixed Search Bar - bottom right on mobile, center on desktop */}
-      <div className="fixed bottom-6 right-6 sm:bottom-6 sm:left-1/2 sm:transform sm:-translate-x-1/2 sm:right-auto z-40">
+      {/* Fixed Search Bar - bottom left on mobile, center on desktop */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[90%] md:max-w-[88%] xl:max-w-[85%] px-4 md:px-6 lg:px-8 pointer-events-none z-40 flex justify-start md:justify-center">
         <button
           onClick={toggleSearch}
-          className="group relative bg-[#0A0A0A]/60 backdrop-blur-2xl hover:bg-[#1A1A1A]/70 rounded-full flex items-center justify-center shadow-2xl shadow-black/50 border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 p-4 sm:px-6 sm:py-3.5"
+          className="pointer-events-auto group relative bg-[#0A0A0A] rounded-full flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.8)] border border-white/10 hover:border-[var(--accent-light)]/40 hover:bg-[#111111] transition-all duration-300 hover:scale-105 active:scale-95 w-10 h-10 md:w-auto md:h-10 md:px-5"
           aria-label="Search wallpapers"
         >
           {/* Subtle glow effect */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[var(--accent-light)]/5 via-transparent to-[var(--accent-light)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="flex items-center gap-3 relative z-10">
-            <Search className="w-5 h-5 text-white/80 group-hover:text-white transition-colors" />
-            <span className="text-white/50 group-hover:text-white/70 text-sm hidden sm:inline transition-colors">Search anything :p</span>
-            <kbd className="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-xs text-white/40 ml-2">
-              <span className="text-[10px]">{isMac ? '⌘' : 'Ctrl'}</span>
+            <Search className="w-5 h-5 text-white/80 group-hover:text-[var(--accent-light)] transition-colors duration-300 md:w-4 md:h-4" />
+            <span className="text-white/55 group-hover:text-white text-[10px] hidden md:inline font-mono tracking-wider uppercase transition-colors duration-300">Search anything :p</span>
+            <kbd className="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-[10px] text-white/40 ml-2 group-hover:border-[var(--accent-light)]/30 group-hover:text-[var(--accent-light)] transition-all duration-300 font-mono">
+              <span className="text-[9px]">{isMac ? '⌘' : 'Ctrl'}</span>
               <span>K</span>
             </kbd>
           </div>
@@ -385,9 +393,9 @@ export default function SearchBar() {
 
       {/* Floating search bar */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
           <div className={`w-full ${results.length > 0 || isSearching ? 'h-[92%]' : 'max-h-[450px]'} max-w-6xl mx-auto will-change-transform`}>
-            <div className="bg-[#0A0A0A]/80 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl shadow-black/50 overflow-hidden transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 h-full flex flex-col">
+            <div className="bg-[#0A0A0A] rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl shadow-black/80 overflow-hidden transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 h-full flex flex-col">
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 border-b border-white/5">
                 <div className="flex items-center gap-3">
@@ -448,19 +456,19 @@ export default function SearchBar() {
                   /* Search form and suggestions */
                   <div className="p-4 sm:p-8">
                     <form onSubmit={handleSearch} className="flex items-center">
-                      <div className="flex-1 flex items-center bg-white/5 hover:bg-white/[0.07] focus-within:bg-white/[0.08] focus-within:ring-1 ring-white/10 rounded-2xl border border-white/10 focus-within:border-white/20 p-1.5 transition-all duration-300">
+                      <div className="flex-1 flex items-center bg-[#111111] focus-within:bg-[#141414] focus-within:ring-1 focus-within:ring-[var(--accent-light)]/30 rounded-2xl border border-white/10 focus-within:border-[var(--accent-light)]/30 p-1.5 transition-all duration-300">
                         <input
                           id="search-input"
                           type="text"
                           placeholder="Search by color, style, mood..."
-                          className="flex-1 bg-transparent border-none text-base text-white placeholder:text-white/30 focus:outline-none px-5 py-3"
+                          className="flex-1 bg-transparent border-none text-base text-white placeholder:text-white/30 focus:outline-none px-5 py-3 font-outfit"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           autoFocus
                         />
                         <button 
                           type="submit" 
-                          className="p-3 bg-white/10 hover:bg-white/15 rounded-xl text-white/70 hover:text-white transition-all duration-200 mr-0.5"
+                          className="p-3 bg-[var(--accent-light)] hover:bg-[var(--accent-light)]/90 text-black rounded-xl font-medium transition-all duration-300 mr-0.5"
                           aria-label="Search"
                         >
                           <Search className="w-5 h-5" />
@@ -471,16 +479,16 @@ export default function SearchBar() {
                     {/* Popular searches */}
                     <div className="mt-8">
                       <div className="flex items-center gap-2 mb-4">
-                        <Sparkles className="w-4 h-4 text-amber-400/70" />
-                        <p className="text-white/40 text-xs font-medium uppercase tracking-wider">
-                          Trending
+                        <Sparkles className="w-4 h-4 text-[var(--accent-light)] animate-pulse" />
+                        <p className="text-white/40 text-[9px] font-mono uppercase tracking-widest">
+                          Trending Curations
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {suggestions.map(tag => (
                           <button
                             key={tag}
-                            className="bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 px-4 py-2.5 rounded-xl text-white/60 hover:text-white/90 text-sm transition-all duration-200"
+                            className="bg-[#111111] hover:bg-[#161616] border border-white/5 hover:border-[var(--accent-light)]/20 px-3.5 py-2 rounded-xl text-white/50 hover:text-[var(--accent-light)] text-[11px] font-mono tracking-wider uppercase transition-all duration-300"
                             onClick={() => {
                               setSearchQuery(tag)
                               // Perform search immediately to improve responsiveness
@@ -645,7 +653,7 @@ export default function SearchBar() {
                           Try different keywords or browse our categories for inspiration.
                         </p>
                         <Link 
-                          href="/categories" 
+                          href="/#categories-bar" 
                           className="mt-6 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-200 rounded-xl text-white/70 hover:text-white text-sm font-medium"
                           onClick={() => setIsOpen(false)}
                         >

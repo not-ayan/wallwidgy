@@ -160,28 +160,20 @@ export default function ApiDocs() {
               <span className="bg-emerald-500/20 text-[#F7F06D] px-2.5 py-0.5 rounded text-xs font-mono border border-[#F7F06D]/20">GET</span>
               <h2 className="text-xl font-bold tracking-tight text-white uppercase">/api/wallpapers</h2>
             </div>
+            <p className="text-white/70 text-sm font-light leading-relaxed">
+              Retrieve a list of wallpaper assets. Supported query parameters allow filtering by category, device layout, and color signature.
+            </p>
 
-            <div className="space-y-8">
-              {/* Basic Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Get a Random Wallpaper</h3>
-                <CodeBlock
-                  code="curl https://wallwidgy.vercel.app/api/wallpapers"
-                />
-                <div className="mt-4">
-                  <h4 className="text-white/80 font-medium mb-2">Response:</h4>
-                  <CodeBlock
-                    code={`{
-  "wallpapers": [
-    "https://wallwidgy.vercel.app/wallpapers/nature/mountain-sunset.jpg"
-  ],
-  "count": 1,
-  "category": "all",
-  "type": "all",
-  "color": "all"
-}`}
-                    language="json"
-                  />
+            <div className="space-y-4">
+              <span className="text-[10px] font-mono text-[#F7F06D] uppercase tracking-widest block border-b border-[#F7F06D]/15 pb-1">
+                Query Parameters
+              </span>
+
+              <div className="border border-white/10 rounded bg-[#0b0b0b] overflow-hidden divide-y divide-white/10 font-mono text-xs">
+                <div className="grid grid-cols-12 p-3 text-[9px] text-white/40 tracking-wider">
+                  <div className="col-span-3">PARAMETER</div>
+                  <div className="col-span-3">TYPE</div>
+                  <div className="col-span-6">DESCRIPTION</div>
                 </div>
 
                 <div className="grid grid-cols-12 p-4 items-center gap-2 lg:gap-0">
@@ -250,7 +242,7 @@ export default function ApiDocs() {
               JSON Response Payload
             </span>
             <CodeBlock
-              code={`{\n  "wallpapers": [\n    "https://wallwidgy.vercel.app/wallpapers/minimal/desert-dune.jpg",\n    "https://wallwidgy.vercel.app/wallpapers/minimal/foggy-forest.jpg"\n  ],\n  "count": 2,\n  "category": "minimal",\n  "type": "mobile",\n  "color": "all"\n}`}
+              code={`{\n  "wallpapers": [\n    "https://wallwidgy.vercel.app/wallpaper/minimal/desert-dune.jpg",\n    "https://wallwidgy.vercel.app/wallpaper/minimal/foggy-forest.jpg"\n  ],\n  "count": 2,\n  "category": "minimal",\n  "type": "mobile",\n  "color": "all"\n}`}
               language="json"
             />
           </div>

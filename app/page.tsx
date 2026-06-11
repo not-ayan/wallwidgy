@@ -36,43 +36,50 @@ export default function Home() {
       {/* Vercel Analytics */}
       <VercelAnalytics />
       {/* Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
-        <header className="px-4 sm:px-12 py-5">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/70 backdrop-blur-md border-b border-white/[0.04]">
+        <header className="px-4 sm:px-12 py-4">
           <nav className="flex justify-between items-center max-w-[1600px] mx-auto">
-            <Link href="/" className="transition-opacity hover:opacity-80 pl-4">
-              <img src="/logo.svg" alt="WallWidgy" className="h-4 sm:h-5" />
-            </Link>
-            
+            <div className="flex items-center gap-3 pl-4">
+              <Link href="/" className="transition-opacity hover:opacity-80">
+                <img src="/logo.svg" alt="WallWidgy" className="h-4 sm:h-5" />
+              </Link>
+              <span className="hidden sm:inline-block font-mono text-[9px] text-white/30 tracking-widest uppercase border-l border-white/10 pl-3 select-none">
+                SYS.V2
+              </span>
+            </div>
+
             <div className="flex-1"></div>
-            
-            <div className="flex items-center gap-2 pr-4">
-              <Link href="/favorites" className="p-2 text-white/80 hover:text-white transition-all" aria-label="Favorites">
-                <Heart className="w-5 h-5 transition-transform hover:scale-110" />
-              </Link>
-              <Link href="/categories" className="p-2 text-white/80 hover:text-white transition-all" aria-label="Categories">
-                <Grid className="w-5 h-5 transition-transform hover:scale-110" />
-              </Link>
-              <Link
-                href="/news"
-                className="p-2 text-white/80 hover:text-white transition-all"
-                aria-label="News"
-              >
-                <Info className="w-5 h-5" />
-              </Link>
+
+            <div className="flex items-center gap-3 pr-4">
+              <div className="flex items-center gap-0.5 bg-white/[0.02] border border-white/[0.05] rounded-full p-1 backdrop-blur-sm">
+                <Link href="/favorites" className="p-2 text-white/60 hover:text-white transition-all rounded-full hover:bg-white/5" aria-label="Favorites">
+                  <Heart className="w-4 h-4 transition-transform hover:scale-110" />
+                </Link>
+                <Link href="/categories" className="p-2 text-white/60 hover:text-white transition-all rounded-full hover:bg-white/5" aria-label="Categories">
+                  <Grid className="w-4 h-4 transition-transform hover:scale-110" />
+                </Link>
+                <Link
+                  href="/news"
+                  className="p-2 text-white/60 hover:text-[#F7F06D] transition-all rounded-full hover:bg-white/5"
+                  aria-label="News"
+                >
+                  <Info className="w-4 h-4" />
+                </Link>
+              </div>
               <SignedOut>
                 <SignInButton mode="modal">
                   <button className="premium-signin-btn p-2.5 rounded-full text-white/90 hover:text-white transition-all sm:hidden" aria-label="Sign In">
-                    <User className="w-5 h-5 relative z-10" />
+                    <User className="w-4 h-4 relative z-10" />
                   </button>
                 </SignInButton>
                 <SignInButton mode="modal">
-                  <button className="premium-signin-btn hidden sm:flex px-5 py-2.5 rounded-full text-white text-sm font-medium transition-all duration-300 ease-out">
+                  <button className="premium-signin-btn hidden sm:flex px-5 py-2 rounded-full text-white text-sm font-medium transition-all duration-300 ease-out">
                     Sign In
                   </button>
                 </SignInButton>
               </SignedOut>
               <SignedIn>
-                <UserButton 
+                <UserButton
                   appearance={{
                     elements: {
                       avatarBox: "w-8 h-8"
@@ -87,12 +94,11 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="px-4 sm:px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
-        <h1 className="font-title text-[12vw] xs:text-[10vw] sm:text-[8vw] md:text-[7vw] lg:text-[6vw] xl:text-[5.5vw] 2xl:text-[120px] max-w-[1200px] mx-auto leading-[1.1] tracking-[-0.02em] text-[var(--accent-light)]">
-          <span className="title-animation inline-block" style={{ animationDelay: "0ms" }}>Wall</span>
-          <span className="title-animation inline-block" style={{ animationDelay: "80ms" }}>widgy</span>
+        <h1 className="font-aspekta text-[9vw] sm:text-[8vw] md:text-[7vw] lg:text-[6vw] xl:text-[5.5vw] 2xl:text-[84px] font-light tracking-[-0.03em] text-[var(--accent-light)] leading-[1.05] max-w-[1200px] mx-auto">
+          <span className="title-animation inline-block" style={{ animationDelay: "0ms" }}>Wallwidgy</span>
         </h1>
-        <p className="mt-4 text-white/60 max-w-[600px] mx-auto text-base sm:text-lg lg:text-xl leading-relaxed title-animation font-outfit" style={{ animationDelay: "500ms" }}>
-         Hand-picked high-quality wallpapers, curated just for you.
+        <p className="mt-5 text-white/40 max-w-[600px] mx-auto text-[10px] sm:text-xs tracking-[0.2em] font-aspekta uppercase title-animation" style={{ animationDelay: "200ms" }}>
+          A curated library of minimal digital canvases
         </p>
       </section>
 
@@ -104,7 +110,7 @@ export default function Home() {
 
       {/* Back to Top Button */}
       <BackToTop />
-      
+
       {/* Persistent Search Bar */}
       <SearchBar />
     </main>

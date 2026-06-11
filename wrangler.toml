@@ -1,0 +1,13 @@
+name = "wallwidgy"
+main = ".open-next/worker.js"
+compatibility_date = "2025-05-28"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability.logs]
+enabled = false
+invocation_logs = true
+

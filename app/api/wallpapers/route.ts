@@ -148,7 +148,7 @@ export async function GET(request: Request) {
     // Convert filenames to public URLs
     const baseUrl = url.origin
     const wallpapers = selectedFilenames.map((filename) => 
-      `${baseUrl}/wallpapers/${filename as string}`
+      `${baseUrl}/wallpaper/${filename as string}`
     )
 
     // Prepare response

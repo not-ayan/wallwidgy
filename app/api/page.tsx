@@ -53,23 +53,23 @@ const getColorBgClass = (color: string) => {
 export default function ApiDocs() {
   return (
     <div className="min-h-screen bg-[#060606] text-white font-aspekta relative selection:bg-[#F7F06D] selection:text-black overflow-x-hidden antialiased">
-      
+
       {/* Blueprint Grid Wrapper */}
       <div className="max-w-[1440px] mx-auto border-x border-white/10 min-h-screen flex flex-col bg-[#060606]">
-        
+
         {/* Technical Header */}
         <header className="grid grid-cols-1 md:grid-cols-12 border-b border-white/10">
           {/* Back Button Column */}
           <div className="md:col-span-3 border-b md:border-b-0 md:border-r border-white/10 py-4 px-6 flex items-center justify-start">
-            <Link 
-              href="/" 
+            <Link
+              href="/"
               className="flex items-center gap-2 text-white/60 hover:text-white transition-all duration-300 group bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded border border-white/10 text-xs tracking-wider uppercase font-mono"
             >
               <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
               <span>Back</span>
             </Link>
           </div>
-          
+
           {/* Center Column: Title */}
           <div className="md:col-span-6 border-b md:border-b-0 md:border-r border-white/10 flex items-center justify-center py-4 text-center">
             <Link href="/" className="font-bold text-xs tracking-widest uppercase font-mono hover:text-[#F7F06D] transition-colors">
@@ -94,11 +94,11 @@ export default function ApiDocs() {
               <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
                 API GATEWAY DOCUMENTATION
               </div>
-              
+
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white uppercase">
                 Wallwidgy REST API
               </h1>
-              
+
               <p className="text-white/70 font-light text-base leading-relaxed max-w-2xl">
                 Welcome to the Wallwidgy developer reference. Use our simple public endpoint queries to fetch wallpapers, filter by categories and primary colors, and retrieve random visual assets directly for your client applications or browser extensions.
               </p>
@@ -108,7 +108,7 @@ export default function ApiDocs() {
                 <span className="text-[10px] font-mono text-[#F7F06D] uppercase tracking-widest block">
                   QUICK START REQUEST
                 </span>
-                <CodeBlock 
+                <CodeBlock
                   code="curl https://wallwidgy.vercel.app/api/wallpapers"
                   language="bash"
                 />
@@ -128,7 +128,7 @@ export default function ApiDocs() {
                   <span>SPECIFICATION</span>
                   <span className="text-right">PARAMETER</span>
                 </div>
-                
+
                 <div className="divide-y divide-white/10 font-mono text-xs text-white">
                   <div className="flex justify-between p-3.5">
                     <span className="text-white/40">BASE ENDPOINT</span>
@@ -160,23 +160,30 @@ export default function ApiDocs() {
               <span className="bg-emerald-500/20 text-[#F7F06D] px-2.5 py-0.5 rounded text-xs font-mono border border-[#F7F06D]/20">GET</span>
               <h2 className="text-xl font-bold tracking-tight text-white uppercase">/api/wallpapers</h2>
             </div>
-            
-            <p className="text-white/70 text-sm font-light leading-relaxed">
-              Retrieve a list of wallpaper assets. Supported query parameters allow filtering by category, device layout, and color signature.
-            </p>
 
-            <div className="space-y-4">
-              <span className="text-[10px] font-mono text-[#F7F06D] uppercase tracking-widest block border-b border-[#F7F06D]/15 pb-1">
-                Query Parameters
-              </span>
-              
-              <div className="border border-white/10 rounded bg-[#0b0b0b] overflow-hidden divide-y divide-white/10 font-mono text-xs">
-                <div className="grid grid-cols-12 p-3 text-[9px] text-white/40 tracking-wider">
-                  <div className="col-span-3">PARAMETER</div>
-                  <div className="col-span-3">TYPE</div>
-                  <div className="col-span-6">DESCRIPTION</div>
+            <div className="space-y-8">
+              {/* Basic Example */}
+              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                <h3 className="text-lg font-semibold text-white mb-4">Get a Random Wallpaper</h3>
+                <CodeBlock
+                  code="curl https://wallwidgy.vercel.app/api/wallpapers"
+                />
+                <div className="mt-4">
+                  <h4 className="text-white/80 font-medium mb-2">Response:</h4>
+                  <CodeBlock
+                    code={`{
+  "wallpapers": [
+    "https://wallwidgy.vercel.app/wallpapers/nature/mountain-sunset.jpg"
+  ],
+  "count": 1,
+  "category": "all",
+  "type": "all",
+  "color": "all"
+}`}
+                    language="json"
+                  />
                 </div>
-                
+
                 <div className="grid grid-cols-12 p-4 items-center gap-2 lg:gap-0">
                   <div className="col-span-3 text-[#F7F06D] font-bold">type</div>
                   <div className="col-span-3 text-white/60">desktop | mobile</div>
@@ -216,7 +223,7 @@ export default function ApiDocs() {
               <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest block">
                 Parameters Combined Query Example
               </span>
-              <CodeBlock 
+              <CodeBlock
                 code={`curl "https://wallwidgy.vercel.app/api/wallpapers?type=desktop&category=minimal&count=2"`}
                 language="bash"
               />
@@ -231,7 +238,7 @@ export default function ApiDocs() {
             <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest block">
               Client Fetch Script
             </span>
-            <CodeBlock 
+            <CodeBlock
               code={`fetch('https://wallwidgy.vercel.app/api/wallpapers?type=mobile&count=2')\n  .then(res => res.json())\n  .then(data => {\n    console.log(data.wallpapers);\n  });`}
               language="javascript"
             />
@@ -242,7 +249,7 @@ export default function ApiDocs() {
             <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest block">
               JSON Response Payload
             </span>
-            <CodeBlock 
+            <CodeBlock
               code={`{\n  "wallpapers": [\n    "https://wallwidgy.vercel.app/wallpapers/minimal/desert-dune.jpg",\n    "https://wallwidgy.vercel.app/wallpapers/minimal/foggy-forest.jpg"\n  ],\n  "count": 2,\n  "category": "minimal",\n  "type": "mobile",\n  "color": "all"\n}`}
               language="json"
             />
@@ -266,10 +273,10 @@ export default function ApiDocs() {
                 ))}
               </div>
             </div>
-            
+
             <div className="pt-4 border-t border-white/5 mt-4 space-y-2">
               <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest block">Category Query Example</span>
-              <CodeBlock 
+              <CodeBlock
                 code={`curl "https://wallwidgy.vercel.app/api/wallpapers?category=minimal"`}
                 language="bash"
               />
@@ -292,10 +299,10 @@ export default function ApiDocs() {
                 ))}
               </div>
             </div>
-            
+
             <div className="pt-4 border-t border-white/5 mt-4 space-y-2">
               <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest block">Color Query Example</span>
-              <CodeBlock 
+              <CodeBlock
                 code={`curl "https://wallwidgy.vercel.app/api/wallpapers?color=blue"`}
                 language="bash"
               />
@@ -313,7 +320,7 @@ export default function ApiDocs() {
                 No developer key required. Fair-use throttle limits prevent request flooding at 60 requests/minute. Content files are delivered strictly for personal layout usage.
               </p>
             </div>
-            
+
             <div className="pt-4 border-t border-white/5 mt-4 opacity-50 font-mono text-[9px] text-white/30 tracking-widest">
               STATUS // FULL_ACCESS
             </div>

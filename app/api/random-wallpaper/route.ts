@@ -38,7 +38,7 @@ function getAllWallpapers(): WallpaperFile[] {
 
         return {
           name: file,
-          path: `/wallpapers/${file}`,
+          path: `/wallpaper/${file}`,
           type,
         };
       });

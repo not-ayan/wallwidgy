@@ -7,7 +7,10 @@
     "dev:next": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:cf": "opennextjs-cloudflare build",
+    "deploy:cf": "opennextjs-cloudflare deploy",
+    "preview:cf": "wrangler dev"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.36.7",

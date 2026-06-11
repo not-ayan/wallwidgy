@@ -70,7 +70,6 @@ function SmartImage({
 }
 import Image from "next/image"  // This is the Next.js Image component
 import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, ArrowLeft } from "lucide-react"
-import Modal from "./Modal"
 import Link from "next/link"
 import SimilarWallpapers from "./SimilarWallpapers"
 import { shouldDisableBlurEffects } from "@/lib/utils"

@@ -45,7 +45,7 @@ function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt:
     />
   );
 }
-import { RefreshCw, Sparkles, X, ArrowLeft } from "lucide-react"
+import { RefreshCw, Sparkles, X } from "lucide-react"
 import { Wallpaper } from "./WallpaperModal"
 import { shouldDisableBlurEffects } from "@/lib/utils"
 import { useBackHandler } from "@/hooks/use-back-handler"

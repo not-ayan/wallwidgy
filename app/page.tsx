@@ -1,6 +1,4 @@
-import { Suspense } from "react"
 import dynamic from "next/dynamic"
-import Link from "next/link"
 import Footer from "./components/Footer"
 import BackToTop from "./components/BackToTop"
 import SearchBar from "./components/SearchBar"

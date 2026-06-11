@@ -1,14 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Outfit } from "next/font/google"
 import localFont from "next/font/local"
-import {
-  ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton,
-} from "@clerk/nextjs"
+import { ClerkProvider } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import "./globals.css"
 

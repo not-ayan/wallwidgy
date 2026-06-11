@@ -7,11 +7,6 @@ import {
   Heart,
   Expand,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-  ArrowDownAZ,
-  Clock,
-  History,
   Share2,
   Leaf,
   Film,
@@ -22,11 +17,9 @@ import {
   Cpu,
   Moon,
   Atom,
-  Search,
 } from "lucide-react"
 import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
-import path from "path"
 import { useFavorites } from "@/hooks/use-favorites"
 
 interface WallpaperFile {

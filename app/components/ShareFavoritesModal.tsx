@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { X, Copy, Share2, Link as LinkIcon, Check, LogIn } from "lucide-react"
+import { X, Copy, Link as LinkIcon, Check, LogIn } from "lucide-react"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { SignInButton } from "@clerk/nextjs"
 

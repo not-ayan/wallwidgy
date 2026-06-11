@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { Code, ArrowLeft, ExternalLink, Copy, CheckCircle, Globe, Zap, Shield, Database } from "lucide-react"
+import { ArrowLeft, Copy, CheckCircle, Globe, Shield, Database } from "lucide-react"
 import { useState } from "react"
 import Footer from "../components/Footer"
 import BackToTop from "../components/BackToTop"

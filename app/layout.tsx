@@ -24,6 +24,12 @@ const sagite = localFont({
   variable: "--font-sagite",
 })
 
+const aspekta = localFont({
+  src: "../public/fonts/AspektaVF.woff2",
+  display: "swap",
+  variable: "--font-aspekta",
+})
+
 export const metadata: Metadata = {
   title: "Minimalist Wallpapers",
   description: "A curated collection of minimalist wallpapers",
@@ -72,7 +78,7 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" className={`${outfit.variable} ${sagite.variable}`} suppressHydrationWarning>
+      <html lang="en" className={`${outfit.variable} ${sagite.variable} ${aspekta.variable}`} suppressHydrationWarning>
         <head>
           <script
             async

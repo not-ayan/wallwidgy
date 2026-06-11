@@ -28,6 +28,10 @@
   font-family: var(--font-outfit), system-ui, sans-serif;
 }
 
+.font-aspekta {
+  font-family: var(--font-aspekta), system-ui, sans-serif;
+}
+
 .font-serif {
   font-family: "Sagite", ui-serif, Georgia, serif;
 }

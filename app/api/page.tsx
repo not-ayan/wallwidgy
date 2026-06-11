@@ -17,456 +17,316 @@ function CodeBlock({ code, language = "bash" }: { code: string; language?: strin
   }
 
   return (
-    <div className="relative bg-black/40 backdrop-blur-sm rounded-lg border border-white/10 overflow-hidden">
+    <div className="relative bg-black/40 backdrop-blur-sm rounded border border-white/10 overflow-hidden w-full">
       <div className="flex items-center justify-between px-4 py-2 bg-white/5 border-b border-white/10">
         <span className="text-white/60 text-xs font-mono uppercase tracking-wider">{language}</span>
         <button
           onClick={copyToClipboard}
-          className="flex items-center gap-2 text-white/60 hover:text-[#F7F06D] transition-colors text-xs"
+          className="flex items-center gap-2 text-white/60 hover:text-[#F7F06D] transition-colors text-xs font-mono"
         >
-          {copied ? <CheckCircle className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? <CheckCircle className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
-      <pre className="p-4 text-sm text-white/90 font-mono overflow-x-auto">
+      <pre className="p-4 text-xs sm:text-sm text-white/90 font-mono overflow-x-auto leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>
   )
 }
 
+const getColorBgClass = (color: string) => {
+  switch (color) {
+    case 'blue': return 'bg-blue-500'
+    case 'red': return 'bg-red-500'
+    case 'green': return 'bg-green-500'
+    case 'purple': return 'bg-purple-500'
+    case 'pink': return 'bg-pink-500'
+    case 'orange': return 'bg-orange-500'
+    case 'yellow': return 'bg-yellow-400'
+    case 'black': return 'bg-gray-950 border border-white/20'
+    case 'white': return 'bg-white border border-gray-400'
+    default: return 'bg-gray-500'
+  }
+}
+
 export default function ApiDocs() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] relative">
-      <main className="pt-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto relative">
-        {/* Navigation */}
-        <div className="mb-12">
-          <Link 
-            href="/" 
-            className="flex items-center gap-2 text-white/70 hover:text-white transition-all duration-300 group bg-white/5 backdrop-blur-sm px-4 py-2 rounded-full border border-white/10 hover:border-white/20 w-fit"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#F7F06D] group-hover:-translate-x-1 transition-transform" />
-            <span className="font-medium">Back</span>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-[#060606] text-white font-aspekta relative selection:bg-[#F7F06D] selection:text-black overflow-x-hidden antialiased">
+      
+      {/* Blueprint Grid Wrapper */}
+      <div className="max-w-[1440px] mx-auto border-x border-white/10 min-h-screen flex flex-col bg-[#060606]">
+        
+        {/* Technical Header */}
+        <header className="grid grid-cols-1 md:grid-cols-12 border-b border-white/10">
+          {/* Back Button Column */}
+          <div className="md:col-span-3 border-b md:border-b-0 md:border-r border-white/10 py-4 px-6 flex items-center justify-start">
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 text-white/60 hover:text-white transition-all duration-300 group bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded border border-white/10 text-xs tracking-wider uppercase font-mono"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+              <span>Back</span>
+            </Link>
+          </div>
+          
+          {/* Center Column: Title */}
+          <div className="md:col-span-6 border-b md:border-b-0 md:border-r border-white/10 flex items-center justify-center py-4 text-center">
+            <Link href="/" className="font-bold text-xs tracking-widest uppercase font-mono hover:text-[#F7F06D] transition-colors">
+              WALLWIDGY API // CORE REFERENCE
+            </Link>
+          </div>
 
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-3 mb-6">
-            <div className="w-16 h-16 bg-white/5 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/10">
-              <Code className="w-8 h-8 text-[#F7F06D]" />
+          {/* Right Column: Status info */}
+          <div className="md:col-span-3 py-4 px-6 flex items-center justify-end">
+            <div className="flex items-center gap-2 text-[9px] font-mono tracking-wider uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F7F06D] animate-pulse" />
+              <span className="text-white/60">● API ACTIVE</span>
             </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
-            Wallwidgy API
-          </h1>
-          <p className="text-white/70 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-            Access thousands of high-quality wallpapers programmatically with our simple REST API
-          </p>
-        </div>
+        </header>
 
-        {/* Main Content */}
-        <div className="space-y-16">
-          {/* Quick Start */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Quick Start</h2>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              <p className="text-white/80 mb-6">
-                Get started with a simple GET request to retrieve random wallpapers:
+        {/* Section 1: Overview & Quick Start (Split 7/5 grid) */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 border-b border-white/10">
+          {/* Left Panel: Introduction */}
+          <div className="lg:col-span-7 p-6 sm:p-12 lg:p-16 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col justify-between">
+            <div className="space-y-4">
+              <div className="text-[10px] font-mono text-white/40 uppercase tracking-widest">
+                API GATEWAY DOCUMENTATION
+              </div>
+              
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white uppercase">
+                Wallwidgy REST API
+              </h1>
+              
+              <p className="text-white/70 font-light text-base leading-relaxed max-w-2xl">
+                Welcome to the Wallwidgy developer reference. Use our simple public endpoint queries to fetch wallpapers, filter by categories and primary colors, and retrieve random visual assets directly for your client applications or browser extensions.
               </p>
-              
-              <CodeBlock 
-                code="curl https://wallwidgy.vercel.app/api/wallpapers"
-                language="bash"
-              />
-              
-              <div className="mt-6 p-4 bg-[#F7F06D]/10 border border-[#F7F06D]/20 rounded-lg">
-                <p className="text-[#F7F06D] text-sm">
-                  <strong>Live API:</strong> The API is now live and ready to use! No authentication required.
-                </p>
-              </div>
-            </div>
-          </section>
 
-          {/* API Features */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Features</h2>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                  <Zap className="w-5 h-5 text-[#F7F06D]" />
-                  <h3 className="font-semibold text-white">Random Selection</h3>
-                </div>
-                <p className="text-white/70 text-sm">
-                  Get randomized wallpapers on each request for variety and discovery.
-                </p>
-              </div>
-              
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                  <Database className="w-5 h-5 text-[#F7F06D]" />
-                  <h3 className="font-semibold text-white">Category Filtering</h3>
-                </div>
-                <p className="text-white/70 text-sm">
-                  Filter by categories like nature, minimal, abstract, and more.
-                </p>
-              </div>
-              
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                  <Globe className="w-5 h-5 text-[#F7F06D]" />
-                  <h3 className="font-semibold text-white">Device Optimization</h3>
-                </div>
-                <p className="text-white/70 text-sm">
-                  Get desktop or mobile optimized wallpapers based on your needs.
-                </p>
-              </div>
-              
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-6 border border-white/10">
-                <div className="flex items-center gap-3 mb-4">
-                  <Shield className="w-5 h-5 text-[#F7F06D]" />
-                  <h3 className="font-semibold text-white">CORS Enabled</h3>
-                </div>
-                <p className="text-white/70 text-sm">
-                  Use from any domain - perfect for web apps and browser extensions.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Endpoints */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Endpoints</h2>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              <div className="mb-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-md text-sm font-mono">GET</span>
-                  <code className="text-white font-mono">/api/wallpapers</code>
-                </div>
-                <p className="text-white/70 mb-6">
-                  Retrieve random wallpapers with optional filtering parameters.
-                </p>
-                
-                <h4 className="text-white font-semibold mb-4">Query Parameters</h4>
-                <div className="space-y-4">
-                  <div className="grid md:grid-cols-3 gap-4 p-4 bg-black/20 rounded-lg border border-white/10">
-                    <div>
-                      <code className="text-[#F7F06D] text-sm">type</code>
-                      <p className="text-white/60 text-xs mt-1">Optional</p>
-                    </div>
-                    <div>
-                      <span className="text-white/80 text-sm">desktop | mobile</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60 text-sm">Filter by device type</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-3 gap-4 p-4 bg-black/20 rounded-lg border border-white/10">
-                    <div>
-                      <code className="text-[#F7F06D] text-sm">category</code>
-                      <p className="text-white/60 text-xs mt-1">Optional</p>
-                    </div>
-                    <div>
-                      <span className="text-white/80 text-sm">string</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60 text-sm">Filter by category folder</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-3 gap-4 p-4 bg-black/20 rounded-lg border border-white/10">
-                    <div>
-                      <code className="text-[#F7F06D] text-sm">color</code>
-                      <p className="text-white/60 text-xs mt-1">Optional</p>
-                    </div>
-                    <div>
-                      <span className="text-white/80 text-sm">string</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60 text-sm">Filter by primary/secondary colors</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid md:grid-cols-3 gap-4 p-4 bg-black/20 rounded-lg border border-white/10">
-                    <div>
-                      <code className="text-[#F7F06D] text-sm">count</code>
-                      <p className="text-white/60 text-xs mt-1">Optional</p>
-                    </div>
-                    <div>
-                      <span className="text-white/80 text-sm">1-10</span>
-                    </div>
-                    <div>
-                      <span className="text-white/60 text-sm">Number of wallpapers (default: 1)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Examples */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Examples</h2>
-            </div>
-            
-            <div className="space-y-8">
-              {/* Basic Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Get a Random Wallpaper</h3>
+              {/* Quick Start Request */}
+              <div className="space-y-3 pt-6">
+                <span className="text-[10px] font-mono text-[#F7F06D] uppercase tracking-widest block">
+                  QUICK START REQUEST
+                </span>
                 <CodeBlock 
                   code="curl https://wallwidgy.vercel.app/api/wallpapers"
-                />
-                <div className="mt-4">
-                  <h4 className="text-white/80 font-medium mb-2">Response:</h4>
-                  <CodeBlock 
-                    code={`{
-  "wallpapers": [
-    "https://wallwidgy.vercel.app/wallpapers/nature/mountain-sunset.jpg"
-  ],
-  "count": 1,
-  "category": "all",
-  "type": "all",
-  "color": "all"
-}`}
-                    language="json"
-                  />
-                </div>
-              </div>
-
-              {/* Desktop Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Get Desktop Wallpapers</h3>
-                <CodeBlock 
-                  code="curl https://wallwidgy.vercel.app/api/wallpapers?type=desktop&count=3"
-                />
-              </div>
-
-              {/* Category Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Get Wallpapers by Category</h3>
-                <CodeBlock 
-                  code="curl https://wallwidgy.vercel.app/api/wallpapers?category=minimal&count=2"
-                />
-              </div>
-
-              {/* Color Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Get Wallpapers by Color</h3>
-                <CodeBlock 
-                  code="curl https://wallwidgy.vercel.app/api/wallpapers?color=blue&count=3"
-                />
-                <p className="text-white/70 text-sm mt-4">
-                  Filter wallpapers by primary or secondary colors. Common colors include: 
-                  <code className="text-[#F7F06D] text-xs mx-1">blue</code>
-                  <code className="text-[#F7F06D] text-xs mx-1">red</code>
-                  <code className="text-[#F7F06D] text-xs mx-1">green</code>
-                  <code className="text-[#F7F06D] text-xs mx-1">purple</code>
-                  <code className="text-[#F7F06D] text-xs mx-1">pink</code>
-                  <code className="text-[#F7F06D] text-xs mx-1">black</code>
-                  <code className="text-[#F7F06D] text-xs mx-1">white</code>
-                  and more.
-                </p>
-              </div>
-
-              {/* Combined Filters Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">Combine Multiple Filters</h3>
-                <CodeBlock 
-                  code="curl https://wallwidgy.vercel.app/api/wallpapers?category=art&type=desktop&color=purple&count=4"
-                />
-                <p className="text-white/70 text-sm mt-4">
-                  You can combine category, type, color, and count parameters for precise filtering.
-                </p>
-              </div>
-
-              {/* JavaScript Example */}
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-                <h3 className="text-lg font-semibold text-white mb-4">JavaScript/Fetch Example</h3>
-                <CodeBlock 
-                  code={`fetch('https://wallwidgy.vercel.app/api/wallpapers?type=mobile&count=5')
-  .then(response => response.json())
-  .then(data => {
-    console.log('Wallpapers:', data.wallpapers);
-    // Use the wallpaper URLs
-    data.wallpapers.forEach(url => {
-      console.log('Wallpaper URL:', url);
-    });
-  })
-  .catch(error => console.error('Error:', error));`}
-                  language="javascript"
+                  language="bash"
                 />
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Available Categories */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Available Categories</h2>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              <p className="text-white/70 mb-6">
-                Current categories available in our wallpaper collection:
-              </p>
-              
-              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {['abstract', 'anime', 'architecture', 'art', 'cars', 'minimal', 'nature', 'tech'].map((category) => (
-                  <div key={category} className="bg-black/20 rounded-lg p-4 border border-white/10">
-                    <code className="text-[#F7F06D] text-sm">{category}</code>
-                  </div>
-                ))}
+          {/* Right Panel: Specifications */}
+          <div className="lg:col-span-5 p-6 sm:p-12 lg:p-16 bg-[#0b0b0b] flex flex-col justify-center">
+            <div className="space-y-6">
+              <div className="text-[10px] font-mono text-white/30 uppercase tracking-widest">
+                CORE SPECS // API_GATEWAY_V1
               </div>
-              
-              <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                <p className="text-blue-400 text-sm">
-                  <strong>Note:</strong> Categories are based on folder structure in /public/wallpapers/
-                </p>
-              </div>
-            </div>
-          </section>
 
-          {/* Available Colors */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Available Colors</h2>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              <p className="text-white/70 mb-6">
-                Filter wallpapers by their primary or secondary colors. Here are the most common colors available:
-              </p>
-              
-              <div className="grid sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
-                {[
-                  { name: 'blue', bg: 'bg-blue-500' },
-                  { name: 'red', bg: 'bg-red-500' },
-                  { name: 'green', bg: 'bg-green-500' },
-                  { name: 'purple', bg: 'bg-purple-500' },
-                  { name: 'pink', bg: 'bg-pink-500' },
-                  { name: 'orange', bg: 'bg-orange-500' },
-                  { name: 'yellow', bg: 'bg-yellow-500' },
-                  { name: 'cyan', bg: 'bg-cyan-500' },
-                  { name: 'black', bg: 'bg-gray-900' },
-                  { name: 'white', bg: 'bg-white' },
-                  { name: 'gray', bg: 'bg-gray-500' },
-                  { name: 'brown', bg: 'bg-amber-800' },
-                  { name: 'gold', bg: 'bg-yellow-400' },
-                  { name: 'silver', bg: 'bg-gray-300' },
-                  { name: 'crimson', bg: 'bg-red-700' },
-                  { name: 'navy', bg: 'bg-blue-900' },
-                  { name: 'teal', bg: 'bg-teal-500' },
-                  { name: 'violet', bg: 'bg-violet-500' },
-                  { name: 'magenta', bg: 'bg-fuchsia-500' },
-                  { name: 'azure', bg: 'bg-sky-500' },
-                  { name: 'lime', bg: 'bg-lime-500' },
-                  { name: 'tan', bg: 'bg-yellow-600' },
-                  { name: 'coral', bg: 'bg-orange-400' },
-                  { name: 'lavender', bg: 'bg-purple-300' }
-                ].map((color) => (
-                  <div key={color.name} className="bg-black/20 rounded-lg p-3 border border-white/10 flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${color.bg} ${color.name === 'white' ? 'border border-gray-300' : ''}`}></div>
-                    <code className="text-[#F7F06D] text-xs">{color.name}</code>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <p className="text-green-400 text-sm">
-                  <strong>Tip:</strong> Colors are matched against both primary and secondary color data from our wallpaper index. 
-                  Try specific color names for best results!
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Rate Limits & Usage */}
-          <section>
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-3 h-3 rounded-full bg-[#F7F06D]"></div>
-              <h2 className="text-2xl font-bold text-white">Usage Guidelines</h2>
-            </div>
-            
-            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
-                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-[#F7F06D]" />
-                    Fair Usage
-                  </h3>
-                  <ul className="space-y-2 text-white/70 text-sm">
-                    <li>• No authentication required</li>
-                    <li>• Please be respectful with request frequency</li>
-                    <li>• Maximum 10 wallpapers per request</li>
-                    <li>• All wallpapers are for personal use</li>
-                  </ul>
+              <div className="border border-white/10 rounded bg-[#060606] overflow-hidden">
+                <div className="grid grid-cols-2 border-b border-white/10 p-3.5 text-[9px] font-mono text-white/40 tracking-wider">
+                  <span>SPECIFICATION</span>
+                  <span className="text-right">PARAMETER</span>
                 </div>
                 
-                <div>
-                  <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                    <ExternalLink className="w-4 h-4 text-[#F7F06D]" />
-                    Attribution
-                  </h3>
-                  <ul className="space-y-2 text-white/70 text-sm">
-                    <li>• Attribution is appreciated but not required</li>
-                    <li>• Link back to wallwidgy.vercel.app</li>
-                    <li>• Respect copyright of original creators</li>
-                    <li>• Report any issues via GitHub</li>
-                  </ul>
+                <div className="divide-y divide-white/10 font-mono text-xs text-white">
+                  <div className="flex justify-between p-3.5">
+                    <span className="text-white/40">BASE ENDPOINT</span>
+                    <span className="text-[#F7F06D] font-medium select-all">https://wallwidgy.vercel.app</span>
+                  </div>
+                  <div className="flex justify-between p-3.5">
+                    <span className="text-white/40">PROTOCOL &amp; AUTH</span>
+                    <span className="text-white font-medium">HTTPS / REST (No API Key Required)</span>
+                  </div>
+                  <div className="flex justify-between p-3.5">
+                    <span className="text-white/40">CORS STATE</span>
+                    <span className="text-[#F7F06D] font-medium">Headers Enabled (*)</span>
+                  </div>
+                  <div className="flex justify-between p-3.5">
+                    <span className="text-white/40">IP THROTTLING</span>
+                    <span className="text-white font-medium">60 requests / minute per IP</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
-        </div>
-
-        {/* Footer CTA */}
-        <div className="text-center py-16 border-t border-white/10 mt-16">
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Ready to integrate?
-          </h2>
-          <p className="text-white/70 mb-8 max-w-lg mx-auto">
-            Start using the Wallwidgy API in your projects today. No registration required.
-          </p>
-          
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link 
-              href="/"
-              className="bg-[#F7F06D]/10 hover:bg-[#F7F06D]/20 text-[#F7F06D] font-semibold px-6 py-3 rounded-lg border border-[#F7F06D]/30 hover:border-[#F7F06D]/50 transition-all duration-300"
-            >
-              View Wallpapers
-            </Link>
-            <a
-              href="https://github.com/not-ayan/wallwidgy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-white/5 hover:bg-white/10 text-white font-semibold px-6 py-3 rounded-lg border border-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              GitHub
-            </a>
           </div>
-        </div>
-      </main>
+        </section>
 
-      <Footer />
+        {/* Section 2: Endpoint Schema (Split 7/5 grid) */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 border-b border-white/10">
+          {/* Left Panel: Parameters */}
+          <div className="lg:col-span-7 p-6 sm:p-12 lg:p-16 border-b lg:border-b-0 lg:border-r border-white/10 space-y-6">
+            <div className="flex items-center gap-3">
+              <span className="bg-emerald-500/20 text-[#F7F06D] px-2.5 py-0.5 rounded text-xs font-mono border border-[#F7F06D]/20">GET</span>
+              <h2 className="text-xl font-bold tracking-tight text-white uppercase">/api/wallpapers</h2>
+            </div>
+            
+            <p className="text-white/70 text-sm font-light leading-relaxed">
+              Retrieve a list of wallpaper assets. Supported query parameters allow filtering by category, device layout, and color signature.
+            </p>
+
+            <div className="space-y-4">
+              <span className="text-[10px] font-mono text-[#F7F06D] uppercase tracking-widest block border-b border-[#F7F06D]/15 pb-1">
+                Query Parameters
+              </span>
+              
+              <div className="border border-white/10 rounded bg-[#0b0b0b] overflow-hidden divide-y divide-white/10 font-mono text-xs">
+                <div className="grid grid-cols-12 p-3 text-[9px] text-white/40 tracking-wider">
+                  <div className="col-span-3">PARAMETER</div>
+                  <div className="col-span-3">TYPE</div>
+                  <div className="col-span-6">DESCRIPTION</div>
+                </div>
+                
+                <div className="grid grid-cols-12 p-4 items-center gap-2 lg:gap-0">
+                  <div className="col-span-3 text-[#F7F06D] font-bold">type</div>
+                  <div className="col-span-3 text-white/60">desktop | mobile</div>
+                  <div className="col-span-6 text-white/80 font-light">Filter papers by target layout resolution</div>
+                </div>
+
+                <div className="grid grid-cols-12 p-4 items-center gap-2 lg:gap-0">
+                  <div className="col-span-3 text-[#F7F06D] font-bold">category</div>
+                  <div className="col-span-3 text-white/60">string</div>
+                  <div className="col-span-6 text-white/80 font-light">Filter by folder (e.g., &quot;minimal&quot;)</div>
+                </div>
+
+                <div className="grid grid-cols-12 p-4 items-center gap-2 lg:gap-0">
+                  <div className="col-span-3 text-[#F7F06D] font-bold">color</div>
+                  <div className="col-span-3 text-white/60">string</div>
+                  <div className="col-span-6 text-white/80 font-light">Filter by primary color tag (e.g., &quot;blue&quot;)</div>
+                </div>
+
+                <div className="grid grid-cols-12 p-4 items-center gap-2 lg:gap-0">
+                  <div className="col-span-3 text-[#F7F06D] font-bold">count</div>
+                  <div className="col-span-3 text-white/60">integer [1..10]</div>
+                  <div className="col-span-6 text-white/80 font-light">Number of wallpaper assets to return (default: 1)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Panel: Specifications Note */}
+          <div className="lg:col-span-5 p-6 sm:p-12 lg:p-16 bg-[#0b0b0b] flex flex-col justify-center space-y-6">
+            <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest block border-b border-white/10 pb-2">
+              QUERY SPECIFICATIONS
+            </span>
+            <p className="text-white/60 text-xs leading-relaxed font-light">
+              Filters are optional and can be combined together. If multiple filters are applied, the query executes as a logical AND operation. If no matching assets exist for a filter combination, an empty query payload is returned.
+            </p>
+            <div className="space-y-3">
+              <span className="text-[9px] font-mono text-white/40 uppercase tracking-widest block">
+                Parameters Combined Query Example
+              </span>
+              <CodeBlock 
+                code={`curl "https://wallwidgy.vercel.app/api/wallpapers?type=desktop&category=minimal&count=2"`}
+                language="bash"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* Section 3: Signatures (Split 6/6 grid) */}
+        <section className="grid grid-cols-1 lg:grid-cols-12 border-b border-white/10">
+          {/* Left Panel: Client Fetch Script */}
+          <div className="lg:col-span-6 p-6 sm:p-12 lg:p-16 border-b lg:border-b-0 lg:border-r border-white/10 space-y-4">
+            <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest block">
+              Client Fetch Script
+            </span>
+            <CodeBlock 
+              code={`fetch('https://wallwidgy.vercel.app/api/wallpapers?type=mobile&count=2')\n  .then(res => res.json())\n  .then(data => {\n    console.log(data.wallpapers);\n  });`}
+              language="javascript"
+            />
+          </div>
+
+          {/* Right Panel: JSON Response Payload */}
+          <div className="lg:col-span-6 p-6 sm:p-12 lg:p-16 space-y-4">
+            <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest block">
+              JSON Response Payload
+            </span>
+            <CodeBlock 
+              code={`{\n  "wallpapers": [\n    "https://wallwidgy.vercel.app/wallpapers/minimal/desert-dune.jpg",\n    "https://wallwidgy.vercel.app/wallpapers/minimal/foggy-forest.jpg"\n  ],\n  "count": 2,\n  "category": "minimal",\n  "type": "mobile",\n  "color": "all"\n}`}
+              language="json"
+            />
+          </div>
+        </section>
+
+        {/* Section 4: Valid Values Directory (3-Column split) */}
+        <section className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10 border-b border-white/10 bg-[#0b0b0b]">
+          {/* Categories Column */}
+          <div className="p-6 sm:p-12 lg:p-16 space-y-6 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-[#F7F06D] flex items-center gap-2 font-mono">
+                <Database className="w-3.5 h-3.5" />
+                AVAILABLE CATEGORIES
+              </h4>
+              <div className="flex flex-wrap gap-2 font-mono text-[9px]">
+                {['abstract', 'anime', 'architecture', 'art', 'cars', 'minimal', 'nature', 'tech'].map((category) => (
+                  <span key={category} className="bg-white/5 border border-white/10 px-2.5 py-1 rounded text-white/80">
+                    {category}
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t border-white/5 mt-4 space-y-2">
+              <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest block">Category Query Example</span>
+              <CodeBlock 
+                code={`curl "https://wallwidgy.vercel.app/api/wallpapers?category=minimal"`}
+                language="bash"
+              />
+            </div>
+          </div>
+
+          {/* Colors Column */}
+          <div className="p-6 sm:p-12 lg:p-16 space-y-6 flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-[#F7F06D] flex items-center gap-2 font-mono">
+                <Globe className="w-3.5 h-3.5" />
+                PRIMARY COLORS
+              </h4>
+              <div className="grid grid-cols-3 gap-2 font-mono text-[9px]">
+                {['blue', 'red', 'green', 'purple', 'pink', 'orange', 'yellow', 'black', 'white'].map((color) => (
+                  <div key={color} className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-2 py-0.5 rounded">
+                    <span className={`w-1.5 h-1.5 rounded-full ${getColorBgClass(color)}`} />
+                    <span className="text-white/70 uppercase">{color}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t border-white/5 mt-4 space-y-2">
+              <span className="text-[9px] font-mono text-white/30 uppercase tracking-widest block">Color Query Example</span>
+              <CodeBlock 
+                code={`curl "https://wallwidgy.vercel.app/api/wallpapers?color=blue"`}
+                language="bash"
+              />
+            </div>
+          </div>
+
+          {/* Guidelines Column */}
+          <div className="p-6 sm:p-12 lg:p-16 space-y-6 bg-[#0a0a0a] flex flex-col justify-between h-full">
+            <div className="space-y-4">
+              <h4 className="font-bold text-xs uppercase tracking-wider text-[#F7F06D] flex items-center gap-2 font-mono">
+                <Shield className="w-3.5 h-3.5" />
+                USAGE POLICIES
+              </h4>
+              <p className="text-white/60 text-xs leading-relaxed font-light font-mono">
+                No developer key required. Fair-use throttle limits prevent request flooding at 60 requests/minute. Content files are delivered strictly for personal layout usage.
+              </p>
+            </div>
+            
+            <div className="pt-4 border-t border-white/5 mt-4 opacity-50 font-mono text-[9px] text-white/30 tracking-widest">
+              STATUS // FULL_ACCESS
+            </div>
+          </div>
+        </section>
+
+        {/* Integrated Blueprint Footer */}
+        <Footer variant="blueprint" />
+
+      </div>
+
       <BackToTop />
+
     </div>
   )
 }

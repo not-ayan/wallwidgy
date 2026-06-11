@@ -85,6 +85,11 @@ export default function RootLayout({
             src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4025936088642615"
             crossOrigin="anonymous"
           />
+          <script
+            defer
+            src="https://cloud.umami.is/script.js"
+            data-website-id="53a87321-3bfb-4340-86b1-e5b44aa7ba2c"
+          />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <link rel="manifest" href="/manifest.json" />

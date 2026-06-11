@@ -8,7 +8,8 @@ export default function BackToTop() {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.scrollY > 300) {
+      const isModalOpen = !!document.getElementById('wallpaper-modal')
+      if (window.scrollY > 300 && !isModalOpen) {
         setIsVisible(true)
       } else {
         setIsVisible(false)
@@ -16,7 +17,18 @@ export default function BackToTop() {
     }
 
     window.addEventListener('scroll', toggleVisibility)
-    return () => window.removeEventListener('scroll', toggleVisibility)
+
+    // Watch for modal being mounted/unmounted in the DOM
+    const observer = new MutationObserver(toggleVisibility)
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    // Check visibility initially
+    toggleVisibility()
+
+    return () => {
+      window.removeEventListener('scroll', toggleVisibility)
+      observer.disconnect()
+    }
   }, [])
 
   const scrollToTop = () => {

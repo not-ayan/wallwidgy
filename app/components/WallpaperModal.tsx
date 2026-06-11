@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-// SmartImage: tries optimized, then unoptimized, then shows error UI
+// SmartImage: loads image unoptimized directly and shows error UI
 function SmartImage({
   src,
   alt,
@@ -29,18 +29,12 @@ function SmartImage({
   sizes?: string;
   [key: string]: any;
 }) {
-  const [forceUnoptimized, setForceUnoptimized] = useState(false);
   const [error, setError] = useState(false);
 
   const handleImageError = useCallback(() => {
-    if (!forceUnoptimized) {
-      setForceUnoptimized(true);
-      setError(false);
-    } else {
-      setError(true);
-      if (onError) onError();
-    }
-  }, [forceUnoptimized, onError]);
+    setError(true);
+    if (onError) onError();
+  }, [onError]);
 
   if (error) {
     return (
@@ -63,7 +57,7 @@ function SmartImage({
       quality={quality}
       priority={priority}
       sizes={sizes}
-      unoptimized={forceUnoptimized}
+      unoptimized={true}
       {...rest}
     />
   );
@@ -486,6 +480,7 @@ export default function WallpaperModal({
   return (
     <div
       ref={modalRef}
+      id="wallpaper-modal"
       tabIndex={-1}
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/95 ${disableBlur ? '' : 'backdrop-blur-sm'} outline-none`}
       onClick={handleBackgroundClick}

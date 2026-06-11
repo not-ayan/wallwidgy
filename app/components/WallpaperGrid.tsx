@@ -71,21 +71,15 @@ interface ImageDimensions {
 const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
   const [error, setError] = useState(false);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [forceUnoptimized, setForceUnoptimized] = useState(false);
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Use a stable ID to identify this specific image and prevent reloads
   const stableId = `image-${wallpaper.sha}`;
 
-  // Custom error handler: if first load fails, try unoptimized, else show error
+  // Custom error handler: if load fails, show error
   const handleImageError = useCallback(() => {
-    if (!forceUnoptimized) {
-      setForceUnoptimized(true);
-      setError(false);
-    } else {
-      setError(true);
-    }
-  }, [forceUnoptimized]);
+    setError(true);
+  }, []);
 
   if (error) {
     return (
@@ -116,7 +110,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         onLoadingComplete={() => setIsImageLoaded(true)}
         onError={handleImageError}
         blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
-        unoptimized={forceUnoptimized}
+        unoptimized={true}
       />
     </>
   );
@@ -139,7 +133,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
   const [visibleWallpapers, setVisibleWallpapers] = useState<Wallpaper[]>([])
-  const [availableColors, setAvailableColors] = useState<string[]>([])
+  const [availableColors, setAvailableColors] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const [clickCount, setClickCount] = useState(0)
@@ -290,11 +284,53 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
   const fetchAvailableColors = useCallback(async () => {
     try {
-      const response = await fetch("/api/colors")
-      const colors = await response.json()
+      const response = await fetch("https://raw.githubusercontent.com/not-ayan/storage/main/index.json")
+      if (!response.ok) throw new Error("Failed to fetch index")
+      const data = await response.json()
+      
+      const uniqueColors = new Set<string>()
+      data.forEach((item: any) => {
+        if (item.data?.primary_colors && Array.isArray(item.data.primary_colors)) {
+          item.data.primary_colors.forEach((color: string) => uniqueColors.add(color))
+        }
+        if (item.data?.secondary_colors && Array.isArray(item.data.secondary_colors)) {
+          item.data.secondary_colors.forEach((color: string) => uniqueColors.add(color))
+        }
+      })
+
+      const colorMap: Record<string, string> = {
+        'darkslategray': '#2F4F4F',
+        'black': '#000000',
+        'red': '#FF0000',
+        'green': '#00FF00',
+        'blue': '#0000FF',
+        'white': '#FFFFFF',
+        'yellow': '#FFFF00',
+        'cyan': '#00FFFF',
+        'magenta': '#FF00FF',
+        'gray': '#808080',
+        'grey': '#808080',
+        'silver': '#C0C0C0',
+        'maroon': '#800000',
+        'olive': '#808000',
+        'purple': '#800080',
+        'teal': '#008080',
+        'navy': '#000080',
+        'orange': '#FFA500',
+        'brown': '#A52A2A',
+        'gold': '#FFD700',
+        'pink': '#FFC0CB',
+        'violet': '#EE82EE',
+        'indigo': '#4B0082',
+      }
+
+      const colors = Array.from(uniqueColors).map(color => ({
+        name: color,
+        hex: colorMap[color.toLowerCase()] || '#000000'
+      }))
       setAvailableColors(colors)
     } catch (error) {
-      console.error("Error fetching available colors:", error)
+      console.error("Error fetching available colors client-side:", error)
     }
   }, [])
 

@@ -8,9 +8,8 @@ import { useBackHandler } from "@/hooks/use-back-handler"
 import { useState as useStableState } from "react"
 import Link from "next/link"
 
-// StableImageComponent: robust image loader with fallback to unoptimized and error UI (copied from WallpaperGrid)
+// StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, onError404, ...props }: { src: string; alt: string; onError404?: () => void; [key: string]: any }) {
-  const [unoptimized, setUnoptimized] = useStableState(false);
   const [error, setError] = useStableState(false);
   const [loading, setLoading] = useStableState(true);
 
@@ -29,14 +28,10 @@ function StableImageComponent({ src, alt, onError404, ...props }: { src: string;
       fill
       loading="lazy"
       decoding="async"
-      unoptimized={unoptimized}
+      unoptimized={true}
       onError={() => {
-        if (!unoptimized) {
-          setUnoptimized(true);
-        } else {
-          setError(true);
-          onError404?.();
-        }
+        setError(true);
+        onError404?.();
       }}
       onLoad={() => setLoading(false)}
       className={

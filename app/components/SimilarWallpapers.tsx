@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useState as useStableState } from "react"
-// StableImageComponent: robust image loader with fallback to unoptimized and error UI (copied from WallpaperGrid/SearchBar)
+// StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt: string; on404?: () => void; [key: string]: any }) {
-  const [unoptimized, setUnoptimized] = useStableState(false);
   const [error, setError] = useStableState(false);
   const [loading, setLoading] = useStableState(true);
 
@@ -22,7 +21,7 @@ function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt:
       fill
       loading="lazy"
       decoding="async"
-      unoptimized={unoptimized}
+      unoptimized={true}
       onError={async (e: any) => {
         // Try to detect 404 (Not Found) and skip rendering
         if (e?.target?.src) {
@@ -34,7 +33,7 @@ function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt:
             }
           } catch {}
         }
-        if (!unoptimized) setUnoptimized(true); else setError(true);
+        setError(true);
       }}
       onLoad={() => setLoading(false)}
       className={

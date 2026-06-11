@@ -1,19 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo, memo } from "react"
-import { Search, X, Sparkles, ArrowLeft, Download } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Search, X, Sparkles, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { useState as useStableState } from "react"
-import Masonry from "react-masonry-css"
-import Link from "next/link"
-
-// Global wallpapers index cache to prevent repeated network requests
-let globalWallpapersCache: any[] | null = null;
-
-// StableImageComponent: robust memoized image loader
-const StableImageComponent = memo(({ src, alt, onError404, ...props }: { src: string; alt: string; onError404?: () => void; [key: string]: any }) => {
+// StableImageComponent: robust image loader with fallback to unoptimized and error UI (copied from WallpaperGrid)
+function StableImageComponent({ src, alt, onError404, ...props }: { src: string; alt: string; onError404?: () => void; [key: string]: any }) {
   const [unoptimized, setUnoptimized] = useStableState(false);
   const [error, setError] = useStableState(false);
   const [loading, setLoading] = useStableState(true);
@@ -50,131 +44,8 @@ const StableImageComponent = memo(({ src, alt, onError404, ...props }: { src: st
       {...props}
     />
   );
-}, (prev, next) => {
-  return prev.src === next.src && prev.alt === next.alt;
-});
-StableImageComponent.displayName = "StableImageComponent";
-
-// SearchCard: memoized wallpaper card inside search results grid
-const SearchCard = memo(({ 
-  wallpaper, 
-  index, 
-  showMap, 
-  setShowMap, 
-  setPreviousSearch, 
-  setSearchHistoryEnabled, 
-  setIsOpen,
-  searchQueryRef
-}: { 
-  wallpaper: any; 
-  index: number; 
-  showMap: { [sha: string]: boolean | undefined };
-  setShowMap: React.Dispatch<React.SetStateAction<{ [sha: string]: boolean | undefined }>>;
-  setPreviousSearch: (val: string) => void;
-  setSearchHistoryEnabled: (val: boolean) => void;
-  setIsOpen: (val: boolean) => void;
-  searchQueryRef: React.RefObject<string>;
-}) => {
-  if (showMap[wallpaper.sha] === false) return null;
-  
-  return (
-    <div
-      className="mb-4"
-      style={{ 
-        animation: `fadeInUp 0.3s ease forwards`,
-        animationDelay: `${Math.min(index < 20 ? index * 0.03 : 0.05, 0.6)}s`,
-        opacity: 0,
-        transform: 'translateY(10px)'
-      }}
-    >
-      <Link
-        href={`/wallpaper/${wallpaper.name.replace(/\.\w+$/, '')}`}
-        className="group"
-        onClick={() => {
-          setPreviousSearch(searchQueryRef.current || "")
-          setSearchHistoryEnabled(true)
-          setIsOpen(false)
-        }}
-      >
-        <div className={`relative overflow-hidden rounded-2xl bg-white/5 border border-white/5 group-hover:border-white/20 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30 ${
-          wallpaper.platform === "Mobile" ? 'aspect-[9/16]' : 'aspect-[3/2]'
-        }`}>
-          <StableImageComponent
-            src={wallpaper.preview_url}
-            alt={wallpaper.name}
-            sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
-            onError404={() => setShowMap(prev => ({ ...prev, [wallpaper.sha]: false }))}
-          />
-          
-          {/* Badges */}
-          <div className="absolute top-3 left-3 z-10">
-            <span className={`text-[10px] font-semibold font-mono px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 ${
-              wallpaper.platform === "Mobile" 
-                ? "text-blue-400" 
-                : "text-emerald-400"
-            }`}>
-              {wallpaper.platform}
-            </span>
-          </div>
-          <div className="absolute top-3 right-3 z-10">
-            <span className="text-[10px] font-semibold font-mono px-2.5 py-1 rounded-full bg-[var(--accent-light)] text-black backdrop-blur-sm">
-              {wallpaper.resolution}
-            </span>
-          </div>
-          
-          {/* Hover overlay (bottom gradient) */}
-          <div className="absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-            style={{
-              background: "linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 40%, transparent 100%)"
-            }}
-          />
-          
-          {/* Hover details (bottom details + download button) */}
-          <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between pointer-events-none">
-            <div className="flex-1 min-w-0 pr-2">
-              <h3 className="text-sm font-medium text-white/90 truncate">
-                {wallpaper.name.replace(/\.\w+$/, '')}
-              </h3>
-              <p className="text-[9px] text-white/40 font-mono uppercase tracking-wider">
-                {wallpaper.platform}
-              </p>
-            </div>
-            
-            <button
-              onClick={async e => {
-                e.preventDefault();
-                e.stopPropagation();
-                try {
-                  const response = await fetch(wallpaper.download_url);
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = wallpaper.name;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  setTimeout(() => window.URL.revokeObjectURL(url), 1000);
-                } catch (err) {
-                  alert('Failed to download image.');
-                }
-              }}
-              className="pointer-events-auto p-2.5 rounded-full bg-black/60 border border-white/10 hover:border-[var(--accent-light)]/40 text-white/70 hover:text-[var(--accent-light)] transition-all duration-300 hover:scale-105 active:scale-95 flex-shrink-0"
-              title="Download wallpaper"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </Link>
-    </div>
-  );
-}, (prev, next) => {
-  return prev.wallpaper.sha === next.wallpaper.sha && 
-         prev.index === next.index &&
-         prev.showMap[prev.wallpaper.sha] === next.showMap[next.wallpaper.sha];
-});
-SearchCard.displayName = "SearchCard";
+}
+import Link from "next/link"
 
 // Add custom animation styles
 const animationStyles = `
@@ -245,7 +116,8 @@ export default function SearchBar() {
   const [loadingMore, setLoadingMore] = useState(false)
   const observerRef = useRef<HTMLDivElement | null>(null)
   const [visibleResults, setVisibleResults] = useState(20)
-  const [rawResults, setRawResults] = useState<Wallpaper[]>([])
+  const [results, setResults] = useState<Wallpaper[]>([])
+  const [totalResults, setTotalResults] = useState(0)
   const [suggestions, setSuggestions] = useState<string[]>(['Minimalist', 'Dark', 'Colorful', 'Nature', 'Abstract', 'Anime'])
   const [isMac, setIsMac] = useState(false)
   const [previousSearch, setPreviousSearch] = useState("")
@@ -253,11 +125,6 @@ export default function SearchBar() {
   const [showMap, setShowMap] = useState<{ [sha: string]: boolean | undefined }>({});
   const [deviceFilter, setDeviceFilter] = useState<"all" | "desktop" | "mobile">("all")
   const router = useRouter()
-  
-  const searchQueryRef = useRef(searchQuery)
-  useEffect(() => {
-    searchQueryRef.current = searchQuery
-  }, [searchQuery])
   
   // Handle browser back button when search is open
   useBackHandler({
@@ -271,13 +138,12 @@ export default function SearchBar() {
     setIsMac(navigator?.platform?.includes('Mac') || false)
   }, [])
 
-  // Compute filtered search results instantly in memory
-  const results = useMemo(() => {
-    if (deviceFilter === "all") return rawResults;
-    return rawResults.filter((wallpaper) => wallpaper.platform.toLowerCase() === deviceFilter);
-  }, [rawResults, deviceFilter]);
-
-  const totalResults = results.length;
+  // Re-filter results when device filter changes
+  useEffect(() => {
+    if (results.length > 0 && searchQuery) {
+      performSearch(searchQuery)
+    }
+  }, [deviceFilter])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -289,17 +155,15 @@ export default function SearchBar() {
   
   const performSearch = async (query: string) => {
     setIsSearching(true)
-    setRawResults([]) // Clear raw results
+    setResults([]) // Clear old results first
     setShowMap({}); // Reset showMap for new search
     setVisibleResults(20) // Reset visible results counter when doing a new search
     try {
-      let data = globalWallpapersCache;
-      if (!data) {
-        const response = await fetch("https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json")
-        if (!response.ok) throw new Error("Failed to fetch wallpapers")
-        data = await response.json()
-        globalWallpapersCache = data;
-      }
+      // Fetch all wallpapers from the index
+      const response = await fetch("https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json")
+      if (!response.ok) throw new Error("Failed to fetch wallpapers")
+      
+      const data = await response.json()
       
       // Search through the data field for matches
       const matchedWallpapers = data
@@ -349,10 +213,16 @@ export default function SearchBar() {
           }
         })
       
-      setRawResults(matchedWallpapers)
+      // Apply device filter
+      const filteredResults = deviceFilter === "all" 
+        ? matchedWallpapers 
+        : matchedWallpapers.filter((wallpaper: Wallpaper) => wallpaper.platform.toLowerCase() === deviceFilter)
+      
+      setResults(filteredResults)
+      setTotalResults(filteredResults.length)
     } catch (error) {
       console.error("Error searching wallpapers:", error)
-      setRawResults([])
+      setResults([])
     } finally {
       setIsSearching(false)
     }
@@ -364,7 +234,7 @@ export default function SearchBar() {
     if (isOpen) {
       // Only clear if we don't have search history enabled
       if (!searchHistoryEnabled) {
-        setRawResults([])
+        setResults([])
         setShowMap({}); // Reset showMap when clearing results
         setSearchQuery("")
         setVisibleResults(20) // Reset visible results counter when closing
@@ -391,7 +261,7 @@ export default function SearchBar() {
       // Close search on escape key
       if (e.key === 'Escape' && isOpen) {
         setIsOpen(false)
-        setRawResults([])
+        setResults([])
         setSearchQuery("")
       }
       
@@ -501,30 +371,19 @@ export default function SearchBar() {
       {/* Add custom animation styles */}
       <style jsx global>{animationStyles}</style>
       
-      {/* Fixed Search Bar - bottom-left icon on mobile, centered pill on desktop */}
-      {/* Mobile: fixed bottom-left corner */}
-      <div className="fixed bottom-24 left-4 z-40 md:hidden">
+      {/* Fixed Search Bar - bottom left on mobile, center on desktop */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[90%] md:max-w-[88%] xl:max-w-[85%] px-4 md:px-6 lg:px-8 pointer-events-none z-40 flex justify-start md:justify-center">
         <button
           onClick={toggleSearch}
-          className="pointer-events-auto group relative bg-[#0A0A0A] rounded-full flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.8)] border border-white/10 hover:border-[var(--accent-light)]/40 hover:bg-[#111111] transition-all duration-300 hover:scale-105 active:scale-95 w-10 h-10"
+          className="pointer-events-auto group relative bg-[#0A0A0A] rounded-full flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.8)] border border-white/10 hover:border-[var(--accent-light)]/40 hover:bg-[#111111] transition-all duration-300 hover:scale-105 active:scale-95 w-10 h-10 md:w-auto md:h-10 md:px-5"
           aria-label="Search wallpapers"
         >
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[var(--accent-light)]/5 via-transparent to-[var(--accent-light)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <Search className="w-5 h-5 text-white/80 group-hover:text-[var(--accent-light)] transition-colors duration-300 relative z-10" />
-        </button>
-      </div>
-      {/* Desktop: centered pill within grid */}
-      <div className="hidden md:flex fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[90%] md:max-w-[88%] xl:max-w-[85%] px-4 md:px-6 lg:px-8 pointer-events-none z-40 justify-center">
-        <button
-          onClick={toggleSearch}
-          className="pointer-events-auto group relative bg-[#0A0A0A] rounded-full flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.8)] border border-white/10 hover:border-[var(--accent-light)]/40 hover:bg-[#111111] transition-all duration-300 hover:scale-105 active:scale-95 h-10 px-5"
-          aria-label="Search wallpapers"
-        >
+          {/* Subtle glow effect */}
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[var(--accent-light)]/5 via-transparent to-[var(--accent-light)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           <div className="flex items-center gap-3 relative z-10">
-            <Search className="w-4 h-4 text-white/80 group-hover:text-[var(--accent-light)] transition-colors duration-300" />
-            <span className="text-white/55 group-hover:text-white text-[10px] font-mono tracking-wider uppercase transition-colors duration-300">Search anything :p</span>
-            <kbd className="flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-[10px] text-white/40 ml-2 group-hover:border-[var(--accent-light)]/30 group-hover:text-[var(--accent-light)] transition-all duration-300 font-mono">
+            <Search className="w-5 h-5 text-white/80 group-hover:text-[var(--accent-light)] transition-colors duration-300 md:w-4 md:h-4" />
+            <span className="text-white/55 group-hover:text-white text-[10px] hidden md:inline font-mono tracking-wider uppercase transition-colors duration-300">Search anything :p</span>
+            <kbd className="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-md text-[10px] text-white/40 ml-2 group-hover:border-[var(--accent-light)]/30 group-hover:text-[var(--accent-light)] transition-all duration-300 font-mono">
               <span className="text-[9px]">{isMac ? '⌘' : 'Ctrl'}</span>
               <span>K</span>
             </kbd>
@@ -535,7 +394,7 @@ export default function SearchBar() {
       {/* Floating search bar */}
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-          <div className={`w-full ${results.length > 0 || isSearching ? 'h-[92%]' : 'max-h-[450px]'} max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto will-change-transform`}>
+          <div className={`w-full ${results.length > 0 || isSearching ? 'h-[92%]' : 'max-h-[450px]'} max-w-6xl mx-auto will-change-transform`}>
             <div className="bg-[#0A0A0A] rounded-2xl sm:rounded-3xl border border-white/10 shadow-2xl shadow-black/80 overflow-hidden transform transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 h-full flex flex-col">
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 border-b border-white/5">
@@ -544,13 +403,13 @@ export default function SearchBar() {
                     <Search className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
                   </div>
                   <div>
-                    <h3 className="text-white/90 text-sm sm:text-base font-medium font-mono tracking-wider uppercase">
+                    <h3 className="text-white/90 text-sm sm:text-base font-medium">
                       {results.length > 0 
                         ? `${totalResults} ${totalResults === 1 ? 'wallpaper' : 'wallpapers'} found`
                         : "Search Wallpapers"}
                     </h3>
                     {results.length > 0 && (
-                      <p className="text-white/40 text-xs mt-0.5 font-mono">for "{searchQuery}"</p>
+                      <p className="text-white/40 text-xs mt-0.5">for "{searchQuery}"</p>
                     )}
                   </div>
                 </div>
@@ -567,7 +426,7 @@ export default function SearchBar() {
               {results.length > 0 && (
                 <div className="px-4 sm:px-6 py-3 border-b border-white/5 bg-white/[0.02]">
                   <div className="flex items-center gap-3">
-                    <span className="text-white/40 text-[9px] font-mono uppercase tracking-widest">Filter</span>
+                    <span className="text-white/40 text-xs font-medium uppercase tracking-wider">Filter</span>
                     <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1">
                       {[
                         { key: "all", label: "All" },
@@ -577,7 +436,7 @@ export default function SearchBar() {
                         <button
                           key={option.key}
                           onClick={() => setDeviceFilter(option.key as "all" | "desktop" | "mobile")}
-                          className={`px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider transition-all duration-200 ${
+                          className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
                             deviceFilter === option.key
                               ? "bg-white/10 text-white shadow-sm"
                               : "text-white/40 hover:text-white/70 hover:bg-white/5"
@@ -597,19 +456,19 @@ export default function SearchBar() {
                   /* Search form and suggestions */
                   <div className="p-4 sm:p-8">
                     <form onSubmit={handleSearch} className="flex items-center">
-                      <div className="flex-1 flex items-center bg-[#111111] focus-within:bg-[#141414] rounded-2xl border border-white/10 focus-within:border-[var(--accent-light)]/30 focus-within:ring-1 focus-within:ring-[var(--accent-light)]/30 p-1.5 transition-all duration-300">
+                      <div className="flex-1 flex items-center bg-[#111111] focus-within:bg-[#141414] focus-within:ring-1 focus-within:ring-[var(--accent-light)]/30 rounded-2xl border border-white/10 focus-within:border-[var(--accent-light)]/30 p-1.5 transition-all duration-300">
                         <input
                           id="search-input"
                           type="text"
                           placeholder="Search by color, style, mood..."
-                          className="flex-1 bg-transparent border-none text-base text-white placeholder:text-white/30 focus:outline-none focus:ring-0 focus-visible:outline-none px-5 py-3 font-mono tracking-wide"
+                          className="flex-1 bg-transparent border-none text-base text-white placeholder:text-white/30 focus:outline-none px-5 py-3 font-outfit"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           autoFocus
                         />
                         <button 
                           type="submit" 
-                          className="p-3 bg-[var(--accent-light)] hover:bg-[var(--accent-light)]/90 text-black rounded-xl font-medium transition-all duration-300 mr-0.5 flex items-center justify-center"
+                          className="p-3 bg-[var(--accent-light)] hover:bg-[var(--accent-light)]/90 text-black rounded-xl font-medium transition-all duration-300 mr-0.5"
                           aria-label="Search"
                         >
                           <Search className="w-5 h-5" />
@@ -632,6 +491,7 @@ export default function SearchBar() {
                             className="bg-[#111111] hover:bg-[#161616] border border-white/5 hover:border-[var(--accent-light)]/20 px-3.5 py-2 rounded-xl text-white/50 hover:text-[var(--accent-light)] text-[11px] font-mono tracking-wider uppercase transition-all duration-300"
                             onClick={() => {
                               setSearchQuery(tag)
+                              // Perform search immediately to improve responsiveness
                               performSearch(tag)
                             }}
                           >
@@ -648,29 +508,29 @@ export default function SearchBar() {
                     <div className="flex items-center gap-3 mb-5 sm:mb-6">
                       <button 
                         onClick={() => {
-                          setRawResults([])
+                          setResults([])
                           setShowMap({}); // Reset showMap when clearing results
                           setSearchQuery("")
                         }}
-                        className="p-2.5 rounded-xl bg-[#111111] hover:bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-200"
+                        className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all duration-200"
                         aria-label="Back to search"
                       >
                         <ArrowLeft className="w-4 h-4 text-white/60" />
                       </button>
                       
                       <form onSubmit={handleSearch} className="flex-1">
-                        <div className="flex-1 flex items-center bg-[#111111] focus-within:bg-[#141414] rounded-2xl border border-white/10 focus-within:border-[var(--accent-light)]/30 focus-within:ring-1 focus-within:ring-[var(--accent-light)]/30 p-1.5 transition-all duration-300">
+                        <div className="flex-1 flex items-center bg-white/5 hover:bg-white/[0.07] focus-within:bg-white/[0.08] focus-within:ring-1 ring-white/10 rounded-2xl border border-white/10 focus-within:border-white/20 p-1 transition-all duration-300">
                           <input
                             id="search-input"
                             type="text"
                             placeholder="Search by color, style, mood..."
-                            className="flex-1 bg-transparent border-none text-base text-white placeholder:text-white/30 focus:outline-none focus:ring-0 focus-visible:outline-none px-4 py-2.5 font-mono tracking-wide"
+                            className="flex-1 bg-transparent border-none text-base text-white placeholder:text-white/30 focus:outline-none px-4 py-2.5"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                           />
                           <button 
                             type="submit" 
-                            className="p-2.5 bg-[var(--accent-light)] hover:bg-[var(--accent-light)]/90 text-black rounded-xl transition-all duration-200 mr-0.5 flex items-center justify-center"
+                            className="p-2.5 bg-white/10 hover:bg-white/15 rounded-xl text-white/70 hover:text-white transition-all duration-200 mr-0.5"
                             aria-label="Search"
                           >
                             <Search className="w-5 h-5" />
@@ -680,42 +540,109 @@ export default function SearchBar() {
                     </div>
                     
                     {isSearching ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-                        {[...Array(8)].map((_, i) => (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+                        {[...Array(10)].map((_, i) => (
                           <div 
                             key={i} 
-                            className="aspect-[3/2] bg-white/5 rounded-2xl animate-pulse"
+                            className="aspect-[9/16] bg-white/5 rounded-xl animate-pulse"
                             style={{ animationDelay: `${i * 0.05}s` }}
                           />
                         ))}
                       </div>
                     ) : results.length > 0 ? (
-                      <Masonry
-                        breakpointCols={{
-                          default: 4,
-                          1100: 3,
-                          700: 2,
-                        }}
-                        className="my-masonry-grid"
-                        columnClassName="my-masonry-grid_column"
-                      >
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 will-change-contents">
                         {/* Robust 404 image hiding logic: parent-managed showMap */}
                         {results.filter(wallpaper => showMap[wallpaper.sha] !== false)
                           .slice(0, visibleResults)
                           .map((wallpaper, index) => (
-                            <SearchCard
+                            <Link
                               key={wallpaper.sha}
-                              wallpaper={wallpaper}
-                              index={index}
-                              showMap={showMap}
-                              setShowMap={setShowMap}
-                              setPreviousSearch={setPreviousSearch}
-                              setSearchHistoryEnabled={setSearchHistoryEnabled}
-                              setIsOpen={setIsOpen}
-                              searchQueryRef={searchQueryRef}
-                            />
+                              href={`/wallpaper/${wallpaper.name.replace(/\.\w+$/, '')}`}
+                              className="group"
+                              data-index={index}
+                              style={{ 
+                                animation: `fadeInUp 0.3s ease forwards`,
+                                animationDelay: `${Math.min(index < 20 ? index * 0.03 : 0.05, 0.6)}s`,
+                                opacity: 0,
+                                transform: 'translateY(10px)'
+                              }}
+                              onClick={() => {
+                                setPreviousSearch(searchQuery)
+                                setSearchHistoryEnabled(true)
+                                setIsOpen(false)
+                              }}
+                            >
+                              <div className="relative overflow-hidden rounded-xl border border-white/5 group-hover:border-white/20 transition-all duration-300 aspect-[9/16] group-hover:shadow-2xl group-hover:shadow-black/50">
+                                <StableImageComponent
+                                  src={wallpaper.preview_url}
+                                  alt={wallpaper.name}
+                                  sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 768px) 25vw, (max-width: 1024px) 20vw, (max-width: 1280px) 16.66vw"
+                                  onError404={() => setShowMap(prev => ({ ...prev, [wallpaper.sha]: false }))}
+                                />
+                                {/* Platform indicator */}
+                                <div className="absolute top-2 left-2 z-10">
+                                  <span className={`text-[10px] font-medium px-2 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 ${
+                                    wallpaper.platform === "Mobile" 
+                                      ? "text-blue-400" 
+                                      : "text-emerald-400"
+                                  }`}>
+                                    {wallpaper.platform === "Mobile" ? "Mobile" : "Desktop"}
+                                  </span>
+                                </div>
+                                
+                                <button
+                                  className="absolute top-2 right-2 z-10 p-2 rounded-lg bg-black/60 backdrop-blur-sm hover:bg-black/80 text-white/70 hover:text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-200 border border-white/10"
+                                  title="Download wallpaper"
+                                  tabIndex={-1}
+                                  onClick={async e => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    try {
+                                      const response = await fetch(wallpaper.download_url);
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const link = document.createElement('a');
+                                      link.href = url;
+                                      link.download = wallpaper.name;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+                                    } catch (err) {
+                                      alert('Failed to download image.');
+                                    }
+                                  }}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v12m0 0l-4-4m4 4l4-4M4 20h16"/></svg>
+                                </button>
+                                {/* Hover overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                                {/* Resolution badge */}
+                                <div className="absolute bottom-2 left-2 right-2">
+                                  <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2.5 py-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 border border-white/5">
+                                    <p className="text-white/80 text-xs font-medium truncate">
+                                      {wallpaper.resolution}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </Link>
                           ))}
-                      </Masonry>
+                        
+                        {/* Loader element for intersection observer with loading indicator */}
+                        {results.length > visibleResults && (
+                          <div 
+                            ref={observerRef}
+                            className="col-span-2 sm:col-span-3 md:col-span-4 lg:col-span-5 flex justify-center py-8 h-20"
+                          >
+                            {loadingMore ? (
+                              <div className="w-5 h-5 border-2 border-white/10 border-t-white/60 rounded-full animate-spin"></div>
+                            ) : (
+                              <div className="w-full h-8"></div> 
+                            )}
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-[calc(100%-4rem)] py-12 animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="bg-white/5 rounded-2xl p-6 mb-5">

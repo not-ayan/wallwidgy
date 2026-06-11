@@ -62,7 +62,7 @@ export default function ApiDocs() {
           {/* Back Button Column */}
           <div className="md:col-span-3 border-b md:border-b-0 md:border-r border-white/10 py-4 px-6 flex items-center justify-start">
             <Link
-              href="/"
+              href="/news"
               className="flex items-center gap-2 text-white/60 hover:text-white transition-all duration-300 group bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded border border-white/10 text-xs tracking-wider uppercase font-mono"
             >
               <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
@@ -81,7 +81,7 @@ export default function ApiDocs() {
           <div className="md:col-span-3 py-4 px-6 flex items-center justify-end">
             <div className="flex items-center gap-2 text-[9px] font-mono tracking-wider uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-[#F7F06D] animate-pulse" />
-              <span className="text-white/60">● API ACTIVE</span>
+              <span className="text-white/60">API ACTIVE</span>
             </div>
           </div>
         </header>

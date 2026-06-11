@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { Twitter, Instagram, Github } from 'lucide-react'
 
@@ -63,16 +62,7 @@ export default function Footer({ variant = 'default' }: FooterProps) {
           {/* Column 4: Access Status */}
           <div className="p-6 sm:p-8 flex flex-col justify-between items-start md:items-end gap-4 h-full">
             <span className="text-[9px] text-white/30 uppercase tracking-widest block">VERIFIED ACCESS</span>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] text-[#F7F06D] tracking-widest uppercase font-semibold">THANK YOU!</span>
-              <Image
-                src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image2-l5WVyj1lUkkbqQwuMEHCuDmCxHznok.png"
-                alt="Ayan's Logo"
-                width={32}
-                height={32}
-                className="grayscale hover:grayscale-0 transition-all duration-300 hover:scale-105"
-              />
-            </div>
+            <span className="text-[10px] text-[#F7F06D] tracking-widest uppercase font-semibold">THANK YOU!</span>
           </div>
         </div>
       </footer>
@@ -91,18 +81,6 @@ export default function Footer({ variant = 'default' }: FooterProps) {
           {/* Left: Brand / Logo */}
           <div className="md:col-span-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-r from-white/10 to-[#F7F06D]/10 rounded-full blur opacity-25 group-hover:opacity-60 transition duration-500" />
-                <Link href="mailto:notayan99@gmail.com" className="relative block">
-                  <Image
-                    src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image2-l5WVyj1lUkkbqQwuMEHCuDmCxHznok.png"
-                    alt="Ayan's Logo"
-                    width={42}
-                    height={42}
-                    className="hover:scale-105 transition-transform duration-300"
-                  />
-                </Link>
-              </div>
               <div>
                 <h3 className="font-title text-xl tracking-wider text-white">WALLWIDGY</h3>
                 <span className="text-[9px] font-mono text-white/30 tracking-widest uppercase block mt-0.5">MK. II PLATFORM</span>

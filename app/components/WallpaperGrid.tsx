@@ -49,6 +49,7 @@ interface Wallpaper {
 interface WallpaperGridProps {
   wallpapers?: string[]; // Array of favorite wallpaper IDs
   categoryFilter?: string; // Category filter string
+  color?: string; // Color filter string
 }
 
 const CATEGORY_LIST = [
@@ -121,7 +122,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
 
 StableImageComponent.displayName = 'StableImageComponent';
 
-export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter }: WallpaperGridProps) {
+export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter, color: colorFilter }: WallpaperGridProps) {
   const [wallpapersState, setWallpapersState] = useState<Wallpaper[]>([])
   const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>([])
   const { favorites, toggleFavorite, isFavorite, isLoading: favoritesLoading, clearAllFavorites } = useFavorites()
@@ -168,8 +169,14 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     if (selectedCategories.length > 0) {
       list = list.filter((wallpaper) => selectedCategories.includes(wallpaper.category));
     }
+    if (colorFilter) {
+      const targetColor = colorFilter.toLowerCase().trim()
+      list = list.filter((wallpaper) => 
+        (wallpaper as any).colors?.includes(targetColor)
+      );
+    }
     return list;
-  }, [wallpapersState, filter, selectedCategories]);
+  }, [wallpapersState, filter, selectedCategories, colorFilter]);
 
   useEffect(() => {
     const filtered = getFilteredWallpapers();
@@ -203,7 +210,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
 
   useEffect(() => {
     fetchWallpapers({ sortBy: "newest" })
-    fetchAvailableColors()
   }, []) // Removed currentSort dependency
 
   useEffect(() => {
@@ -283,55 +289,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
   }, [hasMore, isLoading, loadMoreWallpapers]);
 
   const fetchAvailableColors = useCallback(async () => {
-    try {
-      const response = await fetch("https://raw.githubusercontent.com/not-ayan/storage/main/index.json")
-      if (!response.ok) throw new Error("Failed to fetch index")
-      const data = await response.json()
-      
-      const uniqueColors = new Set<string>()
-      data.forEach((item: any) => {
-        if (item.data?.primary_colors && Array.isArray(item.data.primary_colors)) {
-          item.data.primary_colors.forEach((color: string) => uniqueColors.add(color))
-        }
-        if (item.data?.secondary_colors && Array.isArray(item.data.secondary_colors)) {
-          item.data.secondary_colors.forEach((color: string) => uniqueColors.add(color))
-        }
-      })
-
-      const colorMap: Record<string, string> = {
-        'darkslategray': '#2F4F4F',
-        'black': '#000000',
-        'red': '#FF0000',
-        'green': '#00FF00',
-        'blue': '#0000FF',
-        'white': '#FFFFFF',
-        'yellow': '#FFFF00',
-        'cyan': '#00FFFF',
-        'magenta': '#FF00FF',
-        'gray': '#808080',
-        'grey': '#808080',
-        'silver': '#C0C0C0',
-        'maroon': '#800000',
-        'olive': '#808000',
-        'purple': '#800080',
-        'teal': '#008080',
-        'navy': '#000080',
-        'orange': '#FFA500',
-        'brown': '#A52A2A',
-        'gold': '#FFD700',
-        'pink': '#FFC0CB',
-        'violet': '#EE82EE',
-        'indigo': '#4B0082',
-      }
-
-      const colors = Array.from(uniqueColors).map(color => ({
-        name: color,
-        hex: colorMap[color.toLowerCase()] || '#000000'
-      }))
-      setAvailableColors(colors)
-    } catch (error) {
-      console.error("Error fetching available colors client-side:", error)
-    }
+    // Consolidated into fetchWallpapers client-side
   }, [])
 
   const fetchWallpapers = useCallback(
@@ -354,37 +312,117 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           throw new Error('Invalid data format: expected an array')
         }
 
-        let wallpapers = data.map((item: any) => ({
-          sha: item.file_name,
-          name: item.file_name,
-          width: item.width,
-          height: item.height,
-          preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${item.file_cache_name}`,
-          download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
-          resolution: item.resolution,
-          tag: item.orientation,
-          platform: item.orientation,
-          uploadDate: new Date(item.timestamp),
-          format: item.file_name.split('.').pop() || 'unknown',
-          category: item.category
-        }))
+        // Derive available colors client-side from the same dataset
+        const uniqueColors = new Set<string>()
 
+        const wallpapers = data.map((item: any) => {
+          const primaryColors = item.data?.primary_colors
+          const secondaryColors = item.data?.secondary_colors
+          const colorsList: string[] = []
+          
+          const processColorVal = (val: any) => {
+            if (Array.isArray(val)) {
+              val.forEach(c => {
+                if (c && typeof c === 'string') {
+                  const cleaned = c.toLowerCase().trim()
+                  colorsList.push(cleaned)
+                  uniqueColors.add(cleaned)
+                }
+              })
+            } else if (typeof val === 'string') {
+              val.split(/[\s,]+/).forEach(c => {
+                if (c) {
+                  const cleaned = c.toLowerCase().trim()
+                  colorsList.push(cleaned)
+                  uniqueColors.add(cleaned)
+                }
+              })
+            }
+          }
+          
+          processColorVal(primaryColors)
+          processColorVal(secondaryColors)
+
+          return {
+            sha: item.file_name,
+            name: item.file_name,
+            width: item.width,
+            height: item.height,
+            preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${item.file_cache_name}`,
+            download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
+            resolution: item.resolution,
+            tag: item.orientation,
+            platform: item.orientation,
+            uploadDate: new Date(item.timestamp),
+            format: item.file_name.split('.').pop() || 'unknown',
+            category: item.category,
+            colors: colorsList
+          }
+        })
+
+        const colorMap: Record<string, string> = {
+          'darkslategray': '#2F4F4F',
+          'black': '#000000',
+          'red': '#FF0000',
+          'green': '#00FF00',
+          'blue': '#0000FF',
+          'white': '#FFFFFF',
+          'yellow': '#FFFF00',
+          'cyan': '#00FFFF',
+          'magenta': '#FF00FF',
+          'gray': '#808080',
+          'grey': '#808080',
+          'silver': '#C0C0C0',
+          'maroon': '#800000',
+          'olive': '#808000',
+          'purple': '#800080',
+          'teal': '#008080',
+          'navy': '#000080',
+          'orange': '#FFA500',
+          'brown': '#A52A2A',
+          'gold': '#FFD700',
+          'pink': '#FFC0CB',
+          'violet': '#EE82EE',
+          'indigo': '#4B0082',
+        }
+
+        const derivedColors = Array.from(uniqueColors).map(color => ({
+          name: color,
+          hex: colorMap[color.toLowerCase()] || '#000000'
+        }))
+        setAvailableColors(derivedColors)
+
+        let filteredWallpapers = wallpapers
         // Apply category filter if provided
         if (categoryFilter) {
-          wallpapers = wallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
+          filteredWallpapers = filteredWallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
         }
         
         // Filter by favorites if favoriteIds are provided
         if (favoriteIds && favoriteIds.length > 0) {
-          wallpapers = wallpapers.filter(wallpaper => favoriteIds.includes(wallpaper.sha))
+          filteredWallpapers = filteredWallpapers.filter(wallpaper => favoriteIds.includes(wallpaper.sha))
         }
 
         // Sort wallpapers by newest first
-        wallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
+        filteredWallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
-        setWallpapersState(wallpapers)
-        setDisplayedWallpapers(wallpapers.slice(0, initialLoadSize))
-        setHasMore(wallpapers.length > initialLoadSize)
+        setWallpapersState(filteredWallpapers)
+
+        // Initialize displayed wallpapers list with proper filters applied
+        let initialList = filteredWallpapers
+        if (filter !== "all") {
+          initialList = initialList.filter((wallpaper) => wallpaper.platform?.toLowerCase() === filter)
+        }
+        if (selectedCategories.length > 0) {
+          initialList = initialList.filter((wallpaper) => selectedCategories.includes(wallpaper.category))
+        }
+        if (colorFilter) {
+          const targetColor = colorFilter.toLowerCase().trim()
+          initialList = initialList.filter((wallpaper) => wallpaper.colors?.includes(targetColor))
+        }
+
+        setDisplayedWallpapers(initialList.slice(0, initialLoadSize))
+        setHasMore(initialList.length > initialLoadSize)
       } catch (err: any) {
         setError(err.message)
         console.error("Error fetching wallpapers:", err)
@@ -392,7 +430,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
         setIsLoading(false)
       }
     },
-    [categoryFilter, favoriteIds],
+    [categoryFilter, favoriteIds, filter, selectedCategories, colorFilter],
   )
 
   const handleFavorite = (wallpaper: Wallpaper) => {
@@ -667,11 +705,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
     )
   }
 
-  const breakpointColumnsObj: { [key: string]: number } = favoriteIds ? {
-    default: 3,
-    '1100': 2,
-    '700': 1
-  } : categoryFilter ? {
+  const breakpointColumnsObj: { [key: string]: number } = categoryFilter ? {
     default: 3,
     '1100': 2,
     '700': 1
@@ -927,7 +961,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
           return (
             <div 
               key={wallpaper.sha} 
-              className={`${favoriteIds ? 'mb-3 sm:mb-4' : 'mb-4 sm:mb-6'}`}
+              className="mb-4 sm:mb-6"
               style={{
                 animationName: isMobile ? 'fadeInUpMobile' : 'fadeInUp',
                 animationDuration: isMobile ? '0.2s' : '0.4s',
@@ -940,9 +974,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                 className={`group relative ${
                   wallpaper.platform === "Mobile"
                     ? 'aspect-[9/16]' 
-                    : favoriteIds 
-                      ? 'aspect-[4/3]' 
-                      : 'aspect-[3/2]'
+                    : 'aspect-[3/2]'
                 } overflow-hidden rounded-2xl bg-white/5 transition-all ${isMobile ? 'duration-300' : 'duration-500'} hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
               >
                 <ImageComponent wallpaper={wallpaper} index={index} />
@@ -1057,9 +1089,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
       <div className={`grid gap-4 sm:gap-6 ${
         filter === "mobile"
           ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4"
-          : favoriteIds
-            ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4"
+          : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4"
       }`}>
         {displayedWallpapers.map((wallpaper, index) => {
           const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
@@ -1082,9 +1112,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter 
                 className={`group relative ${
                   filter === "mobile" 
                     ? 'aspect-[9/16]' 
-                    : favoriteIds 
-                      ? 'aspect-[4/3]' 
-                      : 'aspect-[3/2]'
+                    : 'aspect-[3/2]'
                 } overflow-hidden rounded-2xl bg-white/5 transition-all ${isMobile ? 'duration-300' : 'duration-500'} hover:scale-[1.02] hover:shadow-2xl hover:shadow-black/30`}
               >
                 <ImageComponent wallpaper={wallpaper} index={index} />

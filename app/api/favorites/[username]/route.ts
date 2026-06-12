@@ -28,13 +28,15 @@ export async function GET(
     const user = users.data[0]
     const favorites = (user.publicMetadata?.favorites as string[]) || []
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       username: user.username,
       displayName: user.firstName || user.username,
       imageUrl: user.imageUrl,
       favorites,
       favoritesCount: favorites.length
     })
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=10')
+    return response
   } catch (error) {
     console.error('Error fetching user favorites:', error)
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 })

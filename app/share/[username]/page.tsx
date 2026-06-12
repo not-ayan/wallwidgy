@@ -18,7 +18,7 @@ interface UserProfile {
 
 export default function SharedFavoritesPage() {
   const params = useParams()
-  const username = params.username as string
+  const username = params?.username as string
   
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)

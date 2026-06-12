@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
+import { fetchIndexJson } from '@/lib/wallpapers'
 
 // Helper: recursively collect files under a directory
 async function collectFiles(dir: string): Promise<string[]> {
@@ -66,12 +67,7 @@ export async function GET(request: Request) {
     const count = Math.min(10, Math.max(1, parseInt(url.searchParams.get('count') || '1')))
 
     // Fetch wallpapers from index.json (same as categories page)
-    const indexResponse = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json')
-    if (!indexResponse.ok) {
-      throw new Error('Failed to fetch wallpapers index')
-    }
-    
-    const indexData = await indexResponse.json()
+    const indexData = await fetchIndexJson()
     let wallpaperItems = indexData
 
     // Filter by category if specified
@@ -164,6 +160,7 @@ export async function GET(request: Request) {
     response.headers.set('Access-Control-Allow-Origin', '*')
     response.headers.set('Access-Control-Allow-Methods', 'GET')
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=59')
 
     return response
 

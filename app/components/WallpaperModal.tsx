@@ -163,10 +163,12 @@ export default function WallpaperModal({
   
   useEffect(() => {
     const updateViewport = () => {
+      const width = window.innerWidth
       setViewportDimensions({ 
-        width: window.innerWidth, 
+        width, 
         height: window.innerHeight 
       })
+      setIsMobile(width < 768)
     }
     
     // Check if we should disable blur effects
@@ -226,9 +228,7 @@ export default function WallpaperModal({
     setShowSimilarWallpapers(false) // Reset similar wallpapers when wallpaper changes
   }, [currentWallpaper.sha])
 
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768)
-  }, [])
+  // isMobile is now updated in the main updateViewport useEffect
 
   // Add focus management
   useEffect(() => {
@@ -526,9 +526,9 @@ export default function WallpaperModal({
             className="relative flex items-center justify-center overflow-auto touch-pan-x touch-pan-y"
             style={{
               cursor: 'default',
-              height: window.innerWidth < 768 ? '100vh' : '90vh',
-              width: window.innerWidth < 768 ? '100vw' : '100%',
-              maxWidth: window.innerWidth < 768 ? '100vw' : '90vw',
+              height: isMobile ? '100vh' : '90vh',
+              width: isMobile ? '100vw' : '100%',
+              maxWidth: isMobile ? '100vw' : '90vw',
             }}
             onClick={handleImageContainerClick}
           >
@@ -555,7 +555,7 @@ export default function WallpaperModal({
                     width={currentWallpaper.width}
                     height={currentWallpaper.height}
                     className={`max-h-full max-w-full object-contain ${
-                      window.innerWidth < 768 ? "" : "rounded-2xl"
+                      isMobile ? "" : "rounded-2xl"
                     } ${
                       isImageLoaded ? "opacity-100" : "opacity-0"
                     } transition-opacity duration-300`}

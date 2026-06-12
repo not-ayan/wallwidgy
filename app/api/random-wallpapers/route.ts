@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { fetchIndexJson } from "@/lib/wallpapers"
 
 const STORAGE_INDEX_URL =
   process.env.WALLWIDGY_INDEX_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/index.json"
@@ -61,12 +62,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: `Count must be between 1 and ${MAX_COUNT}` }, { status: 400 })
     }
 
-    const indexResponse = await fetch(STORAGE_INDEX_URL)
-    if (!indexResponse.ok) {
-      throw new Error(`Failed to fetch wallpapers index: ${indexResponse.status} ${indexResponse.statusText}`)
-    }
-
-    const rawData = await indexResponse.json()
+    const rawData = await fetchIndexJson()
     if (!Array.isArray(rawData)) {
       throw new Error("Invalid wallpapers index format")
     }
@@ -114,7 +110,9 @@ export async function GET(request: Request) {
       }
     })
 
-    return NextResponse.json(mappedWallpapers)
+    const response = NextResponse.json(mappedWallpapers)
+    response.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=59')
+    return response
   } catch (error: any) {
     console.error("Error fetching random wallpapers:", error)
     return NextResponse.json({ error: error.message }, { status: 500 })

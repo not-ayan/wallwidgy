@@ -291,7 +291,7 @@ export default function NotificationCenter() {
           {/* Admin Helper Footer */}
           <div className="px-5 py-3.5 bg-white/[0.01] border-t border-white/[0.06] text-center">
             <p className="text-[9px] font-mono text-white/20 select-none">
-              PUSH LIVE NOTICES VIA STORAGE REPO ON GITHUB
+              SYS.V2 • BROADCAST FEED
             </p>
           </div>
         </div>

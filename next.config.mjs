@@ -1,4 +1,5 @@
 let userConfig = undefined
+
 try {
   userConfig = await import('./v0-user-next.config')
 } catch (e) {
@@ -10,9 +11,11 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
   typescript: {
     ignoreBuildErrors: true,
   },
+
   images: {
     domains: [
       'raw.githubusercontent.com',
@@ -20,6 +23,7 @@ const nextConfig = {
       'hebbkx1anhila5yf.public.blob.vercel-storage.com',
       'img.clerk.com',
     ],
+
     remotePatterns: [
       {
         protocol: 'https',
@@ -42,15 +46,56 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    minimumCacheTTL: 604800, // 1 week cache
+
+    minimumCacheTTL: 604800,
     deviceSizes: [320, 640, 750, 828, 1080, 1200, 1920],
   },
+
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET',
+          },
+        ],
+      },
+    ]
+  },
+
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
     optimizePackageImports: ['lucide-react'],
   },
+
   poweredByHeader: false,
   compress: true,
 }

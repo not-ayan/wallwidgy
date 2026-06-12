@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Heart, Info, ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { shouldDisableBlurEffects } from '@/lib/utils'
+import NotificationCenter from './NotificationCenter'
 
 interface HeaderProps {
   showBackButton?: boolean;
@@ -73,6 +74,7 @@ export default function Header({ showBackButton = false, backUrl = "/" }: Header
               >
                 <Info className="w-4 h-4" />
               </Link>
+              <NotificationCenter />
             </div>
           </div>
         </nav>

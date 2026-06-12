@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Heart, Info, User } from "lucide-react"
+import NotificationCenter from "./NotificationCenter"
 import {
   SignInButton,
   SignedIn,
@@ -61,6 +62,7 @@ export default function HomeHeader() {
               >
                 <Info className="w-4 h-4" />
               </Link>
+              <NotificationCenter />
             </div>
             <SignedOut>
               <SignInButton mode="modal">

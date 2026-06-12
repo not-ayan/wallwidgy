@@ -85,27 +85,7 @@ export default function NotificationCenter() {
           triggerToastCheck(data, parsedReadIds)
         }
       } catch (err) {
-        // Fallback notifications if Github fetch fails (e.g., 404 because file is not created yet)
-        const fallbacks: NotificationItem[] = [
-          {
-            id: "system-welcome",
-            title: "Welcome to WallWidgy V2!",
-            message: "Explore our curated library of high-resolution digital canvases. Save your favorites and customize your layout.",
-            type: "success",
-            timestamp: new Date().toISOString(),
-          },
-          {
-            id: "system-admin-guide",
-            title: "Admin Integration Guide",
-            message: "Ayan, to push notifications to all users, create a 'notifications.json' file in the 'not-ayan/storage' GitHub repository.",
-            type: "info",
-            timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-            link: "https://github.com/not-ayan/storage",
-            linkLabel: "Open Repository",
-          },
-        ]
-        setNotifications(fallbacks)
-        triggerToastCheck(fallbacks, parsedReadIds)
+        setNotifications([])
       } finally {
         setLoading(false)
       }

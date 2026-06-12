@@ -78,6 +78,20 @@ interface Release {
 export default function News() {
   const releases: Release[] = [
     {
+      version: "v2.5",
+      date: "2026.06",
+      title: "Grid Redesign & Core Optimizations",
+      badge: "MAJOR",
+      description: "A major update featuring integrated layout filters, an overhauled search interface, client-side notifications, and significant build optimizations including purging unused codebase assets and tuning middleware matchers.",
+      features: [
+        { name: "REDESIGNED GRID", detail: "Integrated category filters directly into the main grid and restructured navigation headers" },
+        { name: "SEARCH OVERHAUL", detail: "Completely redesigned search bar interface with improved responsive dialog animations" },
+        { name: "SEO & ISR ROUTING", detail: "Integrated dynamic sitemaps and robots settings, re-routing detail pages to Incremental Static Regeneration" },
+        { name: "PERFORMANCE PURGE", detail: "Purged unused Shadcn UI elements, tuned middleware matchers, and set up Cloudflare Pages migration" },
+        { name: "NOTIFICATION BELL", detail: "Added client-side bell dropdowns and on-screen Toast alerts using React Portals" }
+      ]
+    },
+    {
       version: "v2.1",
       date: "2026.02",
       title: "Cloud Sync & User Accounts",
@@ -102,7 +116,7 @@ export default function News() {
     }
   ];
 
-  const [activeVersion, setActiveVersion] = useState<string>("v2.1");
+  const [activeVersion, setActiveVersion] = useState<string>("v2.5");
   const selectedRelease = releases.find(r => r.version === activeVersion) || releases[0];
 
   return (

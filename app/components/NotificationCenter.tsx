@@ -65,8 +65,13 @@ export default function NotificationCenter() {
     const fetchNotifications = async () => {
       try {
         setLoading(true)
-        // Fetch from Ayan's storage GitHub repo
-        const res = await fetch("https://raw.githubusercontent.com/not-ayan/storage/main/notifications.json", {
+        // Fetch from dynamic URL or fallback GitHub Gist
+        const rawUrl = process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "https://gist.githubusercontent.com/not-ayan/3691b5169488c4e713f71aa26b2394f7/raw/notifications.json"
+        const finalUrl = rawUrl.includes("?") 
+          ? `${rawUrl}&t=${Date.now()}` 
+          : `${rawUrl}?t=${Date.now()}`
+
+        const res = await fetch(finalUrl, {
           cache: "no-store", // Get fresh notifications
         })
 

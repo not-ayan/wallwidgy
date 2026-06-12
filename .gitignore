@@ -28,4 +28,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+#ignore ples
 bot.py
+antigravity_state.md

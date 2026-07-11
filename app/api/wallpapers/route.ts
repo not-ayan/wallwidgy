@@ -134,18 +134,18 @@ export async function GET(request: Request) {
       }
     }
 
-    // Get filenames after type filtering
-    const filenames = wallpaperItems.map((item: any) => item.file_name)
+    // Shuffle and select requested count of items
+    const shuffledItems = shuffle(wallpaperItems)
+    const selectedItems = shuffledItems.slice(0, count)
 
-    // Shuffle and select requested count
-    const shuffledFilenames = shuffle(filenames)
-    const selectedFilenames = shuffledFilenames.slice(0, count)
+    // Convert items to GitHub raw URLs
+    const STORAGE_MAIN_BASE_URL =
+      process.env.WALLWIDGY_MAIN_BASE_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/main"
 
-    // Convert filenames to public URLs
-    const baseUrl = url.origin
-    const wallpapers = selectedFilenames.map((filename) => 
-      `${baseUrl}/wallpaper/${filename as string}`
-    )
+    const wallpapers = selectedItems.map((item: any) => {
+      const mainName = item.file_main_name || item.file_name
+      return `${STORAGE_MAIN_BASE_URL}/${mainName}`
+    })
 
     // Prepare response
     const response = NextResponse.json({

@@ -242,7 +242,7 @@ export default function ApiDocs() {
               JSON Response Payload
             </span>
             <CodeBlock
-              code={`{\n  "wallpapers": [\n    "https://wallwidgy.vercel.app/wallpaper/minimal/desert-dune.jpg",\n    "https://wallwidgy.vercel.app/wallpaper/minimal/foggy-forest.jpg"\n  ],\n  "count": 2,\n  "category": "minimal",\n  "type": "mobile",\n  "color": "all"\n}`}
+              code={`{\n  "wallpapers": [\n    "https://raw.githubusercontent.com/not-ayan/storage/main/main/desert-dune.png",\n    "https://raw.githubusercontent.com/not-ayan/storage/main/main/foggy-forest.png"\n  ],\n  "count": 2,\n  "category": "minimal",\n  "type": "mobile",\n  "color": "all"\n}`}
               language="json"
             />
           </div>

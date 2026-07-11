@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { ArrowLeft, Code, ExternalLink, Shield, Info, Github, Mail, Send, Clock } from "lucide-react"
+import { ArrowLeft, Code, ExternalLink, Shield, Info, Github, Mail, Send, Clock, Smartphone, Cpu, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 import Footer from "../components/Footer"
 import BackToTop from "../components/BackToTop"
@@ -340,6 +340,54 @@ export default function News() {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        {/* Android App Segment (Blueprint Grid) */}
+        <section className="border-t border-white/10">
+          <div className="grid grid-cols-1 lg:grid-cols-12">
+            
+            {/* Android client details */}
+            <div className="lg:col-span-7 border-b lg:border-b-0 lg:border-r border-white/10 p-6 sm:p-12 lg:p-16 flex flex-col justify-between bg-[#0b0b0b]">
+              <div>
+                <span className="text-[10px] font-mono text-white/40 uppercase tracking-widest block mb-4">MOBILE CLIENT MODULE</span>
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tight uppercase text-white">WALLWIDGY MOBILE</h2>
+                <p className="mt-4 text-white/70 font-light text-sm leading-relaxed max-w-md">
+                  Experience WallWidgy on your mobile device. Download the native Android application featuring localized AI search, automatic wallpaper rotation, and adaptive layouts.
+                </p>
+              </div>
+              <div className="mt-8">
+                <Link
+                  href="/android"
+                  className="inline-flex items-center gap-2 bg-[#F7F06D] text-black hover:bg-[#F7F06D]/95 px-6 py-3 rounded text-xs font-mono tracking-wider uppercase font-semibold transition-colors"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  DOWNLOAD ANDROID APP
+                </Link>
+              </div>
+            </div>
+
+            {/* Android features list */}
+            <div className="lg:col-span-5 p-6 sm:p-12 lg:p-16 space-y-6 flex flex-col justify-center">
+              <span className="text-[10px] font-mono text-white/30 uppercase tracking-widest block border-b border-white/10 pb-2">
+                MOBILE SPEC SHEET
+              </span>
+              <div className="space-y-4 text-xs font-mono text-white/80">
+                <div className="flex items-center gap-3">
+                  <Cpu className="w-4 h-4 text-[#F7F06D] flex-shrink-0" />
+                  <span>On-Device AI Semantic Search</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <RefreshCw className="w-4 h-4 text-[#F7F06D] flex-shrink-0" />
+                  <span>WorkManager Auto Rotation Schedule</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Shield className="w-4 h-4 text-[#F7F06D] flex-shrink-0" />
+                  <span>100% Free &amp; Open Source (No Ads)</span>
                 </div>
               </div>
             </div>

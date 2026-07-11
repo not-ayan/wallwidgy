@@ -56,6 +56,12 @@ export default function Footer({ variant = 'default' }: FooterProps) {
               >
                 // REST API
               </Link>
+              <Link
+                href="/android"
+                className="text-white/50 hover:text-[#F7F06D] transition-colors"
+              >
+                // ANDROID APP
+              </Link>
             </div>
           </div>
 
@@ -110,6 +116,9 @@ export default function Footer({ variant = 'default' }: FooterProps) {
               </Link>
               <Link href="/news" className="text-white/50 hover:text-white transition-colors duration-200">
                 Field Journal
+              </Link>
+              <Link href="/android" className="text-white/50 hover:text-white transition-colors duration-200">
+                Android App
               </Link>
               <Link href="/api" className="text-white/50 hover:text-white transition-colors duration-200">
                 REST API

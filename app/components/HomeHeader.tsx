@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Heart, Info, User } from "lucide-react"
+import { Heart, Info, User, Smartphone } from "lucide-react"
 import NotificationCenter from "./NotificationCenter"
 import {
   SignInButton,
@@ -54,6 +54,14 @@ export default function HomeHeader() {
             <div className="flex items-center gap-0.5 bg-white/[0.02] border border-white/[0.05] rounded-full p-1 backdrop-blur-sm">
               <Link href="/favorites" prefetch={false} className="p-2 text-white/60 hover:text-white transition-all rounded-full hover:bg-white/5" aria-label="Favorites">
                 <Heart className="w-4 h-4 transition-transform hover:scale-110" />
+              </Link>
+              <Link
+                href="/android"
+                className="p-2 text-white/60 hover:text-[#F7F06D] transition-all rounded-full hover:bg-white/5"
+                aria-label="Android App"
+                title="Android App"
+              >
+                <Smartphone className="w-4 h-4" />
               </Link>
               <Link
                 href="/news"

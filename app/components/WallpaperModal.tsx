@@ -63,11 +63,12 @@ function SmartImage({
   );
 }
 import Image from "next/image"  // This is the Next.js Image component
-import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, ArrowLeft } from "lucide-react"
+import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, Heart } from "lucide-react"
 import Link from "next/link"
 import SimilarWallpapers from "./SimilarWallpapers"
 import { shouldDisableBlurEffects } from "@/lib/utils"
 import { useBackHandler } from "@/hooks/use-back-handler"
+import { useFavorites } from "@/hooks/use-favorites"
 import { track } from "@vercel/analytics"
 
 export interface Wallpaper {
@@ -106,9 +107,10 @@ export default function WallpaperModal({
   onBackToOriginal,
   onSelectWallpaper,
 }: WallpaperModalProps) {
-  // Use internal state to manage the current wallpaper
+  // Use internal state to manage the current wallpaper and navigation history
   const [currentWallpaper, setCurrentWallpaper] = useState(initialWallpaper)
-  const [originalWallpaperState, setOriginalWallpaperState] = useState<Wallpaper | null>(null)
+  const [history, setHistory] = useState<Wallpaper[]>([])
+  const { isFavorite, toggleFavorite } = useFavorites()
   const [aspectRatio, setAspectRatio] = useState(16 / 9)
   const [isLoading, setIsLoading] = useState(true)
   const [isImageLoading, setIsImageLoading] = useState(true)
@@ -128,26 +130,29 @@ export default function WallpaperModal({
   const [showSimilarWallpapers, setShowSimilarWallpapers] = useState(false)
   const [disableBlur, setDisableBlur] = useState(false)
 
+  // Navigate back through recommendation history or close modal
+  const handleBack = useCallback(() => {
+    if (history.length > 0) {
+      const prevWallpaper = history[history.length - 1]
+      setHistory(prev => prev.slice(0, -1))
+      setCurrentWallpaper(prevWallpaper)
+    } else if (onBackToOriginal) {
+      onBackToOriginal()
+    } else {
+      onClose()
+    }
+  }, [history, onBackToOriginal, onClose])
+
   // Handle browser back button when modal is open
   useBackHandler({
     isActive: isOpen,
     onBack: () => {
       if (showSimilarWallpapers) {
-        // If similar wallpapers are shown, close them first
+        // If similar wallpapers tray is open, close it first
         setShowSimilarWallpapers(false)
-      } else if (originalWallpaperState) {
-        // If we have an original wallpaper to go back to
-        setCurrentWallpaper(originalWallpaperState);
-        setOriginalWallpaperState(null);
-        
-        // Reset states for the original wallpaper
-        setIsImageLoaded(false);
-        setIsImageLoading(true);
-        setIsPreviewLoaded(false);
-        setIsHighQuality(false);
-        setIsLoadingHighQuality(false);
-        setZoom(1);
-        setPosition({ x: 0, y: 0 });
+      } else if (history.length > 0) {
+        // Step back through recommendation history
+        handleBack()
       } else {
         // Otherwise close the modal
         onClose()
@@ -155,9 +160,6 @@ export default function WallpaperModal({
     },
     priority: 2 // Higher priority than basic modals
   })
-
-  // Check if we're viewing a recommended wallpaper (has originalWallpaper)
-  const isViewingRecommendation = !!originalWallpaperState
 
   // Responsive viewport helpers
   const [viewportDimensions, setViewportDimensions] = useState({ width: 0, height: 0 })
@@ -188,7 +190,7 @@ export default function WallpaperModal({
     
     return {
       topButtons: {
-        top: isMobile ? '1rem' : '1rem',
+        top: '1rem',
         left: '1rem',
         right: '1rem',
       },
@@ -197,20 +199,16 @@ export default function WallpaperModal({
         left: '1rem',
         right: '1rem',
       },
-      hdButton: {
-        top: isViewingRecommendation ? (isMobile ? '4.5rem' : '5rem') : (isMobile ? '3.5rem' : '4rem'),
-        right: '1rem',
-      }
     }
   }
 
   const positions = getButtonPositions()
 
-  // Sync with prop changes
+  // Sync with prop changes when parent navigates (e.g. Next/Prev from grid)
   useEffect(() => {
     setCurrentWallpaper(initialWallpaper)
-    setOriginalWallpaperState(originalWallpaper || null)
-  }, [initialWallpaper, originalWallpaper])
+    setHistory([])
+  }, [initialWallpaper])
 
   useEffect(() => {
     if (currentWallpaper.resolution) {
@@ -222,11 +220,14 @@ export default function WallpaperModal({
   useEffect(() => {
     setIsLoading(true)
     setIsImageLoading(true)
+    setIsImageLoaded(false)
+    setIsPreviewLoaded(false)
+    setIsFullImageLoaded(false)
     setZoom(1)
     setPosition({ x: 0, y: 0 })
     setIsHighQuality(false)
     setIsLoadingHighQuality(false)
-    setShowSimilarWallpapers(false) // Reset similar wallpapers when wallpaper changes
+    setShowSimilarWallpapers(false) // Reset similar wallpapers tray when wallpaper changes
   }, [currentWallpaper.sha])
 
   // isMobile is now updated in the main updateViewport useEffect
@@ -618,16 +619,11 @@ export default function WallpaperModal({
         isVisible={showSimilarWallpapers}
         onClose={() => setShowSimilarWallpapers(false)}
         onSelectWallpaper={(newWallpaper) => {
-          // Close the similar wallpapers modal
+          // Close the similar wallpapers tray
           setShowSimilarWallpapers(false);
           
-          // Add debug logging to see what wallpaper data we're receiving
-          console.log("Selected wallpaper data:", newWallpaper);
-          
-          // Set the original wallpaper if we're not already viewing a recommendation
-          if (!originalWallpaperState) {
-            setOriginalWallpaperState(currentWallpaper);
-          }
+          // Push current wallpaper onto history stack so user can go back
+          setHistory(prev => [...prev, currentWallpaper]);
           
           // Validate and fix URL construction
           const validateUrl = (url: string) => {
@@ -640,94 +636,72 @@ export default function WallpaperModal({
             }
           };
           
-          // Ensure the new wallpaper has all required fields with proper URLs
-          const completeWallpaper = {
+          const completeWallpaper: Wallpaper = {
             ...newWallpaper,
-            // Ensure all required fields are present
             width: newWallpaper.width || 1920,
             height: newWallpaper.height || 1080,
             download_url: validateUrl(newWallpaper.download_url) || newWallpaper.preview_url,
             preview_url: validateUrl(newWallpaper.preview_url) || newWallpaper.download_url,
           };
           
-          console.log("Complete wallpaper with validated URLs:", completeWallpaper);
-          
           // Update the current wallpaper directly
           setCurrentWallpaper(completeWallpaper);
-          // Reset states for the new wallpaper
-          setIsImageLoaded(false);
-          setIsImageLoading(true);
-          setIsPreviewLoaded(false);
-          setIsHighQuality(false);
-          setIsLoadingHighQuality(false);
-          setZoom(1);
-          setPosition({ x: 0, y: 0 });
+          onSelectWallpaper?.(completeWallpaper);
         }}
       />
 
       {/* Top header with back button and info */}
       <div 
-        className="absolute left-0 right-0 z-10 p-4 flex items-center justify-between"
+        className="absolute left-0 right-0 z-10 p-3 sm:p-4 flex items-center justify-between pointer-events-none"
         style={{ top: positions.topButtons.top }}
       >
-        <div className="flex items-center gap-2">
-          {/* When viewing a recommendation, show both Back (to original) and Close (to home) */}
-          {isViewingRecommendation ? (
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {history.length > 0 ? (
             <>
               <button 
-                onClick={() => {
-                  if (originalWallpaperState) {
-                    // Go back to the original wallpaper
-                    setCurrentWallpaper(originalWallpaperState);
-                    setOriginalWallpaperState(null);
-                    
-                    // Reset states for the original wallpaper
-                    setIsImageLoaded(false);
-                    setIsImageLoading(true);
-                    setIsPreviewLoaded(false);
-                    setIsHighQuality(false);
-                    setIsLoadingHighQuality(false);
-                    setZoom(1);
-                    setPosition({ x: 0, y: 0 });
-                  }
-                }}
-                className={`flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-yellow-400/30 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg border border-yellow-400/30`}
+                onClick={handleBack}
+                className={`flex items-center gap-1.5 sm:gap-2 text-white/90 hover:text-white px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg transition-all`}
+                title="Back to previous wallpaper"
               >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="text-sm hidden sm:inline">Back</span>
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-xs sm:text-sm font-medium">Back</span>
+                <span className="text-[10px] sm:text-xs text-white/50 bg-white/10 px-1.5 py-0.5 rounded-full">
+                  {history.length}
+                </span>
               </button>
               
               <button 
                 onClick={onClose}
-                className={`flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/85 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg`}
+                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 text-white/80 hover:text-white shadow-lg transition-all`}
+                title="Close"
               >
-                <X className="w-5 h-5" />
-                <span className="text-sm hidden sm:inline">Close</span>
+                <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
               </button>
             </>
           ) : (
             <button 
               onClick={onClose} 
-              className={`flex items-center gap-2 text-white/90 hover:text-white px-4 py-2 rounded-2xl bg-black/85 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg`}
+              className={`flex items-center gap-1.5 sm:gap-2 text-white/90 hover:text-white px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg transition-all`}
+              title="Back"
             >
-              <ChevronLeft className="w-5 h-5" />
-              <span className="text-sm hidden sm:inline">Back</span>
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm font-medium">Back</span>
             </button>
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pointer-events-auto">
           {/* Resolution and platform info */}
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/85 ${disableBlur ? '' : 'backdrop-blur-md'} shadow-lg`}>
+          <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl bg-black/80 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg`}>
             {currentWallpaper.resolution && (
-              <div className="text-white/80 text-sm">
+              <div className="text-white/80 text-xs sm:text-sm">
                 {formatResolution(currentWallpaper.resolution)}
               </div>
             )}
             {currentWallpaper.platform && (
               <>
                 <div className="w-px h-3 bg-white/20" />
-                <div className="text-white/80 text-sm">
+                <div className="text-white/80 text-xs sm:text-sm">
                   {currentWallpaper.platform}
                 </div>
               </>
@@ -738,143 +712,123 @@ export default function WallpaperModal({
           {!isHighQuality && !isLoadingHighQuality && currentWallpaper.download_url ? (
             <button
               onClick={loadHighQualityImage}
-              className="bg-black/80 text-white/90 hover:text-white px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 transition-all hover:bg-black/90 border border-white/10 shadow-lg"
+              className={`bg-black/80 hover:bg-black/95 text-white/90 hover:text-white px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl ${disableBlur ? '' : 'backdrop-blur-md'} text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all border border-white/10 shadow-lg`}
             >
-              <Sparkles className="w-4 h-4 text-yellow-400" />
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
               <span>Load HD</span>
             </button>
           ) : isHighQuality ? (
-            <div className="bg-black/80 text-white/90 px-4 py-2 rounded-xl backdrop-blur-md text-sm flex items-center gap-2 border border-white/10 shadow-lg">
-              <Sparkles className="w-4 h-4 text-yellow-400" />
+            <div className={`bg-black/80 text-white/90 px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl ${disableBlur ? '' : 'backdrop-blur-md'} text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border border-white/10 shadow-lg`}>
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
               <span>High Quality</span>
             </div>
           ) : null}
         </div>
       </div>
-
-      {/* Similar Wallpapers Modal */}
-      <SimilarWallpapers 
-        currentWallpaper={currentWallpaper}
-        isVisible={showSimilarWallpapers}
-          onClose={() => setShowSimilarWallpapers(false)}
-        onSelectWallpaper={(newWallpaper) => {
-          // Close the similar wallpapers modal
-          setShowSimilarWallpapers(false);
-          
-          // Add debug logging to see what wallpaper data we're receiving
-          console.log("Selected wallpaper data:", newWallpaper);
-          
-          // Set the original wallpaper if we're not already viewing a recommendation
-          if (!originalWallpaperState) {
-            setOriginalWallpaperState(currentWallpaper);
-          }
-          
-          // Validate and fix URL construction
-          const validateUrl = (url: string) => {
-            try {
-              new URL(url);
-              return url;
-            } catch {
-              console.warn("Invalid URL:", url);
-              return null;
-            }
-          };
-          
-          // Ensure the new wallpaper has all required fields with proper URLs
-          const completeWallpaper = {
-            ...newWallpaper,
-            // Ensure all required fields are present
-            width: newWallpaper.width || 1920,
-            height: newWallpaper.height || 1080,
-            download_url: validateUrl(newWallpaper.download_url) || newWallpaper.preview_url,
-            preview_url: validateUrl(newWallpaper.preview_url) || newWallpaper.download_url,
-          };
-          
-          console.log("Complete wallpaper with validated URLs:", completeWallpaper);
-          
-          // Update the current wallpaper directly
-          setCurrentWallpaper(completeWallpaper);          // Reset states for the new wallpaper
-          setIsImageLoaded(false);
-          setIsImageLoading(true);
-          setIsPreviewLoaded(false);
-          setIsHighQuality(false);
-          setIsLoadingHighQuality(false);
-          setZoom(1);
-          setPosition({ x: 0, y: 0 });
-        }}
-      />
       
       {/* Bottom controls */}
       <div 
-        className="absolute left-0 right-0 p-2 sm:p-4 flex items-center justify-between"
+        className="absolute left-0 right-0 p-2 sm:p-4 flex items-center justify-between pointer-events-none"
         style={{ 
           bottom: positions.bottomButtons.bottom 
         }}
       >
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
           {/* Zoom controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-md border border-white/10 shadow-lg">
             <button
               onClick={handleZoomOut}
               disabled={zoom === 1}
-              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
+              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity"
+              title="Zoom out"
             >
               <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-white/80 text-xs sm:text-sm px-1.5 sm:px-2">{zoom}x</span>
+            <span className="text-white/80 text-xs sm:text-sm font-mono px-1 sm:px-1.5">{zoom}x</span>
             <button
               onClick={handleZoomIn}
               disabled={zoom === 3}
-              className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
+              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity"
+              title="Zoom in"
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
-          {/* Navigation controls - only show if not viewing recommendation */}
-          {!isViewingRecommendation && (onPrevious || onNext) && (
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+          {/* Navigation controls - ALWAYS available if list has prev/next */}
+          {(onPrevious || onNext) && (
+            <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-md border border-white/10 shadow-lg">
               <button
-                onClick={onPrevious}
+                onClick={() => {
+                  if (history.length > 0) setHistory([]);
+                  onPrevious?.();
+                }}
                 disabled={!hasPrevious}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
+                className="text-white/80 hover:text-white disabled:opacity-30 disabled:hover:text-white/30 p-1 transition-opacity"
+                title="Previous wallpaper"
               >
                 <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
               <button
-                onClick={onNext}
+                onClick={() => {
+                  if (history.length > 0) setHistory([]);
+                  onNext?.();
+                }}
                 disabled={!hasNext}
-                className="text-white/90 hover:text-white disabled:opacity-50 disabled:hover:text-white/80 p-1 sm:p-0"
+                className="text-white/80 hover:text-white disabled:opacity-30 disabled:hover:text-white/30 p-1 transition-opacity"
+                title="Next wallpaper"
               >
                 <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </div>
           )}
           
-          {/* Similar wallpapers button - only show if not viewing recommendation */}
-          {!isViewingRecommendation && (
-            <button
-              onClick={() => setShowSimilarWallpapers(true)}
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-yellow-600/40 backdrop-blur-md shadow-lg border border-yellow-500/40 hover:bg-yellow-500/40 transition-all"
-            >
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
-              <span className="text-white/90 text-xs sm:text-sm font-medium hidden xs:inline">Similar</span>
-            </button>
-          )}
+          {/* Similar wallpapers button - ALWAYS visible and toggleable */}
+          <button
+            onClick={() => setShowSimilarWallpapers(prev => !prev)}
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl transition-all shadow-lg border ${
+              showSimilarWallpapers
+                ? 'bg-yellow-500/25 border-yellow-400/50 text-yellow-300'
+                : 'bg-black/75 hover:bg-black/90 border-white/10 text-white/90 hover:text-white'
+            } backdrop-blur-md`}
+            title="Discover similar wallpapers"
+          >
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
+            <span className="text-xs sm:text-sm font-medium hidden xs:inline">Similar</span>
+          </button>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-xl sm:rounded-2xl bg-black/70 backdrop-blur-md shadow-lg">
+        {/* Action buttons (Favorite, Share, Download) */}
+        <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-md border border-white/10 shadow-lg pointer-events-auto">
+          {/* Favorite button */}
+          <button
+            onClick={() => toggleFavorite(currentWallpaper.sha)}
+            className={`p-1.5 transition-colors rounded-lg ${
+              isFavorite(currentWallpaper.sha)
+                ? 'text-red-500 hover:text-red-400'
+                : 'text-white/80 hover:text-white'
+            }`}
+            title={isFavorite(currentWallpaper.sha) ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart className={`w-4 h-4 sm:w-4 sm:h-4 ${isFavorite(currentWallpaper.sha) ? 'fill-current' : ''}`} />
+          </button>
+          
+          <div className="w-px h-3.5 bg-white/20" />
+          
           <button
             onClick={handleShare}
-            className="text-white/90 hover:text-white p-1.5"
+            className="text-white/80 hover:text-white p-1.5 transition-colors rounded-lg"
+            title="Share wallpaper"
           >
             <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
           </button>
-          <div className="w-px h-4 sm:h-4 bg-white/20" />
+          
+          <div className="w-px h-3.5 bg-white/20" />
+          
           <button
             onClick={handleDownload}
-            className="text-white/90 hover:text-white p-1.5"
+            className="text-white/80 hover:text-white p-1.5 transition-colors rounded-lg"
+            title="Download wallpaper"
           >
             <Download className="w-4 h-4 sm:w-4 sm:h-4" />
           </button>

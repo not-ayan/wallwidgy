@@ -45,6 +45,8 @@ interface Wallpaper {
   tag: "Desktop" | "Mobile";
   platform: "Desktop" | "Mobile";
   uploadDate: Date;
+  category?: string;
+  colors?: string[];
 }
 
 interface WallpaperGridProps {
@@ -109,7 +111,7 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
         quality={isMobile ? 65 : 75}
         loading={index < 8 ? "eager" : "lazy"}
         decoding="async"
-        onLoadingComplete={() => setIsImageLoaded(true)}
+        onLoad={() => setIsImageLoaded(true)}
         onError={handleImageError}
         blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALiAgADIAMAAxADb/2wBDABQODxIPDRQSEBIXFRQdHx4eHRoaHSQtJSEkLzYvLy0vLzYvLy8vLy8vLy8vLy8vLz/2wBDAR0dHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eHR4eLz/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
         unoptimized={true}
@@ -164,11 +166,23 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
   const getFilteredWallpapers = useCallback(() => {
     let list = wallpapersState;
+    if (favoriteIds !== undefined) {
+      list = list.filter((wallpaper) => {
+        return favoriteIds.some(favId => {
+          if (!favId) return false
+          if (favId === wallpaper.sha || favId === wallpaper.name) return true
+          const normFav = favId.replace(/\.[^/.]+$/, '').toLowerCase().trim()
+          const normSha = (wallpaper.sha || '').replace(/\.[^/.]+$/, '').toLowerCase().trim()
+          const normName = (wallpaper.name || '').replace(/\.[^/.]+$/, '').toLowerCase().trim()
+          return normFav === normSha || normFav === normName
+        })
+      });
+    }
     if (filter !== "all") {
       list = list.filter((wallpaper) => wallpaper.platform?.toLowerCase() === filter);
     }
     if (selectedCategories.length > 0) {
-      list = list.filter((wallpaper) => selectedCategories.includes(wallpaper.category));
+      list = list.filter((wallpaper) => Boolean(wallpaper.category && selectedCategories.includes(wallpaper.category)));
     }
     if (colorFilter) {
       const targetColor = colorFilter.toLowerCase().trim()
@@ -177,7 +191,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       );
     }
     return list;
-  }, [wallpapersState, filter, selectedCategories, colorFilter]);
+  }, [wallpapersState, filter, selectedCategories, colorFilter, favoriteIds]);
 
   useEffect(() => {
     const filtered = getFilteredWallpapers();
@@ -399,11 +413,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           filteredWallpapers = filteredWallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
         }
         
-        // Filter by favorites if favoriteIds are provided
-        if (favoriteIds && favoriteIds.length > 0) {
-          filteredWallpapers = filteredWallpapers.filter(wallpaper => favoriteIds.includes(wallpaper.sha))
-        }
-
         // Sort wallpapers by newest first
         filteredWallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
@@ -735,9 +744,19 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         <div className="hidden md:flex w-full items-center justify-between gap-4 mb-8">
           {/* Left: Categories (Wrap) */}
           <div className="flex flex-col gap-3 flex-1">
-            <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
-              Filter by Categories
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+                Filter by Categories
+              </span>
+              {selectedCategories.length > 0 && (
+                <button
+                  onClick={() => setSelectedCategories([])}
+                  className="font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all px-1"
+                >
+                  Clear ({selectedCategories.length})
+                </button>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedCategories([])}
@@ -822,9 +841,19 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           {/* Layout Switcher (Mobile) */}
           {!categoryFilter && (
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
-                Layout Mode
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+                  Layout Mode
+                </span>
+                {selectedCategories.length > 0 && (
+                  <button
+                    onClick={() => setSelectedCategories([])}
+                    className="font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all"
+                  >
+                    Clear ({selectedCategories.length})
+                  </button>
+                )}
+              </div>
               <div className="inline-flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/10">
                 <button
                   onClick={() => setLayoutMode("masonry")}
@@ -851,9 +880,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           )}
 
           {/* Categories Scrollable (Mobile) */}
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="flex-1 overflow-x-auto scrollbar-none -mx-4 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="flex items-center gap-1.5 pb-1 pt-0.5 pr-2">
+          <div className="relative flex items-center min-w-0 w-full">
+            <div className="flex-1 overflow-x-auto scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex items-center gap-1.5 pb-1 pt-0.5 pr-3">
               <button
                 onClick={() => setSelectedCategories([])}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
@@ -897,12 +926,14 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
             </div>
 
             {selectedCategories.length > 0 && (
-              <button
-                onClick={() => setSelectedCategories([])}
-                className="flex-shrink-0 font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all px-2"
-              >
-                Clear
-              </button>
+              <div className="flex-shrink-0 pl-2 bg-[#0A0A0A] z-10">
+                <button
+                  onClick={() => setSelectedCategories([])}
+                  className="font-mono text-[9px] text-[#F7F06D] hover:text-[#F7F06D]/80 bg-[#F7F06D]/10 hover:bg-[#F7F06D]/15 border border-[#F7F06D]/20 px-2.5 py-1 rounded-full uppercase tracking-wider transition-all font-medium whitespace-nowrap shadow-sm"
+                >
+                  Clear
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -1042,13 +1073,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                         return false;
                       }}
                       className={`p-2 rounded-full ${
-                        favorites.includes(wallpaper.sha)
+                        isFavorite(wallpaper.sha)
                           ? "bg-black/60 text-[#FF0000]"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
                       style={{ transitionDelay: isMobile ? '0ms' : '50ms', willChange: "transform" }}
                     >
-                      <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isFavorite(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -1180,13 +1211,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                         return false;
                       }}
                       className={`p-2 rounded-full ${
-                        favorites.includes(wallpaper.sha)
+                        isFavorite(wallpaper.sha)
                           ? "bg-black/60 text-[#FF0000]"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
                       style={{ transitionDelay: isMobile ? '0ms' : '50ms', willChange: "transform" }}
                     >
-                      <Heart className={`w-4 h-4 ${favorites.includes(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isFavorite(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
                     </button>
                     <button
                       onClick={(e) => {

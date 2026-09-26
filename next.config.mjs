@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 
   typescript: {
     ignoreBuildErrors: true,
@@ -11,12 +8,7 @@ const nextConfig = {
 
   images: {
     unoptimized: true,
-    domains: [
-      'raw.githubusercontent.com',
-      'lh3.googleusercontent.com',
-      'hebbkx1anhila5yf.public.blob.vercel-storage.com',
-      'img.clerk.com',
-    ],
+    qualities: [65, 75],
 
     remotePatterns: [
       {

@@ -19,7 +19,7 @@ let backHandlers: Array<{
 let isHandlingPopState = false
 
 export function useBackHandler({ isActive, onBack, priority = 0 }: UseBackHandlerOptions) {
-  const handlerIdRef = useRef<string>()
+  const handlerIdRef = useRef<string | undefined>(undefined)
   
   // Generate unique ID for this handler
   if (!handlerIdRef.current) {

@@ -4,6 +4,7 @@ import localFont from "next/font/local"
 import { ClerkProvider } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import Script from "next/script"
+import { FavoritesProvider } from "@/hooks/use-favorites"
 import "./globals.css"
 
 const outfit = Outfit({
@@ -74,6 +75,7 @@ export default function RootLayout({
     >
       <html lang="en" className={`${outfit.variable} ${sagite.variable} ${aspekta.variable}`} suppressHydrationWarning>
         <head>
+          <meta name="mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <link rel="manifest" href="/manifest.json" />
@@ -86,7 +88,9 @@ export default function RootLayout({
             data-website-id="53a87321-3bfb-4340-86b1-e5b44aa7ba2c"
             strategy="afterInteractive"
           />
-          {children}
+          <FavoritesProvider>
+            {children}
+          </FavoritesProvider>
         </body>
       </html>
     </ClerkProvider>

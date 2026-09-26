@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { X, Copy, Link as LinkIcon, Check, LogIn } from "lucide-react"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { SignInButton } from "@clerk/nextjs"
+import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
 
 interface ShareFavoritesModalProps {
   isOpen: boolean
@@ -34,17 +35,7 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
 
   const fetchWallpaperData = async () => {
     try {
-      const response = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json')
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch wallpaper data')
-      }
-      
-      const data = await response.json()
-      
-      if (!data || !Array.isArray(data)) {
-        throw new Error('Invalid data format')
-      }
+      const data = await getRawWallpaperIndex()
       
       const links = data
         .filter((item: any) => favoriteIds.includes(item.file_name))

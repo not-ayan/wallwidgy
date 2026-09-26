@@ -79,6 +79,10 @@ export default function RootLayout({
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <link rel="manifest" href="/manifest.json" />
+          <link rel="preconnect" href="https://raw.githubusercontent.com" crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href="https://raw.githubusercontent.com" />
+          <link rel="preconnect" href="https://gist.githubusercontent.com" crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href="https://gist.githubusercontent.com" />
           <link rel="preconnect" href="https://hebbkx1anhila5yf.public.blob.vercel-storage.com" />
           <link rel="dns-prefetch" href="https://hebbkx1anhila5yf.public.blob.vercel-storage.com" />
         </head>

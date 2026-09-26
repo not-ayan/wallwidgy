@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useState as useStableState } from "react"
+import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
 // StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt: string; on404?: () => void; [key: string]: any }) {
   const [error, setError] = useStableState(false);
@@ -126,11 +127,8 @@ export default function SimilarWallpapers({
   const fetchSimilarWallpapers = async (wallpaper: Wallpaper) => {
     setIsLoading(true)
     try {
-      // Fetch all wallpapers from the index
-      const response = await fetch("https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json")
-      if (!response.ok) throw new Error("Failed to fetch wallpapers")
-      
-      const data = await response.json()
+      // Use cached wallpaper index (0ms if already loaded by grid)
+      const data = await getRawWallpaperIndex()
       
       // Find the current wallpaper's full data including metadata
       const currentWallpaperData = data.find((item: any) => 

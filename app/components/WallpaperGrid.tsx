@@ -22,6 +22,7 @@ import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
 import { useFavorites } from "@/hooks/use-favorites"
 import { track } from "@vercel/analytics"
+import { getParsedWallpapers } from "@/lib/wallpaper-store"
 
 interface WallpaperFile {
   file_name: string;
@@ -136,10 +137,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const [filter, setFilter] = useState<"all" | "desktop" | "mobile">("all")
   const [selectedIndex, setSelectedIndex] = useState<number>(-1)
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set())
-  const [visibleWallpapers, setVisibleWallpapers] = useState<Wallpaper[]>([])
   const [availableColors, setAvailableColors] = useState<any[]>([])
   const [currentPage, setCurrentPage] = useState(1)
-  const observerRef = useRef<IntersectionObserver | null>(null)
   const [clickCount, setClickCount] = useState(0)
   const [clickTimeout, setClickTimeout] = useState<NodeJS.Timeout | null>(null)
   const [displayedWallpapers, setDisplayedWallpapers] = useState<Wallpaper[]>([])
@@ -223,46 +222,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
     })
   }, [])
 
-  useEffect(() => {
-    fetchWallpapers({ sortBy: "newest" })
-  }, []) // Removed currentSort dependency
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const wallpaperSha = entry.target.getAttribute("data-wallpaper-sha")
-            if (wallpaperSha) {
-              setVisibleWallpapers((prev) => [...prev, wallpapersState.find((w) => w.sha === wallpaperSha)!])
-            }
-          }
-        })
-      },
-      { rootMargin: "100px" },
-    )
-
-    observerRef.current = observer
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-    }
-  }, [wallpapersState])
-
-  useEffect(() => {
-    if (observerRef.current) {
-      document.querySelectorAll("[data-wallpaper-sha]").forEach((el) => {
-        observerRef.current!.observe(el)
-      })
-    }
-  }, [wallpapersState])
-
-  useEffect(() => {
-    setVisibleWallpapers([]) // Reset visible wallpapers when filter changes
-  }, [filter])
-
   // Load more wallpapers after initial load
   const loadMoreWallpapers = useCallback(() => {
     if (isLoading || !hasMore) return;
@@ -308,113 +267,19 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   }, [])
 
   const fetchWallpapers = useCallback(
-    async ({ sortBy = "newest" }: { sortBy?: string } = {}) => {
+    async () => {
       try {
         setIsLoading(true)
         setError(null)
 
-        const response = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json', {
-          next: { revalidate: 3600 }, // Cache for 1 hour
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch wallpapers: ${response.status}`)
-        }
-
-        const data = await response.json()
-        
-        if (!data || !Array.isArray(data)) {
-          throw new Error('Invalid data format: expected an array')
-        }
-
-        // Derive available colors client-side from the same dataset
-        const uniqueColors = new Set<string>()
-
-        const wallpapers = data.map((item: any) => {
-          const primaryColors = item.data?.primary_colors
-          const secondaryColors = item.data?.secondary_colors
-          const colorsList: string[] = []
-          
-          const processColorVal = (val: any) => {
-            if (Array.isArray(val)) {
-              val.forEach(c => {
-                if (c && typeof c === 'string') {
-                  const cleaned = c.toLowerCase().trim()
-                  colorsList.push(cleaned)
-                  uniqueColors.add(cleaned)
-                }
-              })
-            } else if (typeof val === 'string') {
-              val.split(/[\s,]+/).forEach(c => {
-                if (c) {
-                  const cleaned = c.toLowerCase().trim()
-                  colorsList.push(cleaned)
-                  uniqueColors.add(cleaned)
-                }
-              })
-            }
-          }
-          
-          processColorVal(primaryColors)
-          processColorVal(secondaryColors)
-
-          return {
-            sha: item.file_name,
-            name: item.file_name,
-            width: item.width,
-            height: item.height,
-            preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${item.file_cache_name}`,
-            download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
-            resolution: item.resolution,
-            tag: item.orientation,
-            platform: item.orientation,
-            uploadDate: new Date(item.timestamp),
-            format: item.file_name.split('.').pop() || 'unknown',
-            category: item.category,
-            colors: colorsList
-          }
-        })
-
-        const colorMap: Record<string, string> = {
-          'darkslategray': '#2F4F4F',
-          'black': '#000000',
-          'red': '#FF0000',
-          'green': '#00FF00',
-          'blue': '#0000FF',
-          'white': '#FFFFFF',
-          'yellow': '#FFFF00',
-          'cyan': '#00FFFF',
-          'magenta': '#FF00FF',
-          'gray': '#808080',
-          'grey': '#808080',
-          'silver': '#C0C0C0',
-          'maroon': '#800000',
-          'olive': '#808000',
-          'purple': '#800080',
-          'teal': '#008080',
-          'navy': '#000080',
-          'orange': '#FFA500',
-          'brown': '#A52A2A',
-          'gold': '#FFD700',
-          'pink': '#FFC0CB',
-          'violet': '#EE82EE',
-          'indigo': '#4B0082',
-        }
-
-        const derivedColors = Array.from(uniqueColors).map(color => ({
-          name: color,
-          hex: colorMap[color.toLowerCase()] || '#000000'
-        }))
-        setAvailableColors(derivedColors)
+        const { wallpapers, availableColors } = await getParsedWallpapers()
+        setAvailableColors(availableColors)
 
         let filteredWallpapers = wallpapers
         // Apply category filter if provided
         if (categoryFilter) {
           filteredWallpapers = filteredWallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
         }
-        
-        // Sort wallpapers by newest first
-        filteredWallpapers.sort((a: any, b: any) => b.uploadDate.getTime() - a.uploadDate.getTime())
 
         setWallpapersState(filteredWallpapers)
 
@@ -424,7 +289,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           initialList = initialList.filter((wallpaper) => wallpaper.platform?.toLowerCase() === filter)
         }
         if (selectedCategories.length > 0) {
-          initialList = initialList.filter((wallpaper) => selectedCategories.includes(wallpaper.category))
+          initialList = initialList.filter((wallpaper) => Boolean(wallpaper.category && selectedCategories.includes(wallpaper.category)))
         }
         if (colorFilter) {
           const targetColor = colorFilter.toLowerCase().trim()
@@ -440,8 +305,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         setIsLoading(false)
       }
     },
-    [categoryFilter, favoriteIds, filter, selectedCategories, colorFilter],
+    [categoryFilter, filter, selectedCategories, colorFilter],
   )
+
+  useEffect(() => {
+    fetchWallpapers()
+  }, [fetchWallpapers])
 
   const handleFavorite = (wallpaper: Wallpaper) => {
     toggleFavorite(wallpaper.sha)
@@ -623,7 +492,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
   const handleRetry = useCallback(() => {
     setRetryCount((prev) => prev + 1);
-    fetchWallpapers({ sortBy: "newest" });
+    fetchWallpapers();
   }, [fetchWallpapers]);
 
   const handleShare = useCallback((wallpaper: Wallpaper) => {

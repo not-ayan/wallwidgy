@@ -7,6 +7,7 @@ import Image from "next/image"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { useState as useStableState } from "react"
 import Link from "next/link"
+import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
 
 // StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, onError404, ...props }: { src: string; alt: string; onError404?: () => void; [key: string]: any }) {
@@ -153,11 +154,8 @@ export default function SearchBar() {
     setShowMap({}) // Reset showMap for new search
     setVisibleResults(20) // Reset visible results counter
     try {
-      // Fetch all wallpapers from the index
-      const response = await fetch("https://raw.githubusercontent.com/not-ayan/storage/refs/heads/main/index.json")
-      if (!response.ok) throw new Error("Failed to fetch wallpapers")
-      
-      const data = await response.json()
+      // Use cached wallpaper index (0ms if already in memory/sessionStorage)
+      const data = await getRawWallpaperIndex()
       
       // Search through the data fields for matches
       const matchedWallpapers = data
@@ -173,18 +171,21 @@ export default function SearchBar() {
             item.data.category || '',
             item.data.mood || '',
             item.data.technique || '',
-            item.data.color_palette || ''
+            item.data.color_palette || '',
+            item.data.scene_description || '',
           ]
           
           const arrays = [
             item.data.character_names || [],
             item.data.primary_colors || [],
             item.data.secondary_colors || [],
-            item.data.tags || []
+            item.data.tags || [],
+            item.data.objects || [],
+            item.data.textures || [],
           ]
           
           return searchableFields.some(field => field.toLowerCase().includes(queryLower)) ||
-                 arrays.some(arr => arr.some((val: string) => val.toLowerCase().includes(queryLower)))
+                 arrays.some(arr => Array.isArray(arr) && arr.some((val: string) => typeof val === 'string' && val.toLowerCase().includes(queryLower)))
         })
         .map((item: any) => {
           const mainFileName = item.file_main_name || `${item.file_name}.png`

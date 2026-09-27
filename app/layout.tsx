@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
 import Script from "next/script"
 import { FavoritesProvider } from "@/hooks/use-favorites"
+import PwaRegister from "./components/PwaRegister"
 import "./globals.css"
 
 const outfit = Outfit({
@@ -28,11 +29,18 @@ const aspekta = localFont({
 export const metadata: Metadata = {
   title: "Minimalist Wallpapers",
   description: "A curated collection of minimalist wallpapers",
+  applicationName: "WallWidgy",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "WallWidgy",
+  },
   icons: {
     icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame%209-FXJqPudT39uGWT8Y4IRaSKavP2D0Fj.png",
     shortcut: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame%209-FXJqPudT39uGWT8Y4IRaSKavP2D0Fj.png",
     apple: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame%209-FXJqPudT39uGWT8Y4IRaSKavP2D0Fj.png",
   },
+  manifest: "/manifest.json",
   metadataBase: new URL('https://wallwidgy.xyz')
 }
 
@@ -97,6 +105,7 @@ export default function RootLayout({
           <FavoritesProvider>
             {children}
           </FavoritesProvider>
+          <PwaRegister />
         </body>
       </html>
     </ClerkProvider>

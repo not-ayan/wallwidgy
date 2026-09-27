@@ -1,24 +1,90 @@
 {
-  "name": "WallWidgy",
+  "id": "/?source=pwa",
+  "name": "WallWidgy — Minimal Wallpapers",
   "short_name": "WallWidgy",
-  "description": "A curated collection of minimalist wallpapers",
-  "start_url": "/",
+  "description": "A curated library of minimal digital canvases for desktop and mobile",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "any",
   "background_color": "#0A0A0A",
   "theme_color": "#0A0A0A",
-  "orientation": "portrait-primary",
+  "categories": [
+    "personalization",
+    "lifestyle",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/app-icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
       "src": "/app-icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/desktop-screenshot.png",
+      "sizes": "1600x900",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "WallWidgy Desktop Experience"
+    },
+    {
+      "src": "/mobile-screenshot.png",
+      "sizes": "1080x2400",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "WallWidgy Mobile Experience"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Favorites",
+      "short_name": "Favorites",
+      "description": "View your saved wallpapers",
+      "url": "/favorites?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Latest Wallpapers",
+      "short_name": "Latest",
+      "description": "Browse newly added wallpapers",
+      "url": "/latest?source=pwa_shortcut",
+      "icons": [
+        {
+          "src": "/app-icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

@@ -8,6 +8,15 @@ export async function GET() {
   try {
     const rawData = await fetchIndexJson()
     
+    if (!rawData || !Array.isArray(rawData) || rawData.length === 0) {
+      return NextResponse.json({ error: 'Wallpapers index is empty or failed to load' }, {
+        status: 502,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        },
+      })
+    }
+
     // Include all searchable & presentation fields (tags, colors, styles, objects,
     // textures, and scene descriptions) while stripping purely internal prompt metadata
     // (lighting, camera composition, art quality scores) to keep the gzipped payload
@@ -46,6 +55,11 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error fetching wallpapers index:', error)
-    return NextResponse.json({ error: 'Failed to load wallpapers index' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to load wallpapers index' }, {
+      status: 500,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    })
   }
 }

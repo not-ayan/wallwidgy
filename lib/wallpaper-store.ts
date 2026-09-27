@@ -92,21 +92,35 @@ export async function getRawWallpaperIndex(): Promise<any[]> {
   // 4. Fetch from network
   rawDataPromise = (async () => {
     try {
+      let data: any[] = []
+
       // First attempt: internal compressed route (gzip/brotli, ~560KB)
-      let res = await fetch('/api/wallpapers/index')
-      
-      // Fallback: direct GitHub Raw if local API is unreachable
-      if (!res.ok) {
-        res = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json')
+      try {
+        const res = await fetch('/api/wallpapers/index')
+        if (res.ok) {
+          const json = await res.json()
+          if (Array.isArray(json) && json.length > 0) {
+            data = json
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load internal wallpaper index route:', err)
       }
 
-      if (!res.ok) {
-        throw new Error(`Failed to fetch wallpaper index: ${res.status}`)
+      // Fallback: direct GitHub Raw if local API is unreachable or returned empty array
+      if (data.length === 0) {
+        console.info('Local index empty or unreachable, falling back to direct GitHub raw...')
+        const fallbackRes = await fetch('https://raw.githubusercontent.com/not-ayan/storage/main/index.json')
+        if (fallbackRes.ok) {
+          const json = await fallbackRes.json()
+          if (Array.isArray(json) && json.length > 0) {
+            data = json
+          }
+        }
       }
 
-      const data = await res.json()
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid wallpaper index format: expected an array')
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error('Failed to fetch wallpaper index: all endpoints returned empty or failed')
       }
 
       rawDataCache = data

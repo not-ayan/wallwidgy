@@ -161,7 +161,7 @@ export default function SimilarWallpapers({
             sha: item.file_name, // Use filename as identifier
             name: mainFileName,
             download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${mainFileName}`,
-            preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${cacheFileName}`,
+            preview_url: `https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache/${cacheFileName}`,
             resolution: item.resolution || `${item.width}x${item.height}`, // Use resolution from index, fallback to calculated
             platform: item.orientation === "Mobile" ? "Mobile" : "Desktop",
             width: item.width,

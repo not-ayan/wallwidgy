@@ -4,7 +4,7 @@ import { fetchIndexJson } from "@/lib/wallpapers"
 const STORAGE_INDEX_URL =
   process.env.WALLWIDGY_INDEX_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/index.json"
 const STORAGE_CACHE_BASE_URL =
-  process.env.WALLWIDGY_CACHE_BASE_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/cache"
+  process.env.WALLWIDGY_CACHE_BASE_URL || "https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache"
 const STORAGE_MAIN_BASE_URL =
   process.env.WALLWIDGY_MAIN_BASE_URL || "https://raw.githubusercontent.com/not-ayan/storage/main/main"
 const WALLPAPER_LOCAL_BASE_URL = process.env.WALLWIDGY_PUBLIC_BASE_URL || ""

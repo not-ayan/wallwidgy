@@ -13,6 +13,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'cdn.jsdelivr.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'raw.githubusercontent.com',
         pathname: '/**',
       },

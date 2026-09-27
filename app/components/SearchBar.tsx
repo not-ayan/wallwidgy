@@ -195,7 +195,7 @@ export default function SearchBar() {
             sha: item.file_name,
             name: mainFileName,
             download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${mainFileName}`,
-            preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${cacheFileName}`,
+            preview_url: `https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache/${cacheFileName}`,
             resolution: item.resolution || `${item.width}x${item.height}`,
             platform: item.orientation === "Mobile" ? "Mobile" : "Desktop",
             width: item.width,

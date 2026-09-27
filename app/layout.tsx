@@ -79,6 +79,8 @@ export default function RootLayout({
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
           <link rel="manifest" href="/manifest.json" />
+          <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+          <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
           <link rel="preconnect" href="https://raw.githubusercontent.com" crossOrigin="anonymous" />
           <link rel="dns-prefetch" href="https://raw.githubusercontent.com" />
           <link rel="preconnect" href="https://gist.githubusercontent.com" crossOrigin="anonymous" />

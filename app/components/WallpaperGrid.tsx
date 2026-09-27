@@ -144,7 +144,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-  const initialLoadSize = 50
+  const initialLoadSize = 40
   const loadMoreSize = 20
   const [showDownloadConfirmation, setShowDownloadConfirmation] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);

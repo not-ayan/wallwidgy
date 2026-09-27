@@ -41,7 +41,7 @@ async function getWallpaper(name: string): Promise<Wallpaper | null> {
       name: wallpaper.file_name,
       width: wallpaper.width,
       height: wallpaper.height,
-      preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${wallpaper.file_cache_name}`,
+      preview_url: `https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache/${wallpaper.file_cache_name}`,
       download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${wallpaper.file_main_name}`,
       resolution: wallpaper.resolution,
       tag: wallpaper.orientation,

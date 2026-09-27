@@ -197,7 +197,7 @@ export async function getParsedWallpapers(): Promise<{
       name: item.file_name,
       width: item.width,
       height: item.height,
-      preview_url: `https://raw.githubusercontent.com/not-ayan/storage/main/cache/${item.file_cache_name}`,
+      preview_url: `https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache/${item.file_cache_name}`,
       download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
       resolution: item.resolution,
       tag: item.orientation,

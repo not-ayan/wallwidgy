@@ -22,3 +22,8 @@ enabled = false
 persist = true
 head_sampling_rate = 1
 
+[[d1_databases]]
+binding = "DB"
+database_name = "wallwidgy-db"
+database_id = "c29dd30b-06a5-42b3-82e0-3ad67ff4b5f9"
+

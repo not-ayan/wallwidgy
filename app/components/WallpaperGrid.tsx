@@ -22,6 +22,7 @@ import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
 import { useFavorites } from "@/hooks/use-favorites"
 import { getParsedWallpapers } from "@/lib/wallpaper-store"
+import { trackDownload } from "@/lib/analytics"
 
 interface WallpaperFile {
   file_name: string;
@@ -355,6 +356,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       const wallpaper = wallpapersState.find((w) => w.sha === sha)
       if (wallpaper) {
         try {
+          trackDownload(wallpaper)
           const response = await fetch(wallpaper.download_url)
           if (!response.ok) throw new Error('Failed to download')
           const blob = await response.blob()

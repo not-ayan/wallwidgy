@@ -69,6 +69,7 @@ import SimilarWallpapers from "./SimilarWallpapers"
 import { shouldDisableBlurEffects } from "@/lib/utils"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { useFavorites } from "@/hooks/use-favorites"
+import { trackDownload } from "@/lib/analytics"
 
 export interface Wallpaper {
   sha: string
@@ -293,6 +294,10 @@ export default function WallpaperModal({
       // Add debug logging
       console.log("Attempting to download:", currentWallpaper.download_url)
       console.log("Wallpaper object:", currentWallpaper)
+
+      // Record download count
+      trackDownload(currentWallpaper)
+
       const response = await fetch(currentWallpaper.download_url)
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)

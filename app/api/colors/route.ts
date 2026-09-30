@@ -1,7 +1,21 @@
 import { NextResponse } from 'next/server'
 
+let cachedColors: any[] | null = null
+let lastFetchedColorsTime = 0
+const COLORS_TTL = 86400 * 1000
+
+export const revalidate = 86400
+
+
 export async function GET() {
   try {
+    const now = Date.now()
+    if (cachedColors && (now - lastFetchedColorsTime < COLORS_TTL)) {
+      return NextResponse.json(cachedColors, {
+        headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=600' }
+      })
+    }
+
     const owner = process.env.NEXT_PUBLIC_GITHUB_REPO_OWNER || 'not-ayan'
     const repo = process.env.NEXT_PUBLIC_GITHUB_REPO_NAME || 'storage'
 
@@ -11,6 +25,11 @@ export async function GET() {
     })
 
     if (!tagsResponse.ok) {
+      if (cachedColors) {
+        return NextResponse.json(cachedColors, {
+          headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=600' }
+        })
+      }
       throw new Error(`Failed to fetch tags.json: ${tagsResponse.status}`)
     }
 
@@ -31,6 +50,9 @@ export async function GET() {
       hex: getColorHex(color)
     }))
 
+    cachedColors = colors
+    lastFetchedColorsTime = Date.now()
+
     const response = NextResponse.json(colors)
     response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=600')
     return response
@@ -39,6 +61,7 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
 
 function getColorHex(colorName: string): string {
   const colorMap: Record<string, string> = {

@@ -1,60 +1,24 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
 import { fetchIndexJson } from '@/lib/wallpapers'
 
-// Helper: recursively collect files under a directory
-async function collectFiles(dir: string): Promise<string[]> {
-  try {
-    const entries = await fs.readdir(dir, { withFileTypes: true })
-    const files: string[] = []
-
-    for (const entry of entries) {
-      const fullPath = path.join(dir, entry.name)
-      if (entry.isDirectory()) {
-        const nestedFiles = await collectFiles(fullPath)
-        files.push(...nestedFiles)
-      } else if (entry.isFile()) {
-        // Only include common image extensions
-        if (/\.(jpe?g|png|webp|avif|gif)$/i.test(entry.name)) {
-          files.push(fullPath)
-        }
-      }
+// Helper: Pick N random items efficiently without cloning/shuffling the full array
+function pickRandom<T>(array: T[], count: number): T[] {
+  const n = array.length
+  if (n <= count) return array.slice()
+  
+  const result: T[] = []
+  const chosenIndices = new Set<number>()
+  
+  while (result.length < count && chosenIndices.size < n) {
+    const idx = Math.floor(Math.random() * n)
+    if (!chosenIndices.has(idx)) {
+      chosenIndices.add(idx)
+      result.push(array[idx])
     }
-
-    return files
-  } catch (error) {
-    return []
   }
+  return result
 }
 
-// Helper: determine if a filename suggests mobile wallpaper
-function isMobileName(name: string): boolean {
-  const lower = name.toLowerCase()
-  return lower.includes('mobile') || 
-         lower.includes('phone') || 
-         lower.includes('portrait') ||
-         lower.includes('vertical')
-}
-
-// Helper: determine if a filename suggests desktop wallpaper
-function isDesktopName(name: string): boolean {
-  const lower = name.toLowerCase()
-  return lower.includes('desktop') || 
-         lower.includes('landscape') || 
-         lower.includes('wide') ||
-         lower.includes('horizontal')
-}
-
-// Helper: shuffle array using Fisher-Yates algorithm
-function shuffle<T>(array: T[]): T[] {
-  const shuffled = [...array]
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-  return shuffled
-}
 
 export async function GET(request: Request) {
   try {
@@ -134,9 +98,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // Shuffle and select requested count of items
-    const shuffledItems = shuffle(wallpaperItems)
-    const selectedItems = shuffledItems.slice(0, count)
+    // Select requested count of items randomly without heavy full-array shuffling
+    const selectedItems = pickRandom(wallpaperItems, count)
+
 
     // Convert items to GitHub raw URLs
     const STORAGE_MAIN_BASE_URL =

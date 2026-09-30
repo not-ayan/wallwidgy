@@ -24,13 +24,21 @@ interface IndexWallpaper {
   }
 }
 
-function shuffle<T>(array: T[]): T[] {
-  const copy = [...array]
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+function pickRandom<T>(array: T[], count: number): T[] {
+  const n = array.length
+  if (n <= count) return array.slice()
+  
+  const result: T[] = []
+  const chosenIndices = new Set<number>()
+  
+  while (result.length < count && chosenIndices.size < n) {
+    const idx = Math.floor(Math.random() * n)
+    if (!chosenIndices.has(idx)) {
+      chosenIndices.add(idx)
+      result.push(array[idx])
+    }
   }
-  return copy
+  return result
 }
 
 function matchesResolution(wallpaper: IndexWallpaper, resolution: string): boolean {
@@ -68,7 +76,7 @@ export async function GET(request: Request) {
     }
 
     const indexData: IndexWallpaper[] = rawData
-    let wallpapers = [...indexData]
+    let wallpapers = indexData
 
     if (tag === "desktop") {
       wallpapers = wallpapers.filter((wallpaper) => wallpaper.orientation === "Desktop")
@@ -80,9 +88,10 @@ export async function GET(request: Request) {
       wallpapers = wallpapers.filter((wallpaper) => matchesResolution(wallpaper, resolution))
     }
 
-    wallpapers = shuffle(wallpapers).slice(0, count)
+    const selectedWallpapers = pickRandom(wallpapers, count)
 
-    const mappedWallpapers = wallpapers.map((wallpaper) => {
+    const mappedWallpapers = selectedWallpapers.map((wallpaper) => {
+
       const mainName = wallpaper.file_main_name || wallpaper.file_name
       const cacheName = wallpaper.file_cache_name || wallpaper.file_name
       const colorsRaw = `${wallpaper.data?.primary_colors || ""} ${wallpaper.data?.secondary_colors || ""}`

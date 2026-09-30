@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import WallpaperClient from './WallpaperClient'
-import { fetchIndexJson } from '@/lib/wallpapers'
+import { fetchIndexJson, findWallpaperByName } from '@/lib/wallpapers'
 
 export const revalidate = 3600 // Cache ISR for 1 hour
 
@@ -23,17 +23,8 @@ interface Wallpaper {
 }
 
 async function getWallpaper(name: string): Promise<Wallpaper | null> {
-  const decodedName = decodeURIComponent(name)
   try {
-    const data = await fetchIndexJson()
-    if (!data || !Array.isArray(data)) return null
-
-    const wallpaper = data.find((item: any) => {
-      if (item.file_name === decodedName) return true
-      const nameWithoutExt = item.file_name.replace(/\.[^/.]+$/, "")
-      return nameWithoutExt === decodedName
-    })
-
+    const wallpaper = await findWallpaperByName(name)
     if (!wallpaper) return null
 
     return {
@@ -54,6 +45,7 @@ async function getWallpaper(name: string): Promise<Wallpaper | null> {
     return null
   }
 }
+
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { name } = await params

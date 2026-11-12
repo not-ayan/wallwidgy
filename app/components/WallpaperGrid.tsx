@@ -1107,11 +1107,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   )}
                 </div>
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-                  {isPopular && index < 3 && (
-                    <div className="bg-[#F7F06D] text-black px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider shadow-md">
-                      #{index + 1}
-                    </div>
-                  )}
                   <div
                     className="bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
                     style={{ willChange: "transform" }}
@@ -1273,11 +1268,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   )}
                 </div>
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-                  {isPopular && index < 3 && (
-                    <div className="bg-[#F7F06D] text-black px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider shadow-md">
-                      #{index + 1}
-                    </div>
-                  )}
                   <div
                     className="bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
                     style={{ willChange: "transform" }}

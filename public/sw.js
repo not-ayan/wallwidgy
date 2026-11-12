@@ -1,5 +1,5 @@
 // WallWidgy Desktop & Mobile PWA Service Worker
-const CACHE_NAME = 'wallwidgy-shell-v1';
+const CACHE_NAME = 'wallwidgy-shell-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/manifest.json',
@@ -43,8 +43,11 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Skip non-GET requests, clerk authentication, chrome-extension, and API downloads
+  // Also never intercept on localhost/127.0.0.1 in local dev so Turbopack/HMR is never poisoned by stale caches
   if (
     request.method !== 'GET' ||
+    url.hostname === 'localhost' ||
+    url.hostname === '127.0.0.1' ||
     url.pathname.startsWith('/api/') ||
     url.hostname.includes('clerk') ||
     url.protocol.startsWith('chrome-extension')

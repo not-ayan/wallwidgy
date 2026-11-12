@@ -17,13 +17,23 @@ import {
   Cpu,
   Moon,
   Atom,
+  Flame,
+  X,
 } from "lucide-react"
 import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
 import { useFavorites } from "@/hooks/use-favorites"
 import { getParsedWallpapers } from "@/lib/wallpaper-store"
 import { trackDownload } from "@/lib/analytics"
-import { appendPaginationSlice, createLatestRequestGuard, filterWallpapersList } from "@/lib/ui-state-helpers"
+import {
+  appendPaginationSlice,
+  buildDownloadCountMap,
+  createLatestRequestGuard,
+  filterWallpapersList,
+  getWallpaperDownloadCount,
+  getDisplayDownloadCount,
+  formatDownloadCount,
+} from "@/lib/ui-state-helpers"
 
 interface WallpaperFile {
   file_name: string;
@@ -72,6 +82,17 @@ const CATEGORY_LIST = [
 interface ImageDimensions {
   width: number;
   height: number;
+}
+
+const getResolvedDownloadCount = (
+  wallpaper: { sha: string; name: string },
+  counts?: Map<string, number>,
+  index?: number
+): number => {
+  if (typeof getDisplayDownloadCount === 'function') {
+    return getDisplayDownloadCount(wallpaper, counts, index)
+  }
+  return 0
 }
 
 const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wallpaper; index: number }) => {
@@ -156,15 +177,42 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const [layoutMode, setLayoutMode] = useState<"masonry" | "grid">("masonry");
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
+  const [isPopular, setIsPopular] = useState(categoryFilter === 'popular')
+  const [popularDownloadCounts, setPopularDownloadCounts] = useState<Map<string, number>>(new Map())
+  const hasFetchedPopularRef = useRef(false)
+
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    categoryFilter ? [categoryFilter] : []
+    categoryFilter && categoryFilter !== 'popular' ? [categoryFilter] : []
   )
 
   useEffect(() => {
     if (categoryFilter) {
-      setSelectedCategories([categoryFilter])
+      if (categoryFilter === 'popular') {
+        setIsPopular(true)
+        setSelectedCategories([])
+      } else {
+        setIsPopular(false)
+        setSelectedCategories([categoryFilter])
+      }
     }
   }, [categoryFilter])
+
+  // Fetch popular downloads from D1 when Popular tab is activated (or initially if active)
+  useEffect(() => {
+    if (isPopular && !hasFetchedPopularRef.current) {
+      hasFetchedPopularRef.current = true
+      fetch('/api/downloads?limit=100')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.success && Array.isArray(data.wallpapers)) {
+            setPopularDownloadCounts(buildDownloadCountMap(data.wallpapers))
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to load popular downloads:', err)
+        })
+    }
+  }, [isPopular])
 
   const getFilteredWallpapers = useCallback(() => {
     return filterWallpapersList(wallpapersState, {
@@ -172,14 +220,16 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       platformFilter: filter,
       selectedCategories,
       colorFilter,
+      sortByPopular: isPopular,
+      downloadCounts: popularDownloadCounts,
     });
-  }, [wallpapersState, filter, selectedCategories, colorFilter, favoriteIds]);
+  }, [wallpapersState, filter, selectedCategories, colorFilter, favoriteIds, isPopular, popularDownloadCounts]);
 
   useEffect(() => {
     const filtered = getFilteredWallpapers();
     setDisplayedWallpapers(filtered.slice(0, initialLoadSize));
     setHasMore(filtered.length > initialLoadSize);
-  }, [selectedCategories, filter, wallpapersState, getFilteredWallpapers]);
+  }, [selectedCategories, filter, wallpapersState, getFilteredWallpapers, isPopular]);
 
   useEffect(() => {
     const filtered = getFilteredWallpapers();
@@ -331,6 +381,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         if (wallpaper) {
           try {
             trackDownload(wallpaper)
+            setPopularDownloadCounts((prev) => {
+              const next = new Map(prev)
+              const count = getWallpaperDownloadCount(wallpaper, next) + 1
+              next.set(wallpaper.sha, count)
+              if (wallpaper.name) next.set(wallpaper.name, count)
+              return next
+            })
             const response = await fetch(wallpaper.download_url)
             if (!response.ok) throw new Error('Failed to download')
             const blob = await response.blob()
@@ -394,6 +451,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
     try {
       trackDownload(wallpaper)
+      setPopularDownloadCounts((prev) => {
+        const next = new Map(prev)
+        const count = getWallpaperDownloadCount(wallpaper, next) + 1
+        next.set(wallpaper.sha, count)
+        if (wallpaper.name) next.set(wallpaper.name, count)
+        return next
+      })
       const response = await fetch(wallpaper.download_url)
       if (!response.ok) throw new Error('Failed to download')
       const blob = await response.blob()
@@ -559,20 +623,28 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
               <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
                 Filter by Categories
               </span>
-              {selectedCategories.length > 0 && (
+              {(selectedCategories.length > 0 || isPopular) && (
                 <button
-                  onClick={() => setSelectedCategories([])}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategories([])
+                    setIsPopular(false)
+                  }}
                   className="font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all px-1"
                 >
-                  Clear ({selectedCategories.length})
+                  Clear ({selectedCategories.length + (isPopular ? 1 : 0)})
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2 pt-1.5">
               <button
-                onClick={() => setSelectedCategories([])}
-                className={`px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                  selectedCategories.length === 0
+                type="button"
+                onClick={() => {
+                  setSelectedCategories([])
+                  setIsPopular(false)
+                }}
+                className={`px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 active:scale-95 ${
+                  selectedCategories.length === 0 && !isPopular
                     ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-lg shadow-[var(--accent-light)]/10"
                     : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
                 }`}
@@ -580,6 +652,38 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 All Wallpapers
               </button>
               
+              {/* Refined Accent Glow Popular Button (Desktop) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPopular((prev) => !prev)
+                  setSelectedCategories([])
+                }}
+                className={`group relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 select-none cursor-pointer ${
+                  isPopular
+                    ? "bg-[#141414] text-white border border-[var(--accent-light)]/45 shadow-[0_0_12px_rgba(255,248,207,0.16)]"
+                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white hover:border-[var(--accent-light)]/25 hover:shadow-[0_0_8px_rgba(255,248,207,0.1)]"
+                }`}
+                title="View popular wallpapers"
+              >
+                {/* Subtle organic top sheen inside the pill (no rectangles or harsh lines) */}
+                {isPopular && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_45%_at_50%_0%,rgba(255,248,207,0.12),transparent_70%)]"
+                  />
+                )}
+
+                <Flame
+                  className={`w-3.5 h-3.5 transition-colors relative z-10 ${
+                    isPopular
+                      ? "text-[var(--accent-light)] fill-[var(--accent-light)]/25 drop-shadow-[0_0_5px_rgba(255,248,207,0.5)]"
+                      : "text-[var(--accent-light)]/50 group-hover:text-[var(--accent-light)]"
+                  }`}
+                />
+                <span className="relative z-10">Popular</span>
+              </button>
+
               {CATEGORY_LIST.map((category) => {
                 const categoryTag = `#${category.id}`
                 const isSelected = selectedCategories.includes(categoryTag)
@@ -588,7 +692,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 return (
                   <button
                     key={category.id}
+                    type="button"
                     onClick={() => {
+                      setIsPopular(false)
                       setSelectedCategories((prev) => {
                         if (prev.includes(categoryTag)) {
                           return prev.filter((t) => t !== categoryTag)
@@ -597,7 +703,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                         }
                       })
                     }}
-                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
+                    className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 active:scale-95 ${
                       isSelected
                         ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-lg shadow-[var(--accent-light)]/10"
                         : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
@@ -646,63 +752,114 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         </div>
       )}
 
-      {/* Mobile Controls Toolbar (Mobile App Style - Direct floating pills) */}
+      {/* Mobile Controls Toolbar (Refined Mobile App Style) */}
       {!favoriteIds && (
-        <div className="flex md:hidden flex-col gap-3.5 w-full mb-6 scroll-mt-28" id="categories-bar">
-          {/* Layout Switcher (Mobile) */}
-          {!categoryFilter && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
-                  Layout Mode
-                </span>
-                {selectedCategories.length > 0 && (
-                  <button
-                    onClick={() => setSelectedCategories([])}
-                    className="font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all"
-                  >
-                    Clear ({selectedCategories.length})
-                  </button>
-                )}
-              </div>
+        <div className="flex md:hidden flex-col gap-2.5 w-full mb-6 scroll-mt-28" id="categories-bar">
+          {/* Subheader: Categories status vs Layout switcher */}
+          <div className="flex items-center justify-between px-0.5">
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[9px] text-white/40 tracking-wider uppercase">
+                Categories
+              </span>
+              {(selectedCategories.length > 0 || isPopular) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategories([])
+                    setIsPopular(false)
+                  }}
+                  className="inline-flex items-center gap-1 font-mono text-[9px] text-[var(--accent-light)] hover:text-white bg-[var(--accent-light)]/10 hover:bg-[var(--accent-light)]/20 border border-[var(--accent-light)]/25 px-2 py-0.5 rounded-full uppercase tracking-wider transition-all duration-200 active:scale-95"
+                  title="Clear category filters"
+                >
+                  <X className="w-2.5 h-2.5" />
+                  <span>Reset</span>
+                  <span className="opacity-75 font-semibold">
+                    ({selectedCategories.length + (isPopular ? 1 : 0)})
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* Layout Toggle (Mobile) */}
+            {!categoryFilter && (
               <div className="inline-flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/10">
                 <button
+                  type="button"
                   onClick={() => setLayoutMode("masonry")}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
                     layoutMode === "masonry"
-                      ? "bg-[var(--accent-light)] text-black font-semibold"
+                      ? "bg-[var(--accent-light)] text-black font-semibold shadow-sm"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
                   Masonry
                 </button>
                 <button
+                  type="button"
                   onClick={() => setLayoutMode("grid")}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
                     layoutMode === "grid"
-                      ? "bg-[var(--accent-light)] text-black font-semibold"
+                      ? "bg-[var(--accent-light)] text-black font-semibold shadow-sm"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
                   Grid
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Categories Scrollable (Mobile) */}
-          <div className="relative flex items-center min-w-0 w-full">
-            <div className="flex-1 overflow-x-auto scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="flex items-center gap-1.5 pb-1 pt-0.5 pr-3">
+          {/* Categories Horizontal Carousel */}
+          <div className="relative min-w-0 w-full">
+            <div
+              className="overflow-x-auto scrollbar-none py-1.5 -mx-4 px-4 flex items-center gap-1.5"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               <button
-                onClick={() => setSelectedCategories([])}
-                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
-                  selectedCategories.length === 0
-                    ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)]"
-                    : "bg-white/5 text-white/60 border-white/10"
+                type="button"
+                onClick={() => {
+                  setSelectedCategories([])
+                  setIsPopular(false)
+                }}
+                className={`flex-shrink-0 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all duration-200 active:scale-95 ${
+                  selectedCategories.length === 0 && !isPopular
+                    ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-sm"
+                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
                 }`}
               >
                 All
+              </button>
+
+              {/* Refined Accent Glow Popular Button (Mobile) */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsPopular((prev) => !prev)
+                  setSelectedCategories([])
+                }}
+                className={`group relative flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-medium transition-all duration-300 active:scale-95 select-none cursor-pointer ${
+                  isPopular
+                    ? "bg-[#141414] text-white border border-[var(--accent-light)]/45 shadow-[0_0_12px_rgba(255,248,207,0.16)]"
+                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white hover:border-[var(--accent-light)]/25 hover:shadow-[0_0_8px_rgba(255,248,207,0.1)]"
+                }`}
+                title="View popular wallpapers"
+              >
+                {/* Subtle organic top sheen inside the pill (no rectangles or harsh lines) */}
+                {isPopular && (
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_45%_at_50%_0%,rgba(255,248,207,0.12),transparent_70%)]"
+                  />
+                )}
+
+                <Flame
+                  className={`w-3 h-3 transition-colors relative z-10 ${
+                    isPopular
+                      ? "text-[var(--accent-light)] fill-[var(--accent-light)]/25 drop-shadow-[0_0_5px_rgba(255,248,207,0.5)]"
+                      : "text-[var(--accent-light)]/50 group-hover:text-[var(--accent-light)]"
+                  }`}
+                />
+                <span className="relative z-10">Popular</span>
               </button>
               
               {CATEGORY_LIST.map((category) => {
@@ -713,7 +870,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 return (
                   <button
                     key={category.id}
+                    type="button"
                     onClick={() => {
+                      setIsPopular(false)
                       setSelectedCategories((prev) => {
                         if (prev.includes(categoryTag)) {
                           return prev.filter((t) => t !== categoryTag)
@@ -722,10 +881,10 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                         }
                       })
                     }}
-                    className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all ${
+                    className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all duration-200 active:scale-95 ${
                       isSelected
-                        ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)]"
-                        : "bg-white/5 text-white/60 border-white/10"
+                        ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-sm font-semibold"
+                        : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
                   >
                     <Icon className="w-3 h-3" />
@@ -733,19 +892,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   </button>
                 )
               })}
-              </div>
             </div>
 
-            {selectedCategories.length > 0 && (
-              <div className="flex-shrink-0 pl-2 bg-[#0A0A0A] z-10">
-                <button
-                  onClick={() => setSelectedCategories([])}
-                  className="font-mono text-[9px] text-[#F7F06D] hover:text-[#F7F06D]/80 bg-[#F7F06D]/10 hover:bg-[#F7F06D]/15 border border-[#F7F06D]/20 px-2.5 py-1 rounded-full uppercase tracking-wider transition-all font-medium whitespace-nowrap shadow-sm"
-                >
-                  Clear
-                </button>
-              </div>
-            )}
+            {/* Subtle Right Edge Fade Mask to signal scrollability without cutting chips */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10"
+            />
           </div>
         </div>
       )}
@@ -818,6 +971,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           // Use modulo to reset animation delay for each batch, preventing long delays
           const batchIndex = index % loadMoreSize;
           const isNewlyLoaded = index >= initialLoadSize;
+          const downloadCount = isPopular
+            ? getResolvedDownloadCount(wallpaper, popularDownloadCounts, index)
+            : 0;
           
           return (
             <div 
@@ -861,9 +1017,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 <div className="absolute inset-0 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 transition-all duration-300 group-hover:translate-y-0 pointer-events-none"
                      style={{ willChange: "opacity, transform" }}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                    <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 truncate mr-2">
                       {wallpaper.name}
                     </h3>
+                    {downloadCount > 0 && (
+                      <span className="text-xs text-white/70 font-mono flex items-center gap-1 flex-shrink-0">
+                        <Download className="w-3 h-3 text-[#F7F06D]" />
+                        {formatDownloadCount(downloadCount)}
+                      </span>
+                    )}
                   </div>
                   
                   {/* Action buttons with simplified animation */}
@@ -929,14 +1091,33 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   </div>
                 </div>
                 
-                {/* Simplified badges with shorter animations */}
-                <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:shadow-lg"
-                     style={{ willChange: "transform" }}>
-                  {wallpaper.resolution}
+                {/* Badges */}
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+                  <div
+                    className="bg-black/60 backdrop-blur-md text-white/90 border border-white/10 px-2.5 py-1 rounded-full text-xs font-mono font-medium shadow-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:shadow-lg"
+                    style={{ willChange: "transform" }}
+                  >
+                    {wallpaper.resolution}
+                  </div>
+                  {downloadCount > 0 && (
+                    <div className="flex items-center gap-1 bg-black/75 backdrop-blur-md text-white/90 border border-white/10 px-2 py-1 rounded-full text-xs font-mono shadow-sm">
+                      <Download className="w-3 h-3 text-[#F7F06D]" />
+                      <span>{formatDownloadCount(downloadCount)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
-                     style={{ willChange: "transform" }}>
-                  {wallpaper.tag}
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                  {isPopular && index < 3 && (
+                    <div className="bg-[#F7F06D] text-black px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider shadow-md">
+                      #{index + 1}
+                    </div>
+                  )}
+                  <div
+                    className="bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
+                    style={{ willChange: "transform" }}
+                  >
+                    {wallpaper.tag}
+                  </div>
                 </div>
                 
                 {/* Simplified highlight border */}
@@ -957,6 +1138,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           // Use modulo to reset animation delay for each batch, preventing long delays
           const batchIndex = index % loadMoreSize;
           const isNewlyLoaded = index >= initialLoadSize;
+          const downloadCount = isPopular
+            ? getResolvedDownloadCount(wallpaper, popularDownloadCounts, index)
+            : 0;
           
           return (
             <div 
@@ -999,9 +1183,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 <div className="absolute inset-0 flex flex-col justify-end p-5 opacity-0 group-hover:opacity-100 sm:group-hover:opacity-100 transition-all duration-300 group-hover:translate-y-0 pointer-events-none"
                      style={{ willChange: "opacity, transform" }}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0">
+                    <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 truncate mr-2">
                       {wallpaper.name}
                     </h3>
+                    {downloadCount > 0 && (
+                      <span className="text-xs text-white/70 font-mono flex items-center gap-1 flex-shrink-0">
+                        <Download className="w-3 h-3 text-[#F7F06D]" />
+                        {formatDownloadCount(downloadCount)}
+                      </span>
+                    )}
                   </div>
                   
                   {/* Action buttons with simplified animation */}
@@ -1067,14 +1257,33 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   </div>
                 </div>
                 
-                {/* Simplified badges with shorter animations */}
-                <div className="absolute top-3 left-3 bg-[var(--accent-light)] text-black px-2 py-1 rounded-full text-xs font-medium transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:shadow-lg"
-                     style={{ willChange: "transform" }}>
-                  {wallpaper.resolution}
+                {/* Badges */}
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+                  <div
+                    className="bg-black/60 backdrop-blur-md text-white/90 border border-white/10 px-2.5 py-1 rounded-full text-xs font-mono font-medium shadow-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:shadow-lg"
+                    style={{ willChange: "transform" }}
+                  >
+                    {wallpaper.resolution}
+                  </div>
+                  {downloadCount > 0 && (
+                    <div className="flex items-center gap-1 bg-black/75 backdrop-blur-md text-white/90 border border-white/10 px-2 py-1 rounded-full text-xs font-mono shadow-sm">
+                      <Download className="w-3 h-3 text-[#F7F06D]" />
+                      <span>{formatDownloadCount(downloadCount)}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="absolute top-3 right-3 bg-white/10 text-white px-2 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
-                     style={{ willChange: "transform" }}>
-                  {wallpaper.tag}
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                  {isPopular && index < 3 && (
+                    <div className="bg-[#F7F06D] text-black px-2 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider shadow-md">
+                      #{index + 1}
+                    </div>
+                  )}
+                  <div
+                    className="bg-white/10 text-white px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm transition-all duration-300 transform translate-y-0 group-hover:translate-y-0 group-hover:bg-white/20"
+                    style={{ willChange: "transform" }}
+                  >
+                    {wallpaper.tag}
+                  </div>
                 </div>
                 
                 {/* Simplified highlight border */}
@@ -1163,6 +1372,9 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       {selectedWallpaper && (() => {
         const filteredWallpapers = getFilteredWallpapers();
         const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+        const modalDownloadCount = isPopular && currentFilteredIndex >= 0
+          ? getResolvedDownloadCount(selectedWallpaper, popularDownloadCounts, currentFilteredIndex)
+          : 0;
         
         return (
           <WallpaperModal
@@ -1175,6 +1387,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
               ...selectedWallpaper,
               platform: selectedWallpaper?.tag === "Mobile" ? "Mobile" : "Desktop",
             }}
+            downloadCount={modalDownloadCount}
             onPrevious={handlePreviousWallpaper}
             onNext={handleNextWallpaper}
             hasPrevious={currentFilteredIndex > 0}

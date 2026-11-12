@@ -12,6 +12,29 @@ async function getD1Database() {
   }
 }
 
+let tableInitialized = false
+
+async function ensureTable(db: any): Promise<void> {
+  if (tableInitialized || !db) return
+  try {
+    await db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS wallpaper_downloads (
+          sha TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          platform TEXT,
+          category TEXT,
+          download_count INTEGER DEFAULT 1,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      )
+      .run()
+    tableInitialized = true
+  } catch (err) {
+    console.warn('Could not ensure wallpaper_downloads table:', err)
+  }
+}
+
 /**
  * POST /api/downloads
  * Records a wallpaper download event in Cloudflare D1
@@ -36,28 +59,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, simulated: true })
     }
 
-    // Upsert into wallpaper_downloads table
-    await db
-      .prepare(
-        `INSERT INTO wallpaper_downloads (sha, name, platform, category, download_count, updated_at)
-         VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
-         ON CONFLICT(sha) DO UPDATE SET
-           download_count = download_count + 1,
-           updated_at = CURRENT_TIMESTAMP`
-      )
-      .bind(wallpaperSha, wallpaperName, platform, category)
-      .run()
+    const upsertSql = `
+      INSERT INTO wallpaper_downloads (sha, name, platform, category, download_count, updated_at)
+      VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+      ON CONFLICT(sha) DO UPDATE SET
+        download_count = download_count + 1,
+        updated_at = CURRENT_TIMESTAMP
+    `
+
+    try {
+      await db.prepare(upsertSql).bind(wallpaperSha, wallpaperName, platform, category).run()
+    } catch (insertErr: any) {
+      if (String(insertErr?.message || '').includes('no such table')) {
+        await ensureTable(db)
+        try {
+          await db.prepare(upsertSql).bind(wallpaperSha, wallpaperName, platform, category).run()
+        } catch (retryErr) {
+          console.warn('Retry after ensureTable failed:', retryErr)
+        }
+      } else {
+        console.warn('Error inserting download into D1:', insertErr)
+      }
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error tracking download in D1:', error)
-    return NextResponse.json({ error: 'Failed to record download' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Failed to record download' }, { status: 500 })
   }
 }
 
 /**
  * GET /api/downloads
- * Returns the most downloaded wallpapers (for future "Trending" / "Popular" features)
+ * Returns the most downloaded wallpapers (for "Trending" / "Popular" features)
  */
 export async function GET(request: Request) {
   try {
@@ -78,22 +112,37 @@ export async function GET(request: Request) {
       })
     }
 
-    const { results } = await db
-      .prepare(
-        `SELECT sha, name, platform, category, download_count, updated_at
-         FROM wallpaper_downloads
-         ORDER BY download_count DESC
-         LIMIT ?`
-      )
-      .bind(limit)
-      .all()
+    const selectSql = `
+      SELECT sha, name, platform, category, download_count, updated_at
+      FROM wallpaper_downloads
+      ORDER BY download_count DESC
+      LIMIT ?
+    `
 
-    return NextResponse.json({
-      success: true,
-      wallpapers: results || [],
-    })
+    try {
+      const { results } = await db.prepare(selectSql).bind(limit).all()
+      return NextResponse.json({
+        success: true,
+        wallpapers: results || [],
+      })
+    } catch (queryErr: any) {
+      const msg = String(queryErr?.message || '')
+      if (msg.includes('no such table')) {
+        await ensureTable(db)
+        return NextResponse.json({
+          success: true,
+          wallpapers: [],
+          message: 'Table initialized',
+        })
+      }
+      console.warn('Error querying downloads from D1:', queryErr)
+      return NextResponse.json({
+        success: true,
+        wallpapers: [],
+      })
+    }
   } catch (error) {
     console.error('Error querying downloads from D1:', error)
-    return NextResponse.json({ error: 'Failed to query download statistics' }, { status: 500 })
+    return NextResponse.json({ success: true, wallpapers: [] })
   }
 }

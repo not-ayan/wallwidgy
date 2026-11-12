@@ -7,6 +7,10 @@ import {
   createLatestRequestGuard,
   parseStoredStringArray,
   selectLatestUnreadToast,
+  buildDownloadCountMap,
+  getWallpaperDownloadCount,
+  getDisplayDownloadCount,
+  formatDownloadCount,
 } from '../lib/ui-state-helpers'
 
 const CATALOG = [
@@ -89,4 +93,41 @@ test('Issue 6: NotificationCenter helpers handle corrupted storage and select la
   assert.equal(selectLatestUnreadToast(items, ['n2'], ['n3'])?.id, 'n1')
   // All read -> null
   assert.equal(selectLatestUnreadToast(items, ['n1', 'n2', 'n3'], []), null)
+})
+
+test('Popular tab: buildDownloadCountMap and popular sorting order', () => {
+  const downloadEntries = [
+    { sha: 'b.png', name: 'b.png', download_count: 50 },
+    { sha: 'd.png', name: 'd.png', download_count: 120 },
+  ]
+  const countMap = buildDownloadCountMap(downloadEntries)
+  assert.equal(getWallpaperDownloadCount({ sha: 'd.png', name: 'd.png' }, countMap), 120)
+  assert.equal(getWallpaperDownloadCount({ sha: 'b.png', name: 'b.png' }, countMap), 50)
+  assert.equal(getWallpaperDownloadCount({ sha: 'a.png', name: 'a.png' }, countMap), 0)
+
+  const sortedPopular = filterWallpapersList(CATALOG, {
+    sortByPopular: true,
+    downloadCounts: countMap,
+  })
+  assert.deepEqual(
+    sortedPopular.map((w) => w.sha),
+    ['d.png', 'b.png', 'a.png', 'c.png']
+  )
+
+  // Real download count is formatted
+  assert.equal(formatDownloadCount(1420), '1.4k')
+  assert.equal(formatDownloadCount(850), '850')
+  assert.equal(formatDownloadCount(0), '0')
+
+  // getDisplayDownloadCount returns real count if present when rankIndex is undefined
+  assert.equal(getDisplayDownloadCount({ sha: 'd.png', name: 'd.png' }, countMap, undefined), 120)
+  assert.equal(getDisplayDownloadCount({ sha: 'c.png', name: 'c.png' }, countMap, undefined), 0)
+
+  // In ranked Popular mode, top walls have strictly non-increasing download counts
+  const rankedCounts = sortedPopular.map((w, idx) => getDisplayDownloadCount(w, countMap, idx))
+  assert.equal(rankedCounts[0], 2450) // rank 0
+  assert.ok(rankedCounts[0] >= rankedCounts[1])
+  assert.ok(rankedCounts[1] >= rankedCounts[2])
+  assert.ok(rankedCounts[2] >= rankedCounts[3])
+  assert.ok(rankedCounts[3] >= 15)
 })

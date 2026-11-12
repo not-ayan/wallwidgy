@@ -74,6 +74,7 @@ import { shouldDisableBlurEffects } from "@/lib/utils"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { useFavorites } from "@/hooks/use-favorites"
 import { trackDownload } from "@/lib/analytics"
+import { formatDownloadCount } from "@/lib/ui-state-helpers"
 
 export interface Wallpaper {
   sha: string
@@ -97,6 +98,7 @@ interface WallpaperModalProps {
   originalWallpaper?: Wallpaper // For tracking the original wallpaper when viewing recommendations
   onBackToOriginal?: () => void // For going back to the original wallpaper
   onSelectWallpaper?: (wallpaper: Wallpaper) => void // For handling recommended wallpaper selection
+  downloadCount?: number // Only provided in popular mode
 }
 
 export default function WallpaperModal({
@@ -110,6 +112,7 @@ export default function WallpaperModal({
   originalWallpaper,
   onBackToOriginal,
   onSelectWallpaper,
+  downloadCount,
 }: WallpaperModalProps) {
   // Use internal state to manage the current wallpaper and navigation history
   const [currentWallpaper, setCurrentWallpaper] = useState(initialWallpaper)
@@ -718,6 +721,15 @@ export default function WallpaperModal({
                 <div className="w-px h-3 bg-white/20" />
                 <div className="text-white/80 text-xs sm:text-sm">
                   {currentWallpaper.platform}
+                </div>
+              </>
+            )}
+            {Boolean(downloadCount && downloadCount > 0) && (
+              <>
+                <div className="w-px h-3 bg-white/20" />
+                <div className="flex items-center gap-1.5 text-white/80 text-xs sm:text-sm font-mono">
+                  <Download className="w-3.5 h-3.5 text-[#F7F06D]" />
+                  <span>{formatDownloadCount(downloadCount!)}</span>
                 </div>
               </>
             )}

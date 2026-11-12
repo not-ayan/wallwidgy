@@ -74,6 +74,12 @@ export async function GET(request: Request) {
     if (!Array.isArray(rawData)) {
       throw new Error("Invalid wallpapers index format")
     }
+    if (rawData.length === 0) {
+      return NextResponse.json(
+        { error: "Wallpapers index temporarily unavailable" },
+        { status: 502, headers: { 'Cache-Control': 'no-store' } }
+      )
+    }
 
     const indexData: IndexWallpaper[] = rawData
     let wallpapers = indexData

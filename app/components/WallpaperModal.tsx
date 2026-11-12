@@ -31,6 +31,10 @@ function SmartImage({
 }) {
   const [error, setError] = useState(false);
 
+  useEffect(() => {
+    setError(false);
+  }, [src]);
+
   const handleImageError = useCallback(() => {
     setError(true);
     if (onError) onError();
@@ -244,13 +248,20 @@ export default function WallpaperModal({
 
   // Preload the high-resolution image when preview is loaded
   useEffect(() => {
-    if (isOpen && currentWallpaper && isPreviewLoaded) {
-      const img = new window.Image();  // Use window.Image to reference the browser's Image constructor
-      img.src = currentWallpaper.download_url;
-      img.onload = () => {
+    if (!isOpen || !currentWallpaper?.download_url || !isPreviewLoaded) return;
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      if (!cancelled) {
         setIsFullImageLoaded(true);
-      };
-    }
+      }
+    };
+    img.src = currentWallpaper.download_url;
+    return () => {
+      cancelled = true;
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [isOpen, currentWallpaper, isPreviewLoaded]);
 
   const handleShare = async () => {
@@ -465,19 +476,21 @@ export default function WallpaperModal({
   };
 
   const loadHighQualityImage = () => {
-    // Add debug logging to check if currentWallpaper has the right data
-    console.log("Loading high quality for:", currentWallpaper);
-    console.log("Download URL:", currentWallpaper.download_url);
-    
     if (!currentWallpaper.download_url) {
       showNotification("High quality image not available");
       return;
     }
-    
-    setIsLoadingHighQuality(true)
-    // The actual loading happens in the Image component
-    setIsHighQuality(true)
-    showNotification("Loading high quality image...")
+
+    if (currentWallpaper.download_url === currentWallpaper.preview_url) {
+      setIsHighQuality(true);
+      setIsLoadingHighQuality(false);
+      showNotification("High quality image loaded!");
+      return;
+    }
+
+    setIsLoadingHighQuality(true);
+    setIsHighQuality(true);
+    showNotification("Loading high quality image...");
   }
 
   if (!isOpen) return null;
@@ -555,6 +568,7 @@ export default function WallpaperModal({
                   onClick={handleImageContainerClick}
                 >
                   <SmartImage
+                    key={currentWallpaper.sha}
                     src={isHighQuality ? currentWallpaper.download_url : currentWallpaper.preview_url}
                     alt={currentWallpaper.name}
                     width={currentWallpaper.width}
@@ -581,6 +595,11 @@ export default function WallpaperModal({
                     }}
                     onError={() => {
                       setIsImageLoading(false)
+                      if (isHighQuality) {
+                        setIsLoadingHighQuality(false)
+                        setIsHighQuality(false)
+                        showNotification("Failed to load high quality image")
+                      }
                     }}
                     priority
                     quality={isHighQuality ? 100 : 75}

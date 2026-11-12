@@ -62,7 +62,11 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
+    const rawLimit = parseInt(searchParams.get('limit') || '50', 10)
+    if (searchParams.has('limit') && Number.isNaN(rawLimit)) {
+      return NextResponse.json({ error: 'Invalid limit parameter' }, { status: 400 })
+    }
+    const limit = Math.min(100, Math.max(1, rawLimit))
 
     const db = await getD1Database()
 

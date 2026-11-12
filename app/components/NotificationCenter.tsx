@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Bell, X, Info, Sparkles, AlertTriangle, Megaphone, CheckCheck, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { createPortal } from "react-dom"
+import { parseStoredStringArray, selectLatestUnreadToast } from "@/lib/ui-state-helpers"
 
 export interface NotificationItem {
   id: string
@@ -17,6 +18,24 @@ export interface NotificationItem {
 
 const STORAGE_KEY = "wallwidgy-read-notifications"
 const DISMISSED_TOASTS_KEY = "wallwidgy-dismissed-toasts"
+
+function readStoredIds(key: string): string[] {
+  if (typeof window === "undefined") return []
+  try {
+    return parseStoredStringArray(localStorage.getItem(key))
+  } catch {
+    return []
+  }
+}
+
+function writeStoredIds(key: string, ids: string[]) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(key, JSON.stringify(ids))
+  } catch {
+    // Ignore storage quota / privacy mode errors
+  }
+}
 
 function getRelativeTime(timestamp: string): string {
   try {
@@ -49,17 +68,22 @@ export default function NotificationCenter() {
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Track client-side mount state
+  // Track client-side mount state & cleanup timers on unmount
   useEffect(() => {
     setMounted(true)
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+      if (autoReadTimerRef.current) clearTimeout(autoReadTimerRef.current)
+    }
   }, [])
 
   // 1. Fetch notifications and load read state
   useEffect(() => {
-    // Load read state from localStorage
-    const savedReadIds = localStorage.getItem(STORAGE_KEY)
-    const parsedReadIds = savedReadIds ? JSON.parse(savedReadIds) : []
+    let isMounted = true
+    const parsedReadIds = readStoredIds(STORAGE_KEY)
     setReadIds(parsedReadIds)
 
     const fetchNotifications = async () => {
@@ -80,46 +104,47 @@ export default function NotificationCenter() {
         }
 
         const data = await res.json()
-        if (Array.isArray(data)) {
+        if (isMounted && Array.isArray(data)) {
           setNotifications(data)
           triggerToastCheck(data, parsedReadIds)
         }
       } catch (err) {
-        setNotifications([])
+        if (isMounted) setNotifications([])
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     fetchNotifications()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   // 2. Check and trigger on-screen toast for new unread notifications
   const triggerToastCheck = (items: NotificationItem[], currentReadIds: string[]) => {
-    const unread = items.filter((n) => !currentReadIds.includes(n.id))
-    if (unread.length > 0) {
-      // Find the most recent unread notification
-      const sortedUnread = [...unread].sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      )
-      const latestUnread = sortedUnread[0]
+    const dismissedToasts = readStoredIds(DISMISSED_TOASTS_KEY)
+    const latestUnread = selectLatestUnreadToast(items, currentReadIds, dismissedToasts)
 
-      // Check if we already dismissed this specific toast in localStorage
-      const savedDismissedToasts = localStorage.getItem(DISMISSED_TOASTS_KEY)
-      const dismissedToasts = savedDismissedToasts ? JSON.parse(savedDismissedToasts) : []
-
-      if (!dismissedToasts.includes(latestUnread.id)) {
-        // Delay toast slightly for smoother page load feel
-        const timer = setTimeout(() => {
+    if (latestUnread) {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
+      // Delay toast slightly for smoother page load feel
+      toastTimerRef.current = setTimeout(() => {
+        toastTimerRef.current = null
+        const latestRead = readStoredIds(STORAGE_KEY)
+        if (!latestRead.includes(latestUnread.id)) {
           setActiveToast(latestUnread)
-        }, 1500)
-        return () => clearTimeout(timer)
-      }
+        }
+      }, 1500)
     }
   }
 
-  // 3. Close popover on click outside
+  // 3. Close popover on click outside & cancel auto-read timer when closed
   useEffect(() => {
+    if (!isOpen && autoReadTimerRef.current) {
+      clearTimeout(autoReadTimerRef.current)
+      autoReadTimerRef.current = null
+    }
     const handleClickOutside = (event: MouseEvent) => {
       if (isOpen && containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false)
@@ -134,27 +159,34 @@ export default function NotificationCenter() {
 
   // Mark a single notification as read
   const markAsRead = (id: string) => {
-    if (readIds.includes(id)) return
-    const updated = [...readIds, id]
-    setReadIds(updated)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    setReadIds((prev) => {
+      if (prev.includes(id)) return prev
+      const updated = [...prev, id]
+      writeStoredIds(STORAGE_KEY, updated)
+      return updated
+    })
   }
 
   // Mark all notifications as read
   const markAllAsRead = () => {
-    const allIds = notifications.map((n) => n.id)
-    setReadIds(allIds)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allIds))
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current)
+      toastTimerRef.current = null
+    }
+    setNotifications((currentNotifications) => {
+      const allIds = currentNotifications.map((n) => n.id)
+      setReadIds(allIds)
+      writeStoredIds(STORAGE_KEY, allIds)
+      return currentNotifications
+    })
   }
 
   // Dismiss on-screen toast
   const dismissToast = (id: string) => {
     setActiveToast(null)
-    const savedDismissedToasts = localStorage.getItem(DISMISSED_TOASTS_KEY)
-    const dismissedToasts = savedDismissedToasts ? JSON.parse(savedDismissedToasts) : []
+    const dismissedToasts = readStoredIds(DISMISSED_TOASTS_KEY)
     if (!dismissedToasts.includes(id)) {
-      const updated = [...dismissedToasts, id]
-      localStorage.setItem(DISMISSED_TOASTS_KEY, JSON.stringify(updated))
+      writeStoredIds(DISMISSED_TOASTS_KEY, [...dismissedToasts, id])
     }
     // Also mark it as read when dismissed
     markAsRead(id)
@@ -179,10 +211,16 @@ export default function NotificationCenter() {
       {/* Bell Button */}
       <button
         onClick={() => {
-          setIsOpen(!isOpen)
-          if (unreadCount > 0) {
-            // When opening, mark what they saw as read after a short delay
-            setTimeout(() => {
+          const nextOpen = !isOpen
+          setIsOpen(nextOpen)
+          if (autoReadTimerRef.current) {
+            clearTimeout(autoReadTimerRef.current)
+            autoReadTimerRef.current = null
+          }
+          if (nextOpen && unreadCount > 0) {
+            // When opening, mark what they saw as read after a short delay (cancelled if closed early)
+            autoReadTimerRef.current = setTimeout(() => {
+              autoReadTimerRef.current = null
               markAllAsRead()
             }, 1000)
           }

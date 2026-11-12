@@ -1,93 +1,26 @@
 import { NextResponse } from 'next/server'
-
-let cachedColors: any[] | null = null
-let lastFetchedColorsTime = 0
-const COLORS_TTL = 86400 * 1000
+import { fetchColorsWithSingleFlight } from '@/lib/colors'
 
 export const revalidate = 86400
 
-
 export async function GET() {
   try {
-    const now = Date.now()
-    if (cachedColors && (now - lastFetchedColorsTime < COLORS_TTL)) {
-      return NextResponse.json(cachedColors, {
-        headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=600' }
-      })
+    const colors = await fetchColorsWithSingleFlight()
+    if (!colors || colors.length === 0) {
+      return NextResponse.json(
+        { error: 'Colors index is empty or unavailable' },
+        { status: 502, headers: { 'Cache-Control': 'no-store' } }
+      )
     }
-
-    const owner = process.env.NEXT_PUBLIC_GITHUB_REPO_OWNER || 'not-ayan'
-    const repo = process.env.NEXT_PUBLIC_GITHUB_REPO_NAME || 'storage'
-
-    // Fetch tags.json directly from raw.githubusercontent.com
-    const tagsResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/tags.json`, {
-      next: { revalidate: 86400 } // Cache tags.json for 24 hours
-    })
-
-    if (!tagsResponse.ok) {
-      if (cachedColors) {
-        return NextResponse.json(cachedColors, {
-          headers: { 'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=600' }
-        })
-      }
-      throw new Error(`Failed to fetch tags.json: ${tagsResponse.status}`)
-    }
-
-    const tagsData = await tagsResponse.json()
-
-    // Collect all unique colors
-    const uniqueColors = new Set<string>()
-    Object.values(tagsData).forEach((item: any) => {
-      if (item.colors && Array.isArray(item.colors)) {
-        item.colors.forEach((color: string) => {
-          if (color) uniqueColors.add(color)
-        })
-      }
-    })
-
-    const colors = Array.from(uniqueColors).map(color => ({
-      name: color,
-      hex: getColorHex(color)
-    }))
-
-    cachedColors = colors
-    lastFetchedColorsTime = Date.now()
 
     const response = NextResponse.json(colors)
     response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=600')
     return response
   } catch (error: any) {
     console.error('Error in /api/colors:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
+    )
   }
-}
-
-
-function getColorHex(colorName: string): string {
-  const colorMap: Record<string, string> = {
-    'darkslategray': '#2F4F4F',
-    'black': '#000000',
-    'red': '#FF0000',
-    'green': '#00FF00',
-    'blue': '#0000FF',
-    'white': '#FFFFFF',
-    'yellow': '#FFFF00',
-    'cyan': '#00FFFF',
-    'magenta': '#FF00FF',
-    'gray': '#808080',
-    'grey': '#808080',
-    'silver': '#C0C0C0',
-    'maroon': '#800000',
-    'olive': '#808000',
-    'purple': '#800080',
-    'teal': '#008080',
-    'navy': '#000080',
-    'orange': '#FFA500',
-    'brown': '#A52A2A',
-    'gold': '#FFD700',
-    'pink': '#FFC0CB',
-    'violet': '#EE82EE',
-    'indigo': '#4B0082',
-  }
-  return colorMap[colorName.toLowerCase()] || '#000000'
 }

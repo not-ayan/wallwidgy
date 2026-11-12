@@ -28,10 +28,24 @@ export async function GET(request: Request) {
     const type = url.searchParams.get('type')?.toLowerCase() // 'desktop' | 'mobile'
     const category = url.searchParams.get('category')
     const color = url.searchParams.get('color')?.toLowerCase()
-    const count = Math.min(10, Math.max(1, parseInt(url.searchParams.get('count') || '1')))
+    const countParam = url.searchParams.get('count')
+    const parsedCount = countParam !== null ? parseInt(countParam, 10) : 1
+    if (Number.isNaN(parsedCount)) {
+      return NextResponse.json(
+        { error: 'Count must be a valid integer between 1 and 10' },
+        { status: 400 }
+      )
+    }
+    const count = Math.min(10, Math.max(1, parsedCount))
 
     // Fetch wallpapers from index.json (same as categories page)
     const indexData = await fetchIndexJson()
+    if (!Array.isArray(indexData) || indexData.length === 0) {
+      return NextResponse.json(
+        { error: 'Wallpapers index temporarily unavailable' },
+        { status: 502, headers: { 'Cache-Control': 'no-store' } }
+      )
+    }
     let wallpaperItems = indexData
 
     // Filter by category if specified
@@ -82,19 +96,14 @@ export async function GET(request: Request) {
     }
 
     // Filter by type if specified (using orientation from index data)
-    if (type === 'mobile') {
-      wallpaperItems = wallpaperItems.filter((item: any) => item.orientation === 'Mobile')
-    } else if (type === 'desktop') {
-      wallpaperItems = wallpaperItems.filter((item: any) => item.orientation === 'Desktop')
-    }
-
-    // If no files match the type filter, keep original wallpaperItems
-    if (wallpaperItems.length === 0 && type) {
-      // Restore original wallpaperItems if filter didn't match anything
-      if (category) {
-        wallpaperItems = indexData.filter((item: any) => item.category === `#${category}`)
-      } else {
-        wallpaperItems = indexData
+    if (type === 'mobile' || type === 'desktop') {
+      const targetOrientation = type === 'mobile' ? 'Mobile' : 'Desktop'
+      wallpaperItems = wallpaperItems.filter((item: any) => item.orientation === targetOrientation)
+      if (wallpaperItems.length === 0) {
+        return NextResponse.json(
+          { error: `No wallpapers found for type '${type}' matching the active filters` },
+          { status: 404 }
+        )
       }
     }
 

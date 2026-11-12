@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, clerkClient } from '@clerk/nextjs/server'
+import { applyFavoriteAction, createKeyedTaskQueue, deduplicateIds } from '@/lib/favorites-state'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-// Helper to normalize wallpaper IDs
-function normalizeId(id: string): string {
-  if (!id) return ''
-  return decodeURIComponent(id).replace(/\.[^/.]+$/, '').toLowerCase().trim()
-}
+const userMutationQueue = createKeyedTaskQueue()
 
 // GET - Fetch user's favorites from Clerk metadata
 export async function GET() {
@@ -65,25 +62,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduplicate while preserving original IDs
-    const seen = new Set<string>()
-    const cleanFavorites: string[] = []
-    for (const item of favorites) {
-      if (typeof item !== 'string' || !item.trim()) continue
-      const norm = normalizeId(item)
-      if (!seen.has(norm)) {
-        seen.add(norm)
-        cleanFavorites.push(item)
-      }
-    }
+    const cleanFavorites = deduplicateIds(favorites)
 
-    const client = await clerkClient()
-    await client.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        favorites: cleanFavorites
-      }
+    const updatedFavorites = await userMutationQueue.enqueue(userId, async () => {
+      const client = await clerkClient()
+      await client.users.updateUserMetadata(userId, {
+        publicMetadata: {
+          favorites: cleanFavorites
+        }
+      })
+      return cleanFavorites
     })
 
-    return NextResponse.json({ success: true, favorites: cleanFavorites })
+    return NextResponse.json({ success: true, favorites: updatedFavorites })
   } catch (error) {
     console.error('Error saving favorites:', error)
     return NextResponse.json({ error: 'Failed to save favorites' }, { status: 500 })
@@ -101,30 +92,23 @@ export async function PATCH(request: NextRequest) {
 
     const { wallpaperId, action } = await request.json()
     
-    if (!wallpaperId || !['add', 'remove'].includes(action)) {
+    if (!wallpaperId || typeof wallpaperId !== 'string' || !['add', 'remove'].includes(action)) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    const client = await clerkClient()
-    const user = await client.users.getUser(userId)
-    let favorites = (user.publicMetadata?.favorites as string[]) || []
-    if (!Array.isArray(favorites)) favorites = []
+    const favorites = await userMutationQueue.enqueue(userId, async () => {
+      const client = await clerkClient()
+      const user = await client.users.getUser(userId)
+      const currentRaw = (user.publicMetadata?.favorites as string[]) || []
+      const current = Array.isArray(currentRaw) ? currentRaw : []
+      const next = applyFavoriteAction(current, wallpaperId, action)
 
-    const targetNorm = normalizeId(wallpaperId)
-
-    if (action === 'add') {
-      const exists = favorites.some(id => id === wallpaperId || normalizeId(id) === targetNorm)
-      if (!exists) {
-        favorites = [...favorites, wallpaperId]
-      }
-    } else if (action === 'remove') {
-      favorites = favorites.filter(id => id !== wallpaperId && normalizeId(id) !== targetNorm)
-    }
-
-    await client.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        favorites
-      }
+      await client.users.updateUserMetadata(userId, {
+        publicMetadata: {
+          favorites: next
+        }
+      })
+      return next
     })
 
     return NextResponse.json({ success: true, favorites })

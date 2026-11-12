@@ -52,14 +52,24 @@ let rawDataCache: any[] | null = null
 let rawDataPromise: Promise<any[]> | null = null
 let parsedWallpapersCache: Wallpaper[] | null = null
 let derivedColorsCache: AvailableColor[] | null = null
+let parsedPromise: Promise<{ wallpapers: Wallpaper[]; availableColors: AvailableColor[] }> | null = null
 
 const SESSION_CACHE_KEY = 'wallwidgy_raw_index_v1'
 const SESSION_CACHE_TIMESTAMP_KEY = 'wallwidgy_raw_index_timestamp_v1'
 const SESSION_CACHE_TTL = 3600 * 1000 // 1 hour
 
+export function resetWallpaperStoreCache() {
+  rawDataCache = null
+  rawDataPromise = null
+  parsedWallpapersCache = null
+  derivedColorsCache = null
+  parsedPromise = null
+}
+
 /**
  * Fetches and caches the raw JSON index from our compressed API route with fallbacks.
  * Deduplicates in-flight requests and caches across the session.
+ * Never caches empty responses so failed loads can always be retried.
  */
 export async function getRawWallpaperIndex(): Promise<any[]> {
   // 1. In-memory cache hit
@@ -94,7 +104,7 @@ export async function getRawWallpaperIndex(): Promise<any[]> {
     try {
       let data: any[] = []
 
-      // First attempt: internal compressed route (gzip/brotli, ~560KB)
+      // First attempt: internal compressed route
       try {
         const res = await fetch('/api/wallpapers/index')
         if (res.ok) {
@@ -149,76 +159,94 @@ export async function getRawWallpaperIndex(): Promise<any[]> {
 
 /**
  * Returns structured wallpapers and colors parsed and transformed once in memory.
+ * Rejects if no wallpapers could be fetched so callers enter error/retry state
+ * instead of poisoning the in-memory cache with an empty array.
  */
 export async function getParsedWallpapers(): Promise<{
   wallpapers: Wallpaper[]
   availableColors: AvailableColor[]
 }> {
-  if (parsedWallpapersCache && derivedColorsCache) {
+  if (parsedWallpapersCache && parsedWallpapersCache.length > 0 && derivedColorsCache) {
     return {
       wallpapers: parsedWallpapersCache,
       availableColors: derivedColorsCache,
     }
   }
 
-  const rawData = await getRawWallpaperIndex()
-  const uniqueColors = new Set<string>()
+  if (parsedPromise) {
+    return parsedPromise
+  }
 
-  const wallpapers: Wallpaper[] = rawData.map((item: any) => {
-    const primaryColors = item.data?.primary_colors
-    const secondaryColors = item.data?.secondary_colors
-    const colorsList: string[] = []
-
-    const processColorVal = (val: any) => {
-      if (Array.isArray(val)) {
-        val.forEach((c) => {
-          if (c && typeof c === 'string') {
-            const cleaned = c.toLowerCase().trim()
-            colorsList.push(cleaned)
-            uniqueColors.add(cleaned)
-          }
-        })
-      } else if (typeof val === 'string') {
-        val.split(/[\s,]+/).forEach((c) => {
-          if (c) {
-            const cleaned = c.toLowerCase().trim()
-            colorsList.push(cleaned)
-            uniqueColors.add(cleaned)
-          }
-        })
+  parsedPromise = (async () => {
+    try {
+      const rawData = await getRawWallpaperIndex()
+      if (!Array.isArray(rawData) || rawData.length === 0) {
+        throw new Error('Failed to load wallpapers index. Please retry.')
       }
+
+      const uniqueColors = new Set<string>()
+
+      const wallpapers: Wallpaper[] = rawData.map((item: any) => {
+        const primaryColors = item.data?.primary_colors
+        const secondaryColors = item.data?.secondary_colors
+        const colorsList: string[] = []
+
+        const processColorVal = (val: any) => {
+          if (Array.isArray(val)) {
+            val.forEach((c) => {
+              if (c && typeof c === 'string') {
+                const cleaned = c.toLowerCase().trim()
+                colorsList.push(cleaned)
+                uniqueColors.add(cleaned)
+              }
+            })
+          } else if (typeof val === 'string') {
+            val.split(/[\s,]+/).forEach((c) => {
+              if (c) {
+                const cleaned = c.toLowerCase().trim()
+                colorsList.push(cleaned)
+                uniqueColors.add(cleaned)
+              }
+            })
+          }
+        }
+
+        processColorVal(primaryColors)
+        processColorVal(secondaryColors)
+
+        return {
+          sha: item.file_name,
+          name: item.file_name,
+          width: item.width,
+          height: item.height,
+          preview_url: `https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache/${item.file_cache_name}`,
+          download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
+          resolution: item.resolution,
+          tag: item.orientation,
+          platform: item.orientation,
+          uploadDate: new Date(item.timestamp),
+          format: item.file_name.split('.').pop() || 'unknown',
+          category: item.category,
+          colors: colorsList,
+        }
+      })
+
+      // Sort newest first
+      wallpapers.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
+
+      const derivedColors: AvailableColor[] = Array.from(uniqueColors).map((color) => ({
+        name: color,
+        hex: COLOR_MAP[color.toLowerCase()] || '#000000',
+      }))
+
+      parsedWallpapersCache = wallpapers
+      derivedColorsCache = derivedColors
+
+      return { wallpapers, availableColors: derivedColors }
+    } finally {
+      parsedPromise = null
     }
+  })()
 
-    processColorVal(primaryColors)
-    processColorVal(secondaryColors)
-
-    return {
-      sha: item.file_name,
-      name: item.file_name,
-      width: item.width,
-      height: item.height,
-      preview_url: `https://cdn.jsdelivr.net/gh/not-ayan/storage@main/cache/${item.file_cache_name}`,
-      download_url: `https://raw.githubusercontent.com/not-ayan/storage/main/main/${item.file_main_name}`,
-      resolution: item.resolution,
-      tag: item.orientation,
-      platform: item.orientation,
-      uploadDate: new Date(item.timestamp),
-      format: item.file_name.split('.').pop() || 'unknown',
-      category: item.category,
-      colors: colorsList,
-    }
-  })
-
-  // Sort newest first
-  wallpapers.sort((a, b) => b.uploadDate.getTime() - a.uploadDate.getTime())
-
-  const derivedColors: AvailableColor[] = Array.from(uniqueColors).map((color) => ({
-    name: color,
-    hex: COLOR_MAP[color.toLowerCase()] || '#000000',
-  }))
-
-  parsedWallpapersCache = wallpapers
-  derivedColorsCache = derivedColors
-
-  return { wallpapers, availableColors: derivedColors }
+  return parsedPromise
 }

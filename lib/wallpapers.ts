@@ -6,6 +6,15 @@ let fetchPromise: Promise<any[]> | null = null
 let lastFetchedTime = 0
 const CACHE_TTL = 3600 * 1000 // Cache in memory for 1 hour
 
+export function resetServerWallpapersCache() {
+  cachedRawData = null
+  cachedCleanData = null
+  cachedCleanJsonString = null
+  cachedWallpaperMap = null
+  fetchPromise = null
+  lastFetchedTime = 0
+}
+
 function processData(rawData: any[]) {
   cachedRawData = rawData
   

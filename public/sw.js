@@ -95,7 +95,14 @@ self.addEventListener('fetch', (event) => {
             }
             return networkResponse;
           })
-          .catch(() => cachedResponse);
+          .catch(() => {
+            if (cachedResponse) return cachedResponse;
+            return new Response('Offline - asset unavailable.', {
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: { 'Content-Type': 'text/plain' },
+            });
+          });
 
         return cachedResponse || fetchPromise;
       })

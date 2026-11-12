@@ -7,13 +7,22 @@ export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url)
     const q = (url.searchParams.get('q') || '').toLowerCase().trim()
-    const count = Math.min(50, Math.max(1, parseInt(url.searchParams.get('count') || '10', 10)))
+    const countParam = url.searchParams.get('count')
+    const parsedCount = countParam !== null ? parseInt(countParam, 10) : 10
+    if (Number.isNaN(parsedCount)) {
+      return NextResponse.json(
+        { error: 'Invalid count parameter' },
+        { status: 400 }
+      )
+    }
+    const count = Math.min(50, Math.max(1, parsedCount))
 
     const data = await fetchIndexJson()
-    if (!data || !Array.isArray(data)) {
-      return NextResponse.json({ wallpapers: [] }, {
-        headers: { 'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400' }
-      })
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      return NextResponse.json(
+        { error: 'Wallpapers index temporarily unavailable', wallpapers: [] },
+        { status: 502, headers: { 'Cache-Control': 'no-store' } }
+      )
     }
 
     if (!q) {

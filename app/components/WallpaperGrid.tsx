@@ -23,6 +23,7 @@ import Masonry from "react-masonry-css"
 import { useFavorites } from "@/hooks/use-favorites"
 import { getParsedWallpapers } from "@/lib/wallpaper-store"
 import { trackDownload } from "@/lib/analytics"
+import { appendPaginationSlice, createLatestRequestGuard, filterWallpapersList } from "@/lib/ui-state-helpers"
 
 interface WallpaperFile {
   file_name: string;
@@ -149,6 +150,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const loadMoreSize = 20
   const [showDownloadConfirmation, setShowDownloadConfirmation] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const activeDownloadsRef = useRef(0);
+  const fetchGuardRef = useRef(createLatestRequestGuard());
   const [downloadInfo, setDownloadInfo] = useState({ fileName: "", fileType: "" });
   const [layoutMode, setLayoutMode] = useState<"masonry" | "grid">("masonry");
   const [isMobileDevice, setIsMobileDevice] = useState(false);
@@ -164,32 +167,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   }, [categoryFilter])
 
   const getFilteredWallpapers = useCallback(() => {
-    let list = wallpapersState;
-    if (favoriteIds !== undefined) {
-      list = list.filter((wallpaper) => {
-        return favoriteIds.some(favId => {
-          if (!favId) return false
-          if (favId === wallpaper.sha || favId === wallpaper.name) return true
-          const normFav = favId.replace(/\.[^/.]+$/, '').toLowerCase().trim()
-          const normSha = (wallpaper.sha || '').replace(/\.[^/.]+$/, '').toLowerCase().trim()
-          const normName = (wallpaper.name || '').replace(/\.[^/.]+$/, '').toLowerCase().trim()
-          return normFav === normSha || normFav === normName
-        })
-      });
-    }
-    if (filter !== "all") {
-      list = list.filter((wallpaper) => wallpaper.platform?.toLowerCase() === filter);
-    }
-    if (selectedCategories.length > 0) {
-      list = list.filter((wallpaper) => Boolean(wallpaper.category && selectedCategories.includes(wallpaper.category)));
-    }
-    if (colorFilter) {
-      const targetColor = colorFilter.toLowerCase().trim()
-      list = list.filter((wallpaper) => 
-        (wallpaper as any).colors?.includes(targetColor)
-      );
-    }
-    return list;
+    return filterWallpapersList(wallpapersState, {
+      favoriteIds,
+      platformFilter: filter,
+      selectedCategories,
+      colorFilter,
+    });
   }, [wallpapersState, filter, selectedCategories, colorFilter, favoriteIds]);
 
   useEffect(() => {
@@ -197,6 +180,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
     setDisplayedWallpapers(filtered.slice(0, initialLoadSize));
     setHasMore(filtered.length > initialLoadSize);
   }, [selectedCategories, filter, wallpapersState, getFilteredWallpapers]);
+
+  useEffect(() => {
+    const filtered = getFilteredWallpapers();
+    setHasMore(displayedWallpapers.length < filtered.length);
+  }, [displayedWallpapers.length, getFilteredWallpapers]);
 
   // Auto-select layout based on device type
   useEffect(() => {
@@ -228,20 +216,17 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
     const filteredWallpapers = getFilteredWallpapers();
 
-    const startIndex = displayedWallpapers.length;
-    const endIndex = startIndex + loadMoreSize;
-    const newWallpapers = filteredWallpapers.slice(startIndex, endIndex);
-    
-    if (newWallpapers.length > 0) {
-      setDisplayedWallpapers(prev => [...prev, ...newWallpapers]);
-      setHasMore(endIndex < filteredWallpapers.length);
-    } else {
-      setHasMore(false);
-    }
-  }, [displayedWallpapers.length, getFilteredWallpapers, isLoading, hasMore, loadMoreSize]);
+    setDisplayedWallpapers((prev) => {
+      const { next } = appendPaginationSlice(prev, filteredWallpapers, loadMoreSize);
+      return next;
+    });
+  }, [getFilteredWallpapers, isLoading, hasMore, loadMoreSize]);
 
   // Update the useEffect for loading more wallpapers
   useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !isLoading) {
@@ -251,14 +236,10 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       { threshold: 0.1, rootMargin: '200px' }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
+    observer.observe(target);
 
     return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
+      observer.disconnect();
     };
   }, [hasMore, isLoading, loadMoreWallpapers]);
 
@@ -268,44 +249,34 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
   const fetchWallpapers = useCallback(
     async () => {
+      const requestId = fetchGuardRef.current.next()
       try {
         setIsLoading(true)
         setError(null)
 
         const { wallpapers, availableColors } = await getParsedWallpapers()
+        if (!fetchGuardRef.current.isCurrent(requestId)) return
+
         setAvailableColors(availableColors)
 
         let filteredWallpapers = wallpapers
-        // Apply category filter if provided
+        // Apply category filter prop if provided
         if (categoryFilter) {
           filteredWallpapers = filteredWallpapers.filter(wallpaper => wallpaper.category === categoryFilter)
         }
 
         setWallpapersState(filteredWallpapers)
-
-        // Initialize displayed wallpapers list with proper filters applied
-        let initialList = filteredWallpapers
-        if (filter !== "all") {
-          initialList = initialList.filter((wallpaper) => wallpaper.platform?.toLowerCase() === filter)
-        }
-        if (selectedCategories.length > 0) {
-          initialList = initialList.filter((wallpaper) => Boolean(wallpaper.category && selectedCategories.includes(wallpaper.category)))
-        }
-        if (colorFilter) {
-          const targetColor = colorFilter.toLowerCase().trim()
-          initialList = initialList.filter((wallpaper) => wallpaper.colors?.includes(targetColor))
-        }
-
-        setDisplayedWallpapers(initialList.slice(0, initialLoadSize))
-        setHasMore(initialList.length > initialLoadSize)
       } catch (err: any) {
-        setError(err.message)
+        if (!fetchGuardRef.current.isCurrent(requestId)) return
+        setError(err?.message || "Failed to load wallpapers")
         console.error("Error fetching wallpapers:", err)
       } finally {
-        setIsLoading(false)
+        if (fetchGuardRef.current.isCurrent(requestId)) {
+          setIsLoading(false)
+        }
       }
     },
-    [categoryFilter, filter, selectedCategories, colorFilter],
+    [categoryFilter],
   )
 
   useEffect(() => {
@@ -349,97 +320,90 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   }, [])
 
   const downloadSelectedWallpapers = useCallback(async () => {
+    if (selectedWallpapers.length === 0) return;
+    activeDownloadsRef.current += 1;
     setIsDownloading(true);
     showNotification(`Your wallpapers are now downloading...`);
-    
-    for (const sha of selectedWallpapers) {
-      const wallpaper = wallpapersState.find((w) => w.sha === sha)
-      if (wallpaper) {
-        try {
-          trackDownload(wallpaper)
-          const response = await fetch(wallpaper.download_url)
-          if (!response.ok) throw new Error('Failed to download')
-          const blob = await response.blob()
-          const url = window.URL.createObjectURL(blob)
-          const link = document.createElement("a")
-          link.href = url
-          
-          // Extract file extension from the URL or Content-Type
-          let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
-          // Remove any query parameters from the extension
-          fileExtension = fileExtension.split('?')[0]
-          
-          // If no extension or invalid extension, determine from MIME type or default to jpg
-          if (!fileExtension || fileExtension.length > 4) {
-            const contentType = response.headers.get('Content-Type') || ''
-            if (contentType.includes('png')) {
-              fileExtension = 'png'
-            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-              fileExtension = 'jpg'
-            } else if (contentType.includes('webp')) {
-              fileExtension = 'webp'
-            } else {
-              // Default to jpg for images
-              fileExtension = 'jpg'
+
+    try {
+      for (const sha of selectedWallpapers) {
+        const wallpaper = wallpapersState.find((w) => w.sha === sha)
+        if (wallpaper) {
+          try {
+            trackDownload(wallpaper)
+            const response = await fetch(wallpaper.download_url)
+            if (!response.ok) throw new Error('Failed to download')
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = url
+
+            // Extract file extension from the URL or Content-Type
+            let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
+            fileExtension = fileExtension.split('?')[0]
+
+            if (!fileExtension || fileExtension.length > 4) {
+              const contentType = response.headers.get('Content-Type') || ''
+              if (contentType.includes('png')) {
+                fileExtension = 'png'
+              } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+                fileExtension = 'jpg'
+              } else if (contentType.includes('webp')) {
+                fileExtension = 'webp'
+              } else {
+                fileExtension = 'jpg'
+              }
             }
+
+            const fileName = wallpaper.name.includes('.') ?
+              wallpaper.name : `${wallpaper.name}.${fileExtension}`
+
+            link.download = fileName
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            window.URL.revokeObjectURL(url)
+
+            if (selectedWallpapers.indexOf(sha) === 0) {
+              setDownloadInfo({
+                fileName: selectedWallpapers.length > 1 ? `${fileName} and ${selectedWallpapers.length - 1} more` : fileName,
+                fileType: fileExtension.toUpperCase()
+              });
+              setShowDownloadConfirmation(true);
+              setTimeout(() => {
+                setShowDownloadConfirmation(false);
+              }, 3000);
+            }
+          } catch (error) {
+            console.error(`Error downloading ${wallpaper.name}:`, error)
+            showNotification(`Failed to download ${wallpaper.name}`)
           }
-          
-          // Ensure the filename has the correct extension
-          const fileName = wallpaper.name.includes('.') ? 
-            wallpaper.name : `${wallpaper.name}.${fileExtension}`
-          
-          link.download = fileName
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          window.URL.revokeObjectURL(url)
-          
-          // Show download confirmation for first file only in popup
-          if (selectedWallpapers.indexOf(sha) === 0) {
-            setDownloadInfo({
-              fileName: selectedWallpapers.length > 1 ? `${fileName} and ${selectedWallpapers.length - 1} more` : fileName,
-              fileType: fileExtension.toUpperCase()
-            });
-            setShowDownloadConfirmation(true);
-            
-            // Hide the confirmation after 3 seconds
-            setTimeout(() => {
-              setShowDownloadConfirmation(false);
-            }, 3000);
-          }
-        } catch (error) {
-          console.error(`Error downloading ${wallpaper.name}:`, error)
-          showNotification(`Failed to download ${wallpaper.name}`)
         }
       }
-    }
-    
-    // Reset after download completes
-    setTimeout(() => {
-      setIsDownloading(false);
       setSelectedWallpapers([]);
-    }, 1000);
-    
+    } finally {
+      activeDownloadsRef.current = Math.max(0, activeDownloadsRef.current - 1);
+      setIsDownloading(activeDownloadsRef.current > 0);
+    }
   }, [selectedWallpapers, wallpapersState, showNotification]);
 
   const handleDownload = useCallback(async (wallpaper: Wallpaper) => {
+    activeDownloadsRef.current += 1;
     setIsDownloading(true);
     showNotification("Your wallpaper is now downloading...");
-    
+
     try {
+      trackDownload(wallpaper)
       const response = await fetch(wallpaper.download_url)
       if (!response.ok) throw new Error('Failed to download')
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url
-    
-      // Extract file extension from the URL or Content-Type
+
       let fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || ''
-      // Remove any query parameters from the extension
       fileExtension = fileExtension.split('?')[0]
-    
-      // If no extension or invalid extension, determine from MIME type or default to jpg
+
       if (!fileExtension || fileExtension.length > 4) {
         const contentType = response.headers.get('Content-Type') || ''
         if (contentType.includes('png')) {
@@ -449,37 +413,34 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         } else if (contentType.includes('webp')) {
           fileExtension = 'webp'
         } else {
-          // Default to jpg for images
           fileExtension = 'jpg'
         }
       }
-    
-      // Ensure the filename has the correct extension
-      const fileName = wallpaper.name.includes('.') ? 
+
+      const fileName = wallpaper.name.includes('.') ?
         wallpaper.name : `${wallpaper.name}.${fileExtension}`
-    
+
       link.download = fileName
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-      
-      // Show download confirmation popup with file details
+
       setDownloadInfo({
         fileName: fileName,
         fileType: fileExtension.toUpperCase()
       });
       setShowDownloadConfirmation(true);
-      
-      // Hide the confirmation after 3 seconds
+
       setTimeout(() => {
         setShowDownloadConfirmation(false);
-        setIsDownloading(false);
       }, 3000);
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
       showNotification("Failed to download wallpaper")
-      setIsDownloading(false);
+    } finally {
+      activeDownloadsRef.current = Math.max(0, activeDownloadsRef.current - 1);
+      setIsDownloading(activeDownloadsRef.current > 0);
     }
   }, [showNotification])
 
@@ -527,40 +488,28 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   }, [handleDownload, handleOpenModal]);
 
   const handlePreviousWallpaper = useCallback(() => {
-    // Get the filtered wallpapers based on current filter
-    const filteredWallpapers = filter === "all" 
-      ? wallpapersState 
-      : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
-    
-    // Find current wallpaper index in filtered list
+    const filteredWallpapers = getFilteredWallpapers();
     const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
-    
+
     if (currentFilteredIndex > 0) {
       const prevWallpaper = filteredWallpapers[currentFilteredIndex - 1];
       setSelectedWallpaper(prevWallpaper);
-      // Update the selected index to match the position in the full wallpapers array
       const fullIndex = wallpapersState.findIndex(w => w.sha === prevWallpaper.sha);
       setSelectedIndex(fullIndex);
     }
-  }, [selectedWallpaper, filter, wallpapersState]);
+  }, [selectedWallpaper, getFilteredWallpapers, wallpapersState]);
 
   const handleNextWallpaper = useCallback(() => {
-    // Get the filtered wallpapers based on current filter
-    const filteredWallpapers = filter === "all" 
-      ? wallpapersState 
-      : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
-    
-    // Find current wallpaper index in filtered list
+    const filteredWallpapers = getFilteredWallpapers();
     const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
-    
-    if (currentFilteredIndex < filteredWallpapers.length - 1) {
+
+    if (currentFilteredIndex >= 0 && currentFilteredIndex < filteredWallpapers.length - 1) {
       const nextWallpaper = filteredWallpapers[currentFilteredIndex + 1];
       setSelectedWallpaper(nextWallpaper);
-      // Update the selected index to match the position in the full wallpapers array
       const fullIndex = wallpapersState.findIndex(w => w.sha === nextWallpaper.sha);
       setSelectedIndex(fullIndex);
     }
-  }, [selectedWallpaper, filter, wallpapersState]);
+  }, [selectedWallpaper, getFilteredWallpapers, wallpapersState]);
 
   if (isLoading) {
     return (
@@ -804,31 +753,41 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       {favoriteIds && displayedWallpapers.length > 0 && (
         <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8">
           <button
+            disabled={isDownloading}
             onClick={async () => {
-              // Download all favorites
-              for (const wallpaper of displayedWallpapers) {
-                try {
-                  const response = await fetch(wallpaper.download_url)
-                  if (!response.ok) throw new Error('Failed to download')
-                  const blob = await response.blob()
-                  const url = window.URL.createObjectURL(blob)
-                  const link = document.createElement("a")
-                  link.href = url
-                  const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
-                  const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
-                  link.download = fileName
-                  document.body.appendChild(link)
-                  link.click()
-                  document.body.removeChild(link)
-                  window.URL.revokeObjectURL(url)
-                } catch (error) {
-                  console.error(`Error downloading ${wallpaper.name}:`, error)
-                  showNotification(`Failed to download ${wallpaper.name}`)
-                }
-              }
+              if (isDownloading) return
+              activeDownloadsRef.current += 1
+              setIsDownloading(true)
+              const allFavorites = getFilteredWallpapers()
               showNotification("Started downloading all favorites")
+              try {
+                for (const wallpaper of allFavorites) {
+                  try {
+                    trackDownload(wallpaper)
+                    const response = await fetch(wallpaper.download_url)
+                    if (!response.ok) throw new Error('Failed to download')
+                    const blob = await response.blob()
+                    const url = window.URL.createObjectURL(blob)
+                    const link = document.createElement("a")
+                    link.href = url
+                    const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+                    const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+                    link.download = fileName
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                    window.URL.revokeObjectURL(url)
+                  } catch (error) {
+                    console.error(`Error downloading ${wallpaper.name}:`, error)
+                    showNotification(`Failed to download ${wallpaper.name}`)
+                  }
+                }
+              } finally {
+                activeDownloadsRef.current = Math.max(0, activeDownloadsRef.current - 1)
+                setIsDownloading(activeDownloadsRef.current > 0)
+              }
             }}
-            className="bg-[var(--accent-light)] text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-[var(--accent-light)]/90 transition-all text-xs sm:text-sm font-medium flex items-center gap-2"
+            className="bg-[var(--accent-light)] text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-[var(--accent-light)]/90 transition-all text-xs sm:text-sm font-medium flex items-center gap-2 disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Download All
@@ -1202,9 +1161,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
       </div>
 
       {selectedWallpaper && (() => {
-        const filteredWallpapers = filter === "all" 
-          ? wallpapersState 
-          : wallpapersState.filter(wallpaper => wallpaper.platform?.toLowerCase() === filter);
+        const filteredWallpapers = getFilteredWallpapers();
         const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
         
         return (
@@ -1221,7 +1178,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
             onPrevious={handlePreviousWallpaper}
             onNext={handleNextWallpaper}
             hasPrevious={currentFilteredIndex > 0}
-            hasNext={currentFilteredIndex < filteredWallpapers.length - 1}
+            hasNext={currentFilteredIndex >= 0 && currentFilteredIndex < filteredWallpapers.length - 1}
           />
         );
       })()}

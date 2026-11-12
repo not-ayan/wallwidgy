@@ -8,6 +8,7 @@ import { useBackHandler } from "@/hooks/use-back-handler"
 import { useState as useStableState } from "react"
 import Link from "next/link"
 import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
+import { createLatestRequestGuard } from "@/lib/ui-state-helpers"
 
 // StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, onError404, ...props }: { src: string; alt: string; onError404?: () => void; [key: string]: any }) {
@@ -113,6 +114,9 @@ export default function SearchBar() {
   const [searchHistoryEnabled, setSearchHistoryEnabled] = useState(false)
   const [showMap, setShowMap] = useState<{ [sha: string]: boolean | undefined }>({})
   const [deviceFilter, setDeviceFilter] = useState<"all" | "desktop" | "mobile">("all")
+  const searchGuardRef = useRef(createLatestRequestGuard())
+  const loadMoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isLoadingMoreRef = useRef(false)
   
   // Handle browser back button when search is open
   useBackHandler({
@@ -134,6 +138,8 @@ export default function SearchBar() {
       if (searchQuery.trim()) {
         performSearch(searchQuery.trim())
       } else {
+        searchGuardRef.current.invalidate()
+        setIsSearching(false)
         setResults([])
         setTotalResults(0)
       }
@@ -150,12 +156,20 @@ export default function SearchBar() {
   }
   
   const performSearch = async (query: string) => {
+    const requestId = searchGuardRef.current.next()
+    if (loadMoreTimerRef.current) {
+      clearTimeout(loadMoreTimerRef.current)
+      loadMoreTimerRef.current = null
+    }
+    isLoadingMoreRef.current = false
+    setLoadingMore(false)
     setIsSearching(true)
     setShowMap({}) // Reset showMap for new search
     setVisibleResults(20) // Reset visible results counter
     try {
       // Use cached wallpaper index (0ms if already in memory/sessionStorage)
       const data = await getRawWallpaperIndex()
+      if (!searchGuardRef.current.isCurrent(requestId)) return
       
       // Search through the data fields for matches
       const matchedWallpapers = data
@@ -208,13 +222,17 @@ export default function SearchBar() {
         ? matchedWallpapers 
         : matchedWallpapers.filter((wallpaper: Wallpaper) => wallpaper.platform.toLowerCase() === deviceFilter)
       
+      if (!searchGuardRef.current.isCurrent(requestId)) return
       setResults(filteredResults)
       setTotalResults(filteredResults.length)
     } catch (error) {
+      if (!searchGuardRef.current.isCurrent(requestId)) return
       console.error("Error searching wallpapers:", error)
       setResults([])
     } finally {
-      setIsSearching(false)
+      if (searchGuardRef.current.isCurrent(requestId)) {
+        setIsSearching(false)
+      }
     }
   }
 
@@ -289,18 +307,26 @@ export default function SearchBar() {
   // Backup scroll handler for infinite loading
   useEffect(() => {
     if (!isOpen || results.length <= visibleResults) return;
-    
+
+    const triggerLoadMore = () => {
+      if (isLoadingMoreRef.current) return;
+      isLoadingMoreRef.current = true;
+      setLoadingMore(true);
+      loadMoreTimerRef.current = setTimeout(() => {
+        loadMoreTimerRef.current = null;
+        isLoadingMoreRef.current = false;
+        setVisibleResults(prev => Math.min(prev + 20, results.length));
+        setLoadingMore(false);
+      }, 300);
+    };
+
     const handleScroll = (e: Event) => {
       const element = e.target as HTMLDivElement;
       const scrollPosition = element.scrollTop + element.clientHeight;
       const scrollThreshold = element.scrollHeight - 300;
       
-      if (scrollPosition >= scrollThreshold && !loadingMore && results.length > visibleResults) {
-        setLoadingMore(true);
-        setTimeout(() => {
-          setVisibleResults(prev => Math.min(prev + 20, results.length));
-          setLoadingMore(false);
-        }, 300);
+      if (scrollPosition >= scrollThreshold && results.length > visibleResults) {
+        triggerLoadMore();
       }
     };
     
@@ -308,43 +334,34 @@ export default function SearchBar() {
     if (scrollContainer) {
       scrollContainer.addEventListener('scroll', handleScroll);
     }
-    
-    return () => {
-      if (scrollContainer) {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [isOpen, results.length, visibleResults, loadingMore]);
 
-  // Set up infinite scroll intersection observer
-  useEffect(() => {
-    if (results.length <= visibleResults) return;
-    
     const observer = new IntersectionObserver((entries) => {
-      const [entry] = entries;
-      if (entry.isIntersecting && !loadingMore) {
-        setLoadingMore(true);
-        setTimeout(() => {
-          setVisibleResults(prev => Math.min(prev + 20, results.length));
-          setLoadingMore(false);
-        }, 300);
+      if (entries[0]?.isIntersecting) {
+        triggerLoadMore();
       }
-    }, { 
+    }, {
       rootMargin: '0px 0px 300px 0px',
       threshold: 0.1
     });
-    
+
     const loaderElement = observerRef.current;
     if (loaderElement) {
       observer.observe(loaderElement);
     }
     
     return () => {
-      if (loaderElement) {
-        observer.unobserve(loaderElement);
+      if (scrollContainer) {
+        scrollContainer.removeEventListener('scroll', handleScroll);
       }
+      observer.disconnect();
+      if (loadMoreTimerRef.current) {
+        clearTimeout(loadMoreTimerRef.current);
+        loadMoreTimerRef.current = null;
+      }
+      isLoadingMoreRef.current = false;
+      setLoadingMore(false);
     };
-  }, [results.length, visibleResults, loadingMore]);
+  }, [isOpen, results.length, visibleResults]);
 
   return (
     <>

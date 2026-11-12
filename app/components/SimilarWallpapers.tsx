@@ -1,17 +1,22 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import { useState as useStableState } from "react"
 import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
+import { createLatestRequestGuard, findIndexItemForWallpaper } from "@/lib/ui-state-helpers"
 // StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt: string; on404?: () => void; [key: string]: any }) {
   const [error, setError] = useStableState(false);
   const [loading, setLoading] = useStableState(true);
 
+  useEffect(() => {
+    setError(false);
+    setLoading(true);
+  }, [src]);
+
   // If error is set, do not render anything (skip image)
   if (error) {
-    if (on404) on404();
     return null;
   }
 
@@ -30,11 +35,13 @@ function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt:
             const res = await fetch(e.target.src, { method: 'HEAD' });
             if (res.status === 404) {
               setError(true);
+              on404?.();
               return;
             }
           } catch {}
         }
         setError(true);
+        on404?.();
       }}
       onLoad={() => setLoading(false)}
       className={
@@ -72,6 +79,8 @@ export default function SimilarWallpapers({
   const [disableBlur, setDisableBlur] = useState(false)
   // Track which wallpapers to show (not 404)
   const [showMap, setShowMap] = useState<{ [sha: string]: boolean }>({});
+  const fetchGuardRef = useRef(createLatestRequestGuard())
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Handle browser back button when similar wallpapers view is open
   useBackHandler({
@@ -94,10 +103,23 @@ export default function SimilarWallpapers({
   const [wallpapersPerRow, setWallpapersPerRow] = useState(getWallpapersPerRow())
 
   useEffect(() => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current)
+      refreshTimerRef.current = null
+    }
+    setIsRefreshing(false)
+
     if (currentWallpaper?.sha && isVisible) {
       fetchSimilarWallpapers(currentWallpaper)
       setCurrentPage(0) // Reset to first page when wallpaper changes
       setShowMap({}); // Reset showMap on new wallpaper
+    }
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
     }
   }, [currentWallpaper?.sha, isVisible])
 
@@ -125,20 +147,19 @@ export default function SimilarWallpapers({
   }, [allSimilarWallpapers, currentPage, wallpapersPerRow])
 
   const fetchSimilarWallpapers = async (wallpaper: Wallpaper) => {
+    const requestId = fetchGuardRef.current.next()
     setIsLoading(true)
     try {
       // Use cached wallpaper index (0ms if already loaded by grid)
       const data = await getRawWallpaperIndex()
-      
+      if (!fetchGuardRef.current.isCurrent(requestId)) return
+
       // Find the current wallpaper's full data including metadata
-      const currentWallpaperData = data.find((item: any) => 
-        item.file_name === wallpaper.name.replace(/\.\w+$/, '') || // Remove file extension if present
-        item.file_main_name === wallpaper.name
-      )
-      
+      const currentWallpaperData = findIndexItemForWallpaper(data, wallpaper)
+
       if (!currentWallpaperData || !currentWallpaperData.data) {
+        setAllSimilarWallpapers([])
         setSimilarWallpapers([])
-        setIsLoading(false)
         return
       }
       
@@ -168,35 +189,40 @@ export default function SimilarWallpapers({
             height: item.height,
           }
           
-          console.log("Created wallpaper object:", wallpaperObj); // Debug log
-          
           return { wallpaper: wallpaperObj, score: similarityScore }
         })
         .sort((a: any, b: any) => b.score - a.score) // Sort by similarity score
         .map((item: any) => item.wallpaper)
       
+      if (!fetchGuardRef.current.isCurrent(requestId)) return
+
       // Store all similar wallpapers and show first row
       setAllSimilarWallpapers(wallpapersWithScores)
       setSimilarWallpapers(wallpapersWithScores.slice(0, wallpapersPerRow))
     } catch (error) {
+      if (!fetchGuardRef.current.isCurrent(requestId)) return
       console.error("Error fetching similar wallpapers:", error)
       setSimilarWallpapers([])
       setAllSimilarWallpapers([])
     } finally {
-      setIsLoading(false)
+      if (fetchGuardRef.current.isCurrent(requestId)) {
+        setIsLoading(false)
+      }
     }
   }
 
   const handleShowMore = () => {
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current)
+    }
     setIsRefreshing(true)
-    setTimeout(() => {
-      const nextPage = currentPage + 1
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null
       const totalPages = Math.ceil(allSimilarWallpapers.length / wallpapersPerRow)
-      
-      if (nextPage >= totalPages) {
-        setCurrentPage(0) // Loop back to first page
+      if (totalPages > 0) {
+        setCurrentPage((prev) => (prev + 1 >= totalPages ? 0 : prev + 1))
       } else {
-        setCurrentPage(nextPage)
+        setCurrentPage(0)
       }
       setIsRefreshing(false)
     }, 300) // Small delay for visual feedback

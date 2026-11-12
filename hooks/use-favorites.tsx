@@ -1,33 +1,19 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import FavoritesSyncModal from '@/app/components/FavoritesSyncModal'
+import {
+  normalizeWallpaperId,
+  isIdMatching,
+  deduplicateIds,
+  applyFavoriteAction,
+  applyFavoriteToggle,
+  parseStoredFavoritesJson,
+  createKeyedTaskQueue,
+} from '@/lib/favorites-state'
 
-export function normalizeWallpaperId(id: string): string {
-  if (!id) return ''
-  return decodeURIComponent(id).replace(/\.[^/.]+$/, '').toLowerCase().trim()
-}
-
-export function isIdMatching(id1: string, id2: string): boolean {
-  if (!id1 || !id2) return false
-  if (id1 === id2) return true
-  return normalizeWallpaperId(id1) === normalizeWallpaperId(id2)
-}
-
-export function deduplicateIds(ids: string[]): string[] {
-  const seen = new Set<string>()
-  const result: string[] = []
-  for (const id of ids) {
-    if (!id || typeof id !== 'string') continue
-    const norm = normalizeWallpaperId(id)
-    if (!seen.has(norm)) {
-      seen.add(norm)
-      result.push(id)
-    }
-  }
-  return result
-}
+export { normalizeWallpaperId, isIdMatching, deduplicateIds }
 
 interface FavoritesContextType {
   favorites: string[]
@@ -40,6 +26,15 @@ interface FavoritesContextType {
 
 const FavoritesContext = createContext<FavoritesContextType | null>(null)
 
+function persistLocalFavorites(items: string[]) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem('favorites', JSON.stringify(items))
+  } catch (e) {
+    console.error('Failed to persist favorites to localStorage', e)
+  }
+}
+
 export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const { isSignedIn, isLoaded, userId } = useAuth()
   const [favorites, setFavorites] = useState<string[]>([])
@@ -51,31 +46,38 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [pendingCloudFavorites, setPendingCloudFavorites] = useState<string[]>([])
   const [unsyncedCount, setUnsyncedCount] = useState(0)
 
+  const favoritesRef = useRef<string[]>([])
+  const syncGenerationRef = useRef(0)
+  const mutationQueueRef = useRef(createKeyedTaskQueue())
+
+  const commitFavorites = useCallback((updater: string[] | ((prev: string[]) => string[])) => {
+    setFavorites((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      const clean = deduplicateIds(next)
+      favoritesRef.current = clean
+      persistLocalFavorites(clean)
+      return clean
+    })
+  }, [])
+
   // Helper to safely read localStorage
   const getStoredFavorites = useCallback((): string[] => {
     if (typeof window === 'undefined') return []
     try {
-      const stored = localStorage.getItem('favorites')
-      if (stored) {
-        const parsed = JSON.parse(stored)
-        if (Array.isArray(parsed)) return parsed.filter(Boolean)
-      }
+      return parseStoredFavoritesJson(localStorage.getItem('favorites'))
     } catch (e) {
       console.error('Failed to parse favorites from localStorage', e)
+      return []
     }
-    return []
   }, [])
 
-  // Listen to cross-tab storage changes
+  // Listen to cross-tab storage changes (including clear/removeItem where newValue === null)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'favorites' && e.newValue) {
-        try {
-          const parsed = JSON.parse(e.newValue)
-          if (Array.isArray(parsed)) {
-            setFavorites(parsed)
-          }
-        } catch {}
+      if (e.key === 'favorites') {
+        const parsed = parseStoredFavoritesJson(e.newValue)
+        favoritesRef.current = parsed
+        setFavorites(parsed)
       }
     }
     window.addEventListener('storage', handleStorageChange)
@@ -86,32 +88,49 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return
 
-    let isMounted = true
+    const generation = ++syncGenerationRef.current
+    const controller = new AbortController()
+
+    const resetConflictModal = () => {
+      setIsSyncModalOpen(false)
+      setPendingGuestFavorites([])
+      setPendingCloudFavorites([])
+      setUnsyncedCount(0)
+    }
 
     const syncFavorites = async () => {
       setIsLoading(true)
-
       const localFavorites = getStoredFavorites()
 
       if (!isSignedIn || !userId) {
-        // Guest user: load directly from local storage
-        if (isMounted) {
+        // Guest user: load directly from local storage and clear any lingering conflict modal
+        resetConflictModal()
+        if (syncGenerationRef.current === generation) {
+          favoritesRef.current = localFavorites
           setFavorites(localFavorites)
           setIsLoading(false)
         }
         return
       }
 
+      // Reset prior user's conflict modal immediately while syncing new session
+      resetConflictModal()
+
       // Signed in user
       try {
-        const res = await fetch('/api/favorites', { cache: 'no-store' })
+        const res = await fetch('/api/favorites', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
         if (!res.ok) {
           throw new Error(`Failed to fetch cloud favorites: ${res.status}`)
         }
         const data = await res.json()
-        const cloudFavorites: string[] = Array.isArray(data.favorites) ? data.favorites : []
+        const cloudFavorites: string[] = deduplicateIds(
+          Array.isArray(data.favorites) ? data.favorites : []
+        )
 
-        if (!isMounted) return
+        if (syncGenerationRef.current !== generation) return
 
         // Check if there are local favorites that do not exist in the cloud account
         const unsyncedGuestItems = localFavorites.filter(
@@ -120,35 +139,43 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
         if (unsyncedGuestItems.length === 0) {
           // No new guest favorites to sync -> smoothly align local with cloud
-          setFavorites(cloudFavorites)
-          localStorage.setItem('favorites', JSON.stringify(cloudFavorites))
+          commitFavorites(cloudFavorites)
           setIsLoading(false)
         } else if (cloudFavorites.length === 0) {
           // Account has 0 favorites -> Automatically migrate guest favorites to account
           const cleanLocal = deduplicateIds(localFavorites)
-          setFavorites(cleanLocal)
-          localStorage.setItem('favorites', JSON.stringify(cleanLocal))
+          commitFavorites(cleanLocal)
 
-          await fetch('/api/favorites', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ favorites: cleanLocal })
-          })
-          setIsLoading(false)
+          const postRes = await mutationQueueRef.current.enqueue(userId, () =>
+            fetch('/api/favorites', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ favorites: cleanLocal }),
+              signal: controller.signal,
+            })
+          )
+          if (!postRes.ok) {
+            throw new Error(`Failed to migrate guest favorites: ${postRes.status}`)
+          }
+          if (syncGenerationRef.current === generation) {
+            setIsLoading(false)
+          }
         } else {
           // Account has favorites AND user added extra favorites as guest -> Show choice modal!
           setPendingGuestFavorites(localFavorites)
           setPendingCloudFavorites(cloudFavorites)
           setUnsyncedCount(unsyncedGuestItems.length)
-          // Display merged preview in state so user doesn't lose sight of their favorites
           const mergedPreview = deduplicateIds([...localFavorites, ...cloudFavorites])
+          favoritesRef.current = mergedPreview
           setFavorites(mergedPreview)
           setIsSyncModalOpen(true)
           setIsLoading(false)
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return
         console.error('Error synchronizing favorites on sign-in:', err)
-        if (isMounted) {
+        if (syncGenerationRef.current === generation) {
+          favoritesRef.current = localFavorites
           setFavorites(localFavorites)
           setIsLoading(false)
         }
@@ -158,42 +185,58 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
     syncFavorites()
 
     return () => {
-      isMounted = false
+      controller.abort()
     }
-  }, [isSignedIn, isLoaded, userId, getStoredFavorites])
+  }, [isSignedIn, isLoaded, userId, getStoredFavorites, commitFavorites])
 
   // Resolve sync modal choices
   const handleMergeFavorites = useCallback(async () => {
     if (!userId) return
-    const merged = deduplicateIds([...pendingCloudFavorites, ...pendingGuestFavorites])
-    setFavorites(merged)
-    localStorage.setItem('favorites', JSON.stringify(merged))
+    const generation = syncGenerationRef.current
+    const merged = deduplicateIds([
+      ...pendingCloudFavorites,
+      ...pendingGuestFavorites,
+      ...favoritesRef.current,
+    ])
+    const rollbackSnapshot = pendingCloudFavorites
+
+    commitFavorites(merged)
     setIsSyncModalOpen(false)
 
     try {
-      await fetch('/api/favorites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ favorites: merged })
-      })
+      const res = await mutationQueueRef.current.enqueue(userId, () =>
+        fetch('/api/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ favorites: merged }),
+        })
+      )
+      if (!res.ok) {
+        throw new Error(`Failed to save merged favorites: ${res.status}`)
+      }
+      const data = await res.json().catch(() => null)
+      if (syncGenerationRef.current === generation && Array.isArray(data?.favorites)) {
+        commitFavorites(data.favorites)
+      }
     } catch (e) {
       console.error('Error saving merged favorites to cloud:', e)
+      if (syncGenerationRef.current === generation) {
+        commitFavorites(rollbackSnapshot)
+      }
     }
-  }, [pendingCloudFavorites, pendingGuestFavorites, userId])
+  }, [pendingCloudFavorites, pendingGuestFavorites, userId, commitFavorites])
 
   const handleKeepAccountFavorites = useCallback(async () => {
     if (!userId) return
-    setFavorites(pendingCloudFavorites)
-    localStorage.setItem('favorites', JSON.stringify(pendingCloudFavorites))
+    commitFavorites(pendingCloudFavorites)
     setIsSyncModalOpen(false)
-  }, [pendingCloudFavorites, userId])
+  }, [pendingCloudFavorites, userId, commitFavorites])
 
   const handleCloseSyncModal = useCallback(() => {
     // If dismissed with X/backdrop without clicking buttons, default to account favorites to avoid prompt loop
-    setFavorites(pendingCloudFavorites)
-    localStorage.setItem('favorites', JSON.stringify(pendingCloudFavorites))
+    commitFavorites(pendingCloudFavorites)
     setIsSyncModalOpen(false)
-  }, [pendingCloudFavorites])
+  }, [pendingCloudFavorites, commitFavorites])
 
   const isFavorite = useCallback((wallpaperId: string): boolean => {
     if (!wallpaperId) return false
@@ -202,73 +245,94 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
   const toggleFavorite = useCallback(async (wallpaperId: string) => {
     if (!wallpaperId) return
-    const isFav = isFavorite(wallpaperId)
+    const generation = syncGenerationRef.current
+    let chosenAction: 'add' | 'remove' = 'add'
 
-    const newFavorites = isFav
-      ? favorites.filter(id => !isIdMatching(id, wallpaperId))
-      : deduplicateIds([...favorites, wallpaperId])
+    // Functional optimistic update prevents stale-closure clobbering across rapid toggles
+    commitFavorites((prev) => {
+      const { nextFavorites, action } = applyFavoriteToggle(prev, wallpaperId)
+      chosenAction = action
+      return nextFavorites
+    })
 
-    // Optimistic update
-    setFavorites(newFavorites)
-    localStorage.setItem('favorites', JSON.stringify(newFavorites))
-
-    if (isSignedIn) {
+    if (isSignedIn && userId) {
       try {
-        await fetch('/api/favorites', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallpaperId,
-            action: isFav ? 'remove' : 'add'
+        const res = await mutationQueueRef.current.enqueue(userId, () =>
+          fetch('/api/favorites', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallpaperId,
+              action: chosenAction,
+            }),
           })
-        })
+        )
+        if (!res.ok) {
+          throw new Error(`PATCH /api/favorites failed with ${res.status}`)
+        }
       } catch (error) {
         console.error('Error syncing favorite change to cloud:', error)
-        // Revert on error
-        setFavorites(favorites)
-        localStorage.setItem('favorites', JSON.stringify(favorites))
+        // Roll back only this item's mutation without erasing concurrent toggles
+        if (syncGenerationRef.current === generation) {
+          const rollbackAction: 'add' | 'remove' = chosenAction === 'add' ? 'remove' : 'add'
+          commitFavorites((prev) => applyFavoriteAction(prev, wallpaperId, rollbackAction))
+        }
       }
     }
-  }, [favorites, isFavorite, isSignedIn])
+  }, [isSignedIn, userId, commitFavorites])
 
   const clearAllFavorites = useCallback(async () => {
-    setFavorites([])
-    localStorage.setItem('favorites', '[]')
+    const generation = syncGenerationRef.current
+    const previous = favoritesRef.current
+    commitFavorites([])
 
-    if (isSignedIn) {
+    if (isSignedIn && userId) {
       try {
-        await fetch('/api/favorites', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ favorites: [] })
-        })
+        const res = await mutationQueueRef.current.enqueue(userId, () =>
+          fetch('/api/favorites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ favorites: [] }),
+          })
+        )
+        if (!res.ok) {
+          throw new Error(`POST /api/favorites failed with ${res.status}`)
+        }
       } catch (error) {
         console.error('Error clearing favorites from cloud:', error)
+        if (syncGenerationRef.current === generation) {
+          commitFavorites((prev) => deduplicateIds([...previous, ...prev]))
+        }
       }
     }
-  }, [isSignedIn])
+  }, [isSignedIn, userId, commitFavorites])
 
   const syncLocalToCloud = useCallback(async () => {
-    if (!isSignedIn) return
+    if (!isSignedIn || !userId) return
+    const generation = syncGenerationRef.current
     const local = getStoredFavorites()
     try {
-      const res = await fetch('/api/favorites', { cache: 'no-store' })
-      if (res.ok) {
+      const merged = await mutationQueueRef.current.enqueue(userId, async () => {
+        const res = await fetch('/api/favorites', { cache: 'no-store' })
+        if (!res.ok) throw new Error(`GET /api/favorites failed with ${res.status}`)
         const data = await res.json()
         const cloud = Array.isArray(data.favorites) ? data.favorites : []
-        const merged = deduplicateIds([...cloud, ...local])
-        await fetch('/api/favorites', {
+        const combined = deduplicateIds([...cloud, ...local])
+        const postRes = await fetch('/api/favorites', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ favorites: merged })
+          body: JSON.stringify({ favorites: combined }),
         })
-        setFavorites(merged)
-        localStorage.setItem('favorites', JSON.stringify(merged))
+        if (!postRes.ok) throw new Error(`POST /api/favorites failed with ${postRes.status}`)
+        return combined
+      })
+      if (syncGenerationRef.current === generation) {
+        commitFavorites(merged)
       }
     } catch (e) {
       console.error('Manual sync failed:', e)
     }
-  }, [isSignedIn, getStoredFavorites])
+  }, [isSignedIn, userId, getStoredFavorites, commitFavorites])
 
   const totalMergedCount = useMemo(() => {
     return deduplicateIds([...pendingCloudFavorites, ...pendingGuestFavorites]).length

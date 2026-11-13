@@ -1020,12 +1020,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                     <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 truncate mr-2">
                       {wallpaper.name}
                     </h3>
-                    {downloadCount > 0 && (
-                      <span className="text-xs text-white/70 font-mono flex items-center gap-1 flex-shrink-0">
-                        <Download className="w-3 h-3 text-[#F7F06D]" />
-                        {formatDownloadCount(downloadCount)}
-                      </span>
-                    )}
                   </div>
                   
                   {/* Action buttons with simplified animation */}
@@ -1181,12 +1175,6 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                     <h3 className="text-[15px] font-medium text-white/90 transition-all duration-300 transform translate-y-1 group-hover:translate-y-0 truncate mr-2">
                       {wallpaper.name}
                     </h3>
-                    {downloadCount > 0 && (
-                      <span className="text-xs text-white/70 font-mono flex items-center gap-1 flex-shrink-0">
-                        <Download className="w-3 h-3 text-[#F7F06D]" />
-                        {formatDownloadCount(downloadCount)}
-                      </span>
-                    )}
                   </div>
                   
                   {/* Action buttons with simplified animation */}

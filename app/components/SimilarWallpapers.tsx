@@ -52,7 +52,7 @@ function StableImageComponent({ src, alt, on404, ...props }: { src: string; alt:
     />
   );
 }
-import { RefreshCw, Sparkles, X } from "lucide-react"
+import { RefreshCw, Images, X } from "lucide-react"
 import { Wallpaper } from "./WallpaperModal"
 import { shouldDisableBlurEffects } from "@/lib/utils"
 import { useBackHandler } from "@/hooks/use-back-handler"
@@ -327,7 +327,7 @@ export default function SimilarWallpapers({
         <div className={`bg-black/${disableBlur ? '80' : '50'} ${disableBlur ? '' : 'backdrop-blur-xl'} rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-6`}>
           <div className="flex items-center justify-between mb-2 sm:mb-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400/80" />
+              <Images className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
               <h3 className="text-white/90 text-sm sm:text-base font-medium">Similar Wallpapers</h3>
             </div>
             <button
@@ -339,7 +339,7 @@ export default function SimilarWallpapers({
           </div>
           <div className="text-center py-3 sm:py-6">
             <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white/40" />
+              <Images className="w-5 h-5 sm:w-6 sm:h-6 text-white/40" />
             </div>
             <p className="text-white/60 text-xs sm:text-sm">No similar wallpapers found</p>
             <p className="text-white/40 text-xs mt-1">Try exploring other categories</p>
@@ -357,7 +357,7 @@ export default function SimilarWallpapers({
         {/* Header */}
         <div className="flex items-center justify-between p-2 sm:p-4 border-b border-white/20">
           <div className="flex items-center gap-2 sm:gap-3">
-            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-400/80" />
+            <Images className="w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
             <h3 className="text-white/90 text-sm sm:text-base font-medium">Similar Wallpapers</h3>
           </div>
           

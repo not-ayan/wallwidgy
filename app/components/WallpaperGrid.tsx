@@ -553,10 +553,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
   const handlePreviousWallpaper = useCallback(() => {
     const filteredWallpapers = getFilteredWallpapers();
-    const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+    let currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+    let list = filteredWallpapers;
+    if (currentFilteredIndex === -1 && wallpapersState.length > 0) {
+      list = wallpapersState;
+      currentFilteredIndex = wallpapersState.findIndex(w => w.sha === selectedWallpaper?.sha);
+    }
 
     if (currentFilteredIndex > 0) {
-      const prevWallpaper = filteredWallpapers[currentFilteredIndex - 1];
+      const prevWallpaper = list[currentFilteredIndex - 1];
       setSelectedWallpaper(prevWallpaper);
       const fullIndex = wallpapersState.findIndex(w => w.sha === prevWallpaper.sha);
       setSelectedIndex(fullIndex);
@@ -565,10 +570,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
   const handleNextWallpaper = useCallback(() => {
     const filteredWallpapers = getFilteredWallpapers();
-    const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+    let currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+    let list = filteredWallpapers;
+    if (currentFilteredIndex === -1 && wallpapersState.length > 0) {
+      list = wallpapersState;
+      currentFilteredIndex = wallpapersState.findIndex(w => w.sha === selectedWallpaper?.sha);
+    }
 
-    if (currentFilteredIndex >= 0 && currentFilteredIndex < filteredWallpapers.length - 1) {
-      const nextWallpaper = filteredWallpapers[currentFilteredIndex + 1];
+    if (currentFilteredIndex >= 0 && currentFilteredIndex < list.length - 1) {
+      const nextWallpaper = list[currentFilteredIndex + 1];
       setSelectedWallpaper(nextWallpaper);
       const fullIndex = wallpapersState.findIndex(w => w.sha === nextWallpaper.sha);
       setSelectedIndex(fullIndex);
@@ -1349,7 +1359,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
       {selectedWallpaper && (() => {
         const filteredWallpapers = getFilteredWallpapers();
-        const currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+        let currentFilteredIndex = filteredWallpapers.findIndex(w => w.sha === selectedWallpaper?.sha);
+        let listToUse = filteredWallpapers;
+        if (currentFilteredIndex === -1 && wallpapersState.length > 0) {
+          listToUse = wallpapersState;
+          currentFilteredIndex = wallpapersState.findIndex(w => w.sha === selectedWallpaper?.sha);
+        }
         const modalDownloadCount = isPopular && currentFilteredIndex >= 0
           ? getResolvedDownloadCount(selectedWallpaper, popularDownloadCounts, currentFilteredIndex)
           : 0;
@@ -1369,7 +1384,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
             onPrevious={handlePreviousWallpaper}
             onNext={handleNextWallpaper}
             hasPrevious={currentFilteredIndex > 0}
-            hasNext={currentFilteredIndex >= 0 && currentFilteredIndex < filteredWallpapers.length - 1}
+            hasNext={currentFilteredIndex >= 0 && currentFilteredIndex < listToUse.length - 1}
           />
         );
       })()}

@@ -67,7 +67,7 @@ function SmartImage({
   );
 }
 import Image from "next/image"  // This is the Next.js Image component
-import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, Heart } from "lucide-react"
+import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, Heart, Loader2, Images } from "lucide-react"
 import Link from "next/link"
 import SimilarWallpapers from "./SimilarWallpapers"
 import { shouldDisableBlurEffects } from "@/lib/utils"
@@ -132,10 +132,24 @@ export default function WallpaperModal({
   const modalRef = useRef<HTMLDivElement>(null)
   const [isHighQuality, setIsHighQuality] = useState(false)
   const [isLoadingHighQuality, setIsLoadingHighQuality] = useState(false)
+  const [showLoadingSpinner, setShowLoadingSpinner] = useState(false)
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(false)
   const [isFullImageLoaded, setIsFullImageLoaded] = useState(false)
   const [showSimilarWallpapers, setShowSimilarWallpapers] = useState(false)
   const [disableBlur, setDisableBlur] = useState(false)
+
+  // Debounce the loading spinner to prevent instant black/loader flashes on quick cached switches
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null
+    if (isImageLoading) {
+      timer = setTimeout(() => setShowLoadingSpinner(true), 150)
+    } else {
+      setShowLoadingSpinner(false)
+    }
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [isImageLoading])
 
   // Navigate back through recommendation history or close modal
   const handleBack = useCallback(() => {
@@ -169,16 +183,9 @@ export default function WallpaperModal({
   })
 
   // Responsive viewport helpers
-  const [viewportDimensions, setViewportDimensions] = useState({ width: 0, height: 0 })
-  
   useEffect(() => {
     const updateViewport = () => {
-      const width = window.innerWidth
-      setViewportDimensions({ 
-        width, 
-        height: window.innerHeight 
-      })
-      setIsMobile(width < 768)
+      setIsMobile(window.innerWidth < 768)
     }
     
     // Check if we should disable blur effects
@@ -188,28 +195,6 @@ export default function WallpaperModal({
     window.addEventListener('resize', updateViewport)
     return () => window.removeEventListener('resize', updateViewport)
   }, [])
-
-  // Calculate dynamic positions based on viewport
-  const getButtonPositions = () => {
-    const { width, height } = viewportDimensions
-    const isMobile = width < 768
-    const isShortViewport = height < 600
-    
-    return {
-      topButtons: {
-        top: '1rem',
-        left: '1rem',
-        right: '1rem',
-      },
-      bottomButtons: {
-        bottom: isShortViewport ? '0.5rem' : '1rem',
-        left: '1rem',
-        right: '1rem',
-      },
-    }
-  }
-
-  const positions = getButtonPositions()
 
   // Sync with prop changes when parent navigates (e.g. Next/Prev from grid)
   useEffect(() => {
@@ -246,6 +231,24 @@ export default function WallpaperModal({
       if (currentModal) {
         currentModal.focus()
       }
+    }
+  }, [isOpen])
+
+  // Lock body scroll and prevent background layout shifts when modal is open
+  useEffect(() => {
+    if (!isOpen) return
+    const originalOverflow = document.body.style.overflow
+    const originalPaddingRight = document.body.style.paddingRight
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+
+    document.body.style.overflow = "hidden"
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`
+    }
+
+    return () => {
+      document.body.style.overflow = originalOverflow
+      document.body.style.paddingRight = originalPaddingRight
     }
   }, [isOpen])
 
@@ -464,8 +467,27 @@ export default function WallpaperModal({
     })
   }
 
+  // Drag detection for backdrop clicks to prevent accidental closes
+  const dragDistanceRef = useRef(0)
+  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null)
+
+  const handleBackdropPointerDown = (e: React.PointerEvent) => {
+    pointerDownPosRef.current = { x: e.clientX, y: e.clientY }
+    dragDistanceRef.current = 0
+  }
+
+  const handleBackdropPointerUp = (e: React.PointerEvent) => {
+    if (pointerDownPosRef.current) {
+      const dx = Math.abs(e.clientX - pointerDownPosRef.current.x)
+      const dy = Math.abs(e.clientY - pointerDownPosRef.current.y)
+      dragDistanceRef.current = Math.sqrt(dx * dx + dy * dy)
+    }
+  }
+
   // Update the background click handler
   const handleBackgroundClick = (e: React.MouseEvent) => {
+    // If the user dragged or panned more than 6px, do NOT close
+    if (dragDistanceRef.current > 6) return
     // Only close if clicking directly on the background overlay
     if (e.target === e.currentTarget) {
       onClose();
@@ -504,6 +526,8 @@ export default function WallpaperModal({
       id="wallpaper-modal"
       tabIndex={-1}
       className={`fixed inset-0 z-50 flex items-center justify-center bg-black/95 ${disableBlur ? '' : 'backdrop-blur-sm'} outline-none`}
+      onPointerDown={handleBackdropPointerDown}
+      onPointerUp={handleBackdropPointerUp}
       onClick={handleBackgroundClick}
       onKeyDown={(e) => {
         switch (e.key) {
@@ -525,20 +549,23 @@ export default function WallpaperModal({
         }
       }}
     >
-      <div className="fixed inset-0 flex items-center justify-center">
+      <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
         {/* Blurred background */}
-          <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30"
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 md:opacity-30 transition-all duration-500 pointer-events-none"
           style={{ 
             backgroundImage: `url(${currentWallpaper.preview_url})`,
             filter: disableBlur ? 'none' : 'blur(20px)',
           }} 
         />
         <div 
-          className={`absolute inset-0 bg-black/70 ${disableBlur ? '' : 'backdrop-blur-2xl'}`}
-          onClick={onClose}
-        />        <div 
-          className="relative max-h-[100vh] md:max-h-[90vh] w-full md:w-auto md:max-w-[90vw] overflow-hidden md:rounded-2xl bg-transparent"
+          className={`absolute inset-0 bg-black/70 ${disableBlur ? '' : 'backdrop-blur-2xl'} pointer-events-auto`}
+          onPointerDown={handleBackdropPointerDown}
+          onPointerUp={handleBackdropPointerUp}
+          onClick={handleBackgroundClick}
+        />
+        <div 
+          className="relative max-h-[100vh] md:max-h-[90vh] w-full md:w-auto md:max-w-[90vw] overflow-hidden md:rounded-2xl bg-transparent transition-all duration-300 ease-out pointer-events-auto"
           onClick={handleImageContainerClick}
         >
           {/* Image container */}
@@ -612,9 +639,9 @@ export default function WallpaperModal({
                 </div>
               </div>
             </div>
-            {isImageLoading && (
-              <div className={`absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 ${disableBlur ? '' : 'backdrop-blur-md'} rounded-2xl`}>
-                <div className="loader"></div>
+            {showLoadingSpinner && (
+              <div className={`absolute inset-0 flex items-center justify-center bg-black/40 ${disableBlur ? '' : 'backdrop-blur-sm'} rounded-2xl transition-opacity duration-200 pointer-events-none`}>
+                <div className="w-8 h-8 border-2 border-white/20 border-t-[var(--accent-light)] rounded-full animate-spin" />
               </div>
             )}
             
@@ -670,27 +697,28 @@ export default function WallpaperModal({
 
       {/* Top header with back button and info */}
       <div 
-        className="absolute left-0 right-0 z-10 p-3 sm:p-4 flex items-center justify-between pointer-events-none"
-        style={{ top: positions.topButtons.top }}
+        className="fixed top-0 left-0 right-0 z-40 p-3 sm:p-4 flex items-center justify-between pointer-events-none"
       >
         <div className="flex items-center gap-2 pointer-events-auto">
           {history.length > 0 ? (
             <>
               <button 
+                type="button"
                 onClick={handleBack}
-                className={`flex items-center gap-1.5 sm:gap-2 text-white/90 hover:text-white px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg transition-all`}
+                className={`flex items-center gap-1.5 sm:gap-2 text-white/90 hover:text-white px-2.5 sm:px-4 py-2 rounded-full bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg transition-colors duration-150`}
                 title="Back to previous wallpaper"
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="text-xs sm:text-sm font-medium">Back</span>
+                <span className="hidden sm:inline text-xs sm:text-sm font-medium">Back</span>
                 <span className="text-[10px] sm:text-xs text-white/50 bg-white/10 px-1.5 py-0.5 rounded-full">
                   {history.length}
                 </span>
               </button>
               
               <button 
+                type="button"
                 onClick={onClose}
-                className={`flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 text-white/80 hover:text-white shadow-lg transition-all`}
+                className={`flex items-center justify-center w-9 h-9 rounded-full bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 text-white/80 hover:text-white shadow-lg transition-colors duration-150`}
                 title="Close"
               >
                 <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
@@ -698,19 +726,20 @@ export default function WallpaperModal({
             </>
           ) : (
             <button 
+              type="button"
               onClick={onClose} 
-              className={`flex items-center gap-1.5 sm:gap-2 text-white/90 hover:text-white px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg transition-all`}
+              className={`flex items-center justify-center gap-1.5 sm:gap-2 text-white/90 hover:text-white w-9 h-9 sm:w-auto sm:h-auto sm:px-4 sm:py-2 rounded-full bg-black/80 hover:bg-black/95 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg transition-colors duration-150`}
               title="Back"
             >
               <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm font-medium">Back</span>
+              <span className="hidden sm:inline text-xs sm:text-sm font-medium">Back</span>
             </button>
           )}
         </div>
         
         <div className="flex items-center gap-2 pointer-events-auto">
           {/* Resolution and platform info */}
-          <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl bg-black/80 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg`}>
+          <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-black/80 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg`}>
             {currentWallpaper.resolution && (
               <div className="text-white/80 text-xs sm:text-sm">
                 {formatResolution(currentWallpaper.resolution)}
@@ -738,99 +767,166 @@ export default function WallpaperModal({
           {/* HD Button or Quality Indicator */}
           {!isHighQuality && !isLoadingHighQuality && currentWallpaper.download_url ? (
             <button
+              type="button"
               onClick={loadHighQualityImage}
-              className={`bg-black/80 hover:bg-black/95 text-white/90 hover:text-white px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl ${disableBlur ? '' : 'backdrop-blur-md'} text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 transition-all border border-white/10 shadow-lg`}
+              className={`group relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full ${
+                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
+              } border border-white/10 hover:border-[var(--accent-light)]/40 text-white/90 hover:text-white text-xs sm:text-sm font-medium transition-colors duration-150 shadow-lg hover:shadow-[0_0_14px_rgba(255,248,207,0.14)] cursor-pointer select-none`}
+              title="Load original high-resolution wallpaper"
             >
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
-              <span>Load HD</span>
+              {/* Subtle top sheen on hover */}
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_50%_at_50%_0%,rgba(255,248,207,0.12),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              />
+
+              <Sparkles className="hidden sm:inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-light)] drop-shadow-[0_0_6px_rgba(255,248,207,0.45)] relative z-10" />
+              <span className="relative z-10 tracking-tight font-medium">Load HD</span>
             </button>
+          ) : isLoadingHighQuality ? (
+            <div
+              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full ${
+                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
+              } border border-[var(--accent-light)]/25 text-white/80 text-xs sm:text-sm font-medium shadow-lg select-none`}
+            >
+              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-light)] animate-spin" />
+              <span className="tracking-tight text-white/70">Loading HD...</span>
+            </div>
           ) : isHighQuality ? (
-            <div className={`bg-black/80 text-white/90 px-3 sm:px-4 py-2 rounded-xl sm:rounded-2xl ${disableBlur ? '' : 'backdrop-blur-md'} text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 border border-white/10 shadow-lg`}>
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
-              <span>High Quality</span>
+            <div
+              className={`relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full ${
+                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
+              } border border-[var(--accent-light)]/30 text-[var(--accent-light)] text-xs sm:text-sm font-medium shadow-[0_0_12px_rgba(255,248,207,0.14)] select-none`}
+            >
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_50%_at_50%_0%,rgba(255,248,207,0.08),transparent_70%)]"
+              />
+              <Sparkles className="hidden sm:inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-light)] drop-shadow-[0_0_6px_rgba(255,248,207,0.5)] relative z-10" />
+              <span className="relative z-10 tracking-tight font-medium">HD Active</span>
             </div>
           ) : null}
         </div>
       </div>
       
+      {/* Central Left & Right Navigation Buttons */}
+      {(onPrevious || onNext) && (
+        <>
+          {onPrevious && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!hasPrevious) return;
+                if (history.length > 0) setHistory([]);
+                onPrevious();
+              }}
+              disabled={!hasPrevious}
+              className={`fixed left-3 sm:left-6 md:left-8 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full ${
+                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
+              } border border-white/10 ${
+                hasPrevious
+                  ? 'hover:border-[var(--accent-light)]/40 hover:bg-[#181818] text-white/90 hover:text-white cursor-pointer hover:shadow-[0_0_16px_rgba(255,248,207,0.15)]'
+                  : 'opacity-20 cursor-not-allowed text-white/30 border-white/5'
+              } shadow-2xl transition-colors duration-150 select-none pointer-events-auto`}
+              title={hasPrevious ? "Previous wallpaper" : "First wallpaper"}
+              aria-label="Previous wallpaper"
+            >
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+          )}
+
+          {onNext && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!hasNext) return;
+                if (history.length > 0) setHistory([]);
+                onNext();
+              }}
+              disabled={!hasNext}
+              className={`fixed right-3 sm:right-6 md:right-8 top-1/2 -translate-y-1/2 z-40 w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center rounded-full ${
+                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
+              } border border-white/10 ${
+                hasNext
+                  ? 'hover:border-[var(--accent-light)]/40 hover:bg-[#181818] text-white/90 hover:text-white cursor-pointer hover:shadow-[0_0_16px_rgba(255,248,207,0.15)]'
+                  : 'opacity-20 cursor-not-allowed text-white/30 border-white/5'
+              } shadow-2xl transition-colors duration-150 select-none pointer-events-auto`}
+              title={hasNext ? "Next wallpaper" : "Last wallpaper"}
+              aria-label="Next wallpaper"
+            >
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+          )}
+        </>
+      )}
+
       {/* Bottom controls */}
       <div 
-        className="absolute left-0 right-0 p-2 sm:p-4 flex items-center justify-between pointer-events-none"
-        style={{ 
-          bottom: positions.bottomButtons.bottom 
-        }}
+        className="fixed bottom-0 left-0 right-0 z-40 p-3 sm:p-4 flex items-center justify-between pointer-events-none"
       >
         <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
           {/* Zoom controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-md border border-white/10 shadow-lg">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-black/75 backdrop-blur-md border border-white/10 shadow-lg">
             <button
+              type="button"
               onClick={handleZoomOut}
               disabled={zoom === 1}
-              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity"
+              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity cursor-pointer disabled:cursor-not-allowed"
               title="Zoom out"
             >
               <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
-            <span className="text-white/80 text-xs sm:text-sm font-mono px-1 sm:px-1.5">{zoom}x</span>
+            <span className="text-white/80 text-xs sm:text-sm font-mono w-7 sm:w-8 text-center select-none">{zoom}x</span>
             <button
+              type="button"
               onClick={handleZoomIn}
               disabled={zoom === 3}
-              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity"
+              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity cursor-pointer disabled:cursor-not-allowed"
               title="Zoom in"
             >
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
-          {/* Navigation controls - ALWAYS available if list has prev/next */}
-          {(onPrevious || onNext) && (
-            <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-md border border-white/10 shadow-lg">
-              <button
-                onClick={() => {
-                  if (history.length > 0) setHistory([]);
-                  onPrevious?.();
-                }}
-                disabled={!hasPrevious}
-                className="text-white/80 hover:text-white disabled:opacity-30 disabled:hover:text-white/30 p-1 transition-opacity"
-                title="Previous wallpaper"
-              >
-                <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-              <button
-                onClick={() => {
-                  if (history.length > 0) setHistory([]);
-                  onNext?.();
-                }}
-                disabled={!hasNext}
-                className="text-white/80 hover:text-white disabled:opacity-30 disabled:hover:text-white/30 p-1 transition-opacity"
-                title="Next wallpaper"
-              >
-                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-            </div>
-          )}
-          
-          {/* Similar wallpapers button - ALWAYS visible and toggleable */}
+          {/* Similar wallpapers button */}
           <button
+            type="button"
             onClick={() => setShowSimilarWallpapers(prev => !prev)}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl transition-all shadow-lg border ${
+            className={`group relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors duration-150 shadow-lg border cursor-pointer select-none ${
               showSimilarWallpapers
-                ? 'bg-yellow-500/25 border-yellow-400/50 text-yellow-300'
-                : 'bg-black/75 hover:bg-black/90 border-white/10 text-white/90 hover:text-white'
+                ? 'bg-[var(--accent-light)]/15 border-[var(--accent-light)]/40 text-[var(--accent-light)] shadow-[0_0_14px_rgba(255,248,207,0.18)]'
+                : 'bg-[#0D0D0D]/85 hover:bg-[#161616] border-white/10 hover:border-[var(--accent-light)]/35 text-white/85 hover:text-white hover:shadow-[0_0_12px_rgba(255,248,207,0.12)]'
             } backdrop-blur-md`}
-            title="Discover similar wallpapers"
+            title={showSimilarWallpapers ? "Close similar wallpapers" : "Discover similar wallpapers"}
           >
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400" />
-            <span className="text-xs sm:text-sm font-medium hidden xs:inline">Similar</span>
+            {/* Subtle organic light sheen on hover */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_50%_at_50%_0%,rgba(255,248,207,0.1),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            />
+
+            <Images
+              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${
+                showSimilarWallpapers
+                  ? 'text-[var(--accent-light)] drop-shadow-[0_0_6px_rgba(255,248,207,0.5)]'
+                  : 'text-white/80 group-hover:text-white'
+              }`}
+            />
+            <span className="relative z-10 text-xs sm:text-sm font-medium tracking-tight">Similar</span>
           </button>
         </div>
 
         {/* Action buttons (Favorite, Share, Download) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/75 backdrop-blur-md border border-white/10 shadow-lg pointer-events-auto">
+        <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-black/75 backdrop-blur-md border border-white/10 shadow-lg pointer-events-auto">
           {/* Favorite button */}
           <button
+            type="button"
             onClick={() => toggleFavorite(currentWallpaper.sha)}
-            className={`p-1.5 transition-colors rounded-lg ${
+            className={`p-1.5 transition-colors duration-150 rounded-lg cursor-pointer ${
               isFavorite(currentWallpaper.sha)
                 ? 'text-red-500 hover:text-red-400'
                 : 'text-white/80 hover:text-white'
@@ -843,8 +939,9 @@ export default function WallpaperModal({
           <div className="w-px h-3.5 bg-white/20" />
           
           <button
+            type="button"
             onClick={handleShare}
-            className="text-white/80 hover:text-white p-1.5 transition-colors rounded-lg"
+            className="text-white/80 hover:text-white p-1.5 transition-colors duration-150 rounded-lg cursor-pointer"
             title="Share wallpaper"
           >
             <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
@@ -853,8 +950,9 @@ export default function WallpaperModal({
           <div className="w-px h-3.5 bg-white/20" />
           
           <button
+            type="button"
             onClick={handleDownload}
-            className="text-white/80 hover:text-white p-1.5 transition-colors rounded-lg"
+            className="text-white/80 hover:text-white p-1.5 transition-colors duration-150 rounded-lg cursor-pointer"
             title="Download wallpaper"
           >
             <Download className="w-4 h-4 sm:w-4 sm:h-4" />

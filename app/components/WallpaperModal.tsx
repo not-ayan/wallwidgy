@@ -864,98 +864,94 @@ export default function WallpaperModal({
         </>
       )}
 
-      {/* Bottom controls */}
-      <div 
-        className="fixed bottom-0 left-0 right-0 z-40 p-3 sm:p-4 flex items-center justify-between pointer-events-none"
-      >
-        <div className="flex items-center gap-2 sm:gap-3 pointer-events-auto">
-          {/* Zoom controls */}
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-black/75 backdrop-blur-md border border-white/10 shadow-lg">
+      {/* Bottom Unified Floating Dock */}
+      <div className="fixed bottom-6 left-0 right-0 z-40 flex items-center justify-center pointer-events-none px-4 pb-[env(safe-area-inset-bottom,0px)]">
+        <div className={`flex items-center gap-1 p-1 sm:p-1.5 rounded-full ${
+          disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/90 backdrop-blur-2xl'
+        } border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)] pointer-events-auto select-none`}>
+          
+          {/* Zoom controls (desktop only: hidden sm:flex) */}
+          <div className="hidden sm:flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-white/[0.04]">
             <button
               type="button"
               onClick={handleZoomOut}
               disabled={zoom === 1}
-              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+              className="w-7 h-7 flex items-center justify-center rounded-full text-white/60 hover:text-white disabled:opacity-30 disabled:hover:text-white/60 hover:bg-white/10 transition-colors cursor-pointer disabled:cursor-not-allowed"
               title="Zoom out"
             >
-              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Minus className="w-3.5 h-3.5" />
             </button>
-            <span className="text-white/80 text-xs sm:text-sm font-mono w-7 sm:w-8 text-center select-none">{zoom}x</span>
+            <span className="text-white/80 text-xs font-mono w-6 text-center select-none font-medium">
+              {zoom}x
+            </span>
             <button
               type="button"
               onClick={handleZoomIn}
               disabled={zoom === 3}
-              className="text-white/80 hover:text-white disabled:opacity-40 disabled:hover:text-white/40 p-1 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+              className="w-7 h-7 flex items-center justify-center rounded-full text-white/60 hover:text-white disabled:opacity-30 disabled:hover:text-white/60 hover:bg-white/10 transition-colors cursor-pointer disabled:cursor-not-allowed"
               title="Zoom in"
             >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Similar wallpapers button */}
+          {/* Divider between Zoom and Similar (desktop only) */}
+          <div className="hidden sm:block w-px h-3.5 bg-white/10 mx-0.5" />
+
+          {/* Similar Wallpapers button */}
           <button
             type="button"
             onClick={() => setShowSimilarWallpapers(prev => !prev)}
-            className={`group relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors duration-150 shadow-lg border cursor-pointer select-none ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-150 cursor-pointer select-none ${
               showSimilarWallpapers
-                ? 'bg-[var(--accent-light)]/15 border-[var(--accent-light)]/40 text-[var(--accent-light)] shadow-[0_0_14px_rgba(255,248,207,0.18)]'
-                : 'bg-[#0D0D0D]/85 hover:bg-[#161616] border-white/10 hover:border-[var(--accent-light)]/35 text-white/85 hover:text-white hover:shadow-[0_0_12px_rgba(255,248,207,0.12)]'
-            } backdrop-blur-md`}
+                ? 'bg-[var(--accent-light)]/15 text-[var(--accent-light)]'
+                : 'text-white/75 hover:text-white hover:bg-white/[0.08]'
+            }`}
             title={showSimilarWallpapers ? "Close similar wallpapers" : "Discover similar wallpapers"}
           >
-            {/* Subtle organic light sheen on hover */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_50%_at_50%_0%,rgba(255,248,207,0.1),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            />
-
             <Images
-              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 ${
-                showSimilarWallpapers
-                  ? 'text-[var(--accent-light)] drop-shadow-[0_0_6px_rgba(255,248,207,0.5)]'
-                  : 'text-white/80 group-hover:text-white'
+              className={`w-3.5 h-3.5 ${
+                showSimilarWallpapers ? 'text-[var(--accent-light)]' : 'text-white/75'
               }`}
             />
-            <span className="relative z-10 text-xs sm:text-sm font-medium tracking-tight">Similar</span>
+            <span className="tracking-tight">Similar</span>
           </button>
-        </div>
 
-        {/* Action buttons (Favorite, Share, Download) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full bg-black/75 backdrop-blur-md border border-white/10 shadow-lg pointer-events-auto">
+          {/* Divider between Mode Toggle and Action Group */}
+          <div className="w-px h-3.5 bg-white/10 mx-0.5" />
+
           {/* Favorite button */}
           <button
             type="button"
             onClick={() => toggleFavorite(currentWallpaper.sha)}
-            className={`p-1.5 transition-colors duration-150 rounded-lg cursor-pointer ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150 cursor-pointer hover:bg-white/[0.08] ${
               isFavorite(currentWallpaper.sha)
-                ? 'text-red-500 hover:text-red-400'
-                : 'text-white/80 hover:text-white'
+                ? 'text-red-500'
+                : 'text-white/75 hover:text-white'
             }`}
             title={isFavorite(currentWallpaper.sha) ? "Remove from favorites" : "Add to favorites"}
           >
-            <Heart className={`w-4 h-4 sm:w-4 sm:h-4 ${isFavorite(currentWallpaper.sha) ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${isFavorite(currentWallpaper.sha) ? 'fill-current' : ''}`} />
           </button>
-          
-          <div className="w-px h-3.5 bg-white/20" />
-          
+
+          {/* Share button */}
           <button
             type="button"
             onClick={handleShare}
-            className="text-white/80 hover:text-white p-1.5 transition-colors duration-150 rounded-lg cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-white/75 hover:text-white hover:bg-white/[0.08] transition-colors duration-150 cursor-pointer"
             title="Share wallpaper"
           >
-            <Share2 className="w-4 h-4 sm:w-4 sm:h-4" />
+            <Share2 className="w-4 h-4" />
           </button>
-          
-          <div className="w-px h-3.5 bg-white/20" />
-          
+
+          {/* Download button */}
           <button
             type="button"
             onClick={handleDownload}
-            className="text-white/80 hover:text-white p-1.5 transition-colors duration-150 rounded-lg cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--accent-light)] hover:text-white hover:bg-[var(--accent-light)]/15 transition-colors duration-150 cursor-pointer"
             title="Download wallpaper"
           >
-            <Download className="w-4 h-4 sm:w-4 sm:h-4" />
+            <Download className="w-4 h-4" />
           </button>
         </div>
       </div>

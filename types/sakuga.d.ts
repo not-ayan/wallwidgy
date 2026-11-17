@@ -30,11 +30,36 @@ export interface SakugaToastAttributes extends HTMLAttributes<HTMLElement> {
   id?: string
 }
 
+export interface SakugaInputElement extends HTMLElement {
+  value: string
+  disabled: boolean
+  label?: string
+  placeholder?: string
+  type?: 'text' | 'email' | 'search' | 'url' | 'tel' | 'password'
+}
+
+export interface SakugaInputAttributes extends HTMLAttributes<HTMLElement> {
+  value?: string
+  disabled?: boolean
+  label?: string
+  placeholder?: string
+  type?: 'text' | 'email' | 'search' | 'url' | 'tel' | 'password'
+  name?: string
+  autocomplete?: string
+  ref?: Ref<SakugaInputElement>
+  className?: string
+  id?: string
+  autoFocus?: boolean
+  onInput?: (e: React.FormEvent<HTMLElement>) => void
+  onChange?: (e: React.FormEvent<HTMLElement>) => void
+}
+
 declare global {
   namespace JSX {
     interface IntrinsicElements {
       'sakuga-button': DetailedHTMLProps<SakugaButtonAttributes, SakugaButtonElement>
       'sakuga-toast': DetailedHTMLProps<SakugaToastAttributes, SakugaToastElement>
+      'sakuga-input': DetailedHTMLProps<SakugaInputAttributes, SakugaInputElement>
     }
   }
   namespace React {
@@ -42,6 +67,7 @@ declare global {
       interface IntrinsicElements {
         'sakuga-button': DetailedHTMLProps<SakugaButtonAttributes, SakugaButtonElement>
         'sakuga-toast': DetailedHTMLProps<SakugaToastAttributes, SakugaToastElement>
+        'sakuga-input': DetailedHTMLProps<SakugaInputAttributes, SakugaInputElement>
       }
     }
   }

@@ -437,6 +437,48 @@ sakuga-toast::part(close):hover {
   }
 }
 
+/* Sakuga Search Input */
+.sakuga-search-input {
+  --sk-input-width: 100%;
+  --sk-card: rgba(255, 255, 255, 0.03);
+  --sk-ink: #ffffff;
+  --sk-dim: rgba(255, 255, 255, 0.25);
+  --sk-bw: 1.5px;
+  --sk-r: 16px;
+  --sk-sh: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --sk-acc: var(--accent-light, #F7F06D);
+  width: 100%;
+  display: block;
+}
+
+.sakuga-search-input::part(input) {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-family: var(--font-outfit), system-ui, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  padding: 12px 42px 12px 16px;
+  letter-spacing: 0.02em;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.sakuga-search-input::part(input):focus {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--accent-light, #F7F06D);
+  box-shadow: 0 0 20px rgba(247, 240, 109, 0.18);
+}
+
+@media (min-width: 768px) {
+  .sakuga-search-input::part(input) {
+    font-size: 24px;
+    padding: 14px 48px 14px 20px;
+  }
+}
+
+
 
 
 

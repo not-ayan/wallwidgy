@@ -121,6 +121,10 @@ export default function RootLayout({
             strategy="beforeInteractive"
           />
           <Script
+            src="/input.js"
+            strategy="beforeInteractive"
+          />
+          <Script
             src="https://cloud.umami.is/script.js"
             data-website-id="53a87321-3bfb-4340-86b1-e5b44aa7ba2c"
             strategy="afterInteractive"

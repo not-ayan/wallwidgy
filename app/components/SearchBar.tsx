@@ -9,6 +9,7 @@ import { useState as useStableState } from "react"
 import Link from "next/link"
 import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
 import { createLatestRequestGuard } from "@/lib/ui-state-helpers"
+import type { SakugaInputElement } from "@/types/sakuga"
 
 // StableImageComponent: robust image loader with error UI
 function StableImageComponent({ src, alt, onError404, ...props }: { src: string; alt: string; onError404?: () => void; [key: string]: any }) {
@@ -117,6 +118,27 @@ export default function SearchBar() {
   const searchGuardRef = useRef(createLatestRequestGuard())
   const loadMoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isLoadingMoreRef = useRef(false)
+  const sakugaInputRef = useRef<SakugaInputElement>(null)
+
+  // Ensure Sakuga input custom element is loaded
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.customElements?.get('sakuga-input')) {
+      const existing = document.querySelector('script[src="/input.js"]')
+      if (!existing) {
+        const script = document.createElement('script')
+        script.src = '/input.js'
+        document.head.appendChild(script)
+      }
+    }
+  }, [])
+
+  // Sync external search query updates with sakuga-input DOM value
+  useEffect(() => {
+    if (sakugaInputRef.current && sakugaInputRef.current.value !== searchQuery) {
+      sakugaInputRef.current.value = searchQuery
+    }
+  }, [searchQuery])
   
   // Handle browser back button when search is open
   useBackHandler({
@@ -407,20 +429,33 @@ export default function SearchBar() {
                 <span className="font-mono text-[8px] text-white/25 tracking-widest uppercase hidden md:block">QUERY_CONSOLE</span>
                 <div className="flex items-center gap-3">
                   <form onSubmit={handleSearchSubmit} className="relative flex-1">
-                    <input
+                    <sakuga-input
                       id="search-input"
-                      type="text"
-                      placeholder="Search..."
+                      ref={sakugaInputRef}
+                      type="search"
+                      name="q"
+                      label="Search wallpapers"
+                      placeholder="Search wallpapers..."
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-transparent text-xl md:text-3xl lg:text-4xl font-light font-outfit text-white border-b border-white/10 focus:border-[#F7F06D] py-2 md:py-3 focus:outline-none transition-colors duration-300 placeholder:text-white/10 uppercase tracking-wide"
-                      autoFocus
+                      onInput={(e: React.FormEvent<HTMLElement>) => {
+                        const target = e.target as HTMLInputElement | (HTMLElement & { value?: string })
+                        setSearchQuery(target.value ?? "")
+                      }}
+                      className="sakuga-search-input"
                     />
                     {searchQuery && (
                       <button
                         type="button"
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-white/30 hover:text-white/70 transition-colors"
+                        onClick={() => {
+                          setSearchQuery("")
+                          if (sakugaInputRef.current) {
+                            sakugaInputRef.current.value = ""
+                            sakugaInputRef.current.focus()
+                          }
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-white/30 hover:text-white/80 hover:bg-white/10 transition-colors z-10 cursor-pointer"
+                        title="Clear search"
+                        aria-label="Clear search"
                       >
                         <X className="w-4 h-4" />
                       </button>

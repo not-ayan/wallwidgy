@@ -34,6 +34,7 @@ import {
   getDisplayDownloadCount,
   formatDownloadCount,
 } from "@/lib/ui-state-helpers"
+import { showSakugaToast } from "@/lib/toast"
 
 interface WallpaperFile {
   file_name: string;
@@ -350,23 +351,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   }, []);
 
   const showNotification = useCallback((message: string) => {
-    const notification = document.createElement("div")
-    notification.className =
-      "fixed bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-5 py-3 rounded-xl text-sm z-50 flex items-center gap-2 shadow-lg"
-    
-    // Add download icon for download notifications
-    if (message.includes("downloading") || message.includes("Download")) {
-      const iconSpan = document.createElement("span")
-      iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`
-      notification.prepend(iconSpan)
-    }
-    
-    const textSpan = document.createElement("span")
-    textSpan.textContent = message
-    notification.appendChild(textSpan)
-    
-    document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 3000)
+    showSakugaToast(message)
   }, [])
 
   const downloadSelectedWallpapers = useCallback(async () => {

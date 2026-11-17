@@ -5,6 +5,7 @@ import { X, Copy, Link as LinkIcon, Check, LogIn } from "lucide-react"
 import { useBackHandler } from "@/hooks/use-back-handler"
 import { SignInButton } from "@clerk/nextjs"
 import { getRawWallpaperIndex } from "@/lib/wallpaper-store"
+import { showSakugaToast } from "@/lib/toast"
 
 interface ShareFavoritesModalProps {
   isOpen: boolean
@@ -173,12 +174,7 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
   };
 
   const showNotification = (message: string) => {
-    const notification = document.createElement("div")
-    notification.className =
-      "fixed bottom-4 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm z-50"
-    notification.textContent = message
-    document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 2000)
+    showSakugaToast(message)
   }
 
   const handleCopyProfileLink = async () => {

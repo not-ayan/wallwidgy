@@ -113,6 +113,14 @@ export default function RootLayout({
         </head>
         <body className={`bg-[#0A0A0A] text-white antialiased ${sagite.variable} font-sans`}>
           <Script
+            src="/button.js"
+            strategy="beforeInteractive"
+          />
+          <Script
+            src="/toast.js"
+            strategy="beforeInteractive"
+          />
+          <Script
             src="https://cloud.umami.is/script.js"
             data-website-id="53a87321-3bfb-4340-86b1-e5b44aa7ba2c"
             strategy="afterInteractive"
@@ -120,6 +128,7 @@ export default function RootLayout({
           <FavoritesProvider>
             {children}
           </FavoritesProvider>
+          <sakuga-toast id="app-toast" duration="2.6"></sakuga-toast>
           <PwaRegister />
         </body>
       </html>

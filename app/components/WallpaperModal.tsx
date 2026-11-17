@@ -75,6 +75,8 @@ import { useBackHandler } from "@/hooks/use-back-handler"
 import { useFavorites } from "@/hooks/use-favorites"
 import { trackDownload } from "@/lib/analytics"
 import { formatDownloadCount } from "@/lib/ui-state-helpers"
+import type { SakugaButtonElement } from "@/types/sakuga"
+import { showSakugaToast } from "@/lib/toast"
 
 export interface Wallpaper {
   sha: string
@@ -130,6 +132,7 @@ export default function WallpaperModal({
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
+  const downloadButtonRef = useRef<SakugaButtonElement>(null)
   const [isHighQuality, setIsHighQuality] = useState(false)
   const [isLoadingHighQuality, setIsLoadingHighQuality] = useState(false)
   const [showLoadingSpinner, setShowLoadingSpinner] = useState(false)
@@ -194,6 +197,27 @@ export default function WallpaperModal({
     updateViewport()
     window.addEventListener('resize', updateViewport)
     return () => window.removeEventListener('resize', updateViewport)
+  }, [])
+
+  // Ensure Sakuga button and toast custom elements are loaded
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!window.customElements?.get('sakuga-button')) {
+      const existing = document.querySelector('script[src="/button.js"]')
+      if (!existing) {
+        const script = document.createElement('script')
+        script.src = '/button.js'
+        document.head.appendChild(script)
+      }
+    }
+    if (!window.customElements?.get('sakuga-toast')) {
+      const existing = document.querySelector('script[src="/toast.js"]')
+      if (!existing) {
+        const script = document.createElement('script')
+        script.src = '/toast.js'
+        document.head.appendChild(script)
+      }
+    }
   }, [])
 
   // Sync with prop changes when parent navigates (e.g. Next/Prev from grid)
@@ -291,13 +315,7 @@ export default function WallpaperModal({
   }
 
   const showNotification = (message: string) => {
-    const notification = document.createElement("div")
-    notification.className = disableBlur 
-      ? "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/20 text-white px-4 py-2 rounded-full text-sm z-50"
-      : "fixed bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md text-white px-4 py-2 rounded-full text-sm z-50"
-    notification.textContent = message
-    document.body.appendChild(notification)
-    setTimeout(() => notification.remove(), 2000)
+    showSakugaToast(message)
   }
 
   const handleDownload = async () => {
@@ -358,6 +376,18 @@ export default function WallpaperModal({
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
       showNotification(`Downloading ${fileName}`)
+
+      // Success: call el.done() to land the Sakuga checkmark
+      const btn = downloadButtonRef.current
+      if (btn && typeof btn.done === 'function') {
+        btn.done()
+      } else if (typeof window !== 'undefined' && window.customElements) {
+        window.customElements.whenDefined('sakuga-button').then(() => {
+          if (downloadButtonRef.current && typeof downloadButtonRef.current.done === 'function') {
+            downloadButtonRef.current.done()
+          }
+        })
+      }
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
       console.error("Download URL was:", currentWallpaper.download_url)
@@ -924,10 +954,10 @@ export default function WallpaperModal({
           <button
             type="button"
             onClick={() => toggleFavorite(currentWallpaper.sha)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150 cursor-pointer hover:bg-white/[0.08] ${
+            className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150 cursor-pointer ${
               isFavorite(currentWallpaper.sha)
-                ? 'text-red-500'
-                : 'text-white/75 hover:text-white'
+                ? 'text-red-500 bg-red-500/15'
+                : 'text-white/75 hover:text-white hover:bg-white/[0.08]'
             }`}
             title={isFavorite(currentWallpaper.sha) ? "Remove from favorites" : "Add to favorites"}
           >
@@ -944,15 +974,19 @@ export default function WallpaperModal({
             <Share2 className="w-4 h-4" />
           </button>
 
-          {/* Download button */}
-          <button
-            type="button"
+          {/* Divider between Share and Download */}
+          <div className="w-px h-3.5 bg-white/10 mx-0.5" />
+
+          {/* Sakuga Download button */}
+          <sakuga-button
+            ref={downloadButtonRef}
             onClick={handleDownload}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--accent-light)] hover:text-white hover:bg-[var(--accent-light)]/15 transition-colors duration-150 cursor-pointer"
             title="Download wallpaper"
+            aria-label="Download wallpaper"
+            className="sakuga-download-btn"
           >
             <Download className="w-4 h-4" />
-          </button>
+          </sakuga-button>
         </div>
       </div>
     </div>

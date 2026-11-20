@@ -13,6 +13,7 @@ const config: Config = {
   		fontFamily: {
   			outfit: ['var(--font-outfit)', 'sans-serif'],
   			title: ['var(--font-sagite)', 'sans-serif'],
+  			aspekta: ['var(--font-aspekta)', 'system-ui', 'sans-serif'],
   		},
   		screens: {
   			'xs': '475px',

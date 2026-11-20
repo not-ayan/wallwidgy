@@ -26,12 +26,18 @@ export async function GET(
     }
 
     const user = users.data[0]
-    const favorites = (user.publicMetadata?.favorites as string[]) || []
+    const rawFavorites = user.publicMetadata?.favorites
+    const favorites = Array.isArray(rawFavorites) ? rawFavorites.filter(Boolean) : []
+    const setups = user.publicMetadata?.setups || []
+    const backdrop = (user.publicMetadata?.backdrop as string) || null
 
     const response = NextResponse.json({
       username: user.username,
-      displayName: user.firstName || user.username,
+      displayName: user.fullName || user.firstName || user.username,
       imageUrl: user.imageUrl,
+      createdAt: user.createdAt,
+      backdrop,
+      setups,
       favorites,
       favoritesCount: favorites.length
     })

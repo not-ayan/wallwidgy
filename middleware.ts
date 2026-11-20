@@ -4,9 +4,12 @@ export default clerkMiddleware()
 
 export const config = {
   matcher: [
-    // Only execute Clerk middleware on routes that require server-side auth
+    // Execute Clerk middleware on routes that require server-side auth or user metadata
     '/favorites(.*)',
     '/api/favorites(.*)',
+    '/profile(.*)',
+    '/api/profile(.*)',
+    '/api/setups(.*)',
   ],
 }
 

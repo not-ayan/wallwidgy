@@ -358,6 +358,11 @@ html::-webkit-scrollbar-thumb:hover {
   transform: scale(0.98);
 }
 
+/* Hide Manage Account in Clerk UserButton dropdown */
+.cl-userButtonPopoverActionButton__manageAccount {
+  display: none !important;
+}
+
 /* Sakuga Download Button */
 .sakuga-download-btn {
   --sk-r: 9999px;

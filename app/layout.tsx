@@ -21,8 +21,11 @@ const aspekta = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Minimalist Wallpapers",
-  description: "A curated collection of minimalist wallpapers",
+  title: {
+    default: "WallWidgy",
+    template: "%s | WallWidgy",
+  },
+  description: "A curated collection of minimalist wallpapers & aesthetic digital canvases",
   applicationName: "WallWidgy",
   appleWebApp: {
     capable: true,
@@ -72,6 +75,7 @@ export default function RootLayout({
           footerActionLink: "text-white hover:text-white/80",
           identityPreviewText: "text-white",
           identityPreviewEditButton: "text-white/60 hover:text-white",
+          userButtonPopoverActionButton__manageAccount: "hidden",
         }
       }}
     >

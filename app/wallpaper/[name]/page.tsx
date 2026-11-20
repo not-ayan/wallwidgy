@@ -52,17 +52,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const wallpaper = await getWallpaper(name)
   if (!wallpaper) {
     return {
-      title: 'Wallpaper Not Found | WallWidgy',
+      title: 'Wallpaper Not Found',
       description: 'The requested wallpaper could not be found.'
     }
   }
 
   const cleanName = wallpaper.name.replace(/\.[^/.]+$/, "")
   return {
-    title: `${cleanName} Wallpaper | WallWidgy`,
+    title: cleanName,
     description: `Download ${cleanName} wallpaper. Resolution: ${wallpaper.resolution}. Platforms supported: ${wallpaper.platform}.`,
     openGraph: {
-      title: `${cleanName} Wallpaper | WallWidgy`,
+      title: `${cleanName} | WallWidgy`,
       description: `Download ${cleanName} wallpaper. Resolution: ${wallpaper.resolution}.`,
       images: [
         {

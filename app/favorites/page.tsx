@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import WallpaperGrid from "../components/WallpaperGrid"
-import { ArrowLeft, Share2, Heart, Loader2 } from "lucide-react"
+import { Share2, Heart, Loader2 } from "lucide-react"
 import Link from "next/link"
 import ShareFavoritesModal from "../components/ShareFavoritesModal"
+import Header from "../components/Header"
 import Footer from "../components/Footer"
 import BackToTop from "../components/BackToTop"
 import { useFavorites } from "@/hooks/use-favorites"
@@ -14,80 +15,51 @@ export default function FavoritesPage() {
   const { favorites, isLoading } = useFavorites()
   const { user, isSignedIn } = useUser()
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      if (currentScrollY <= 10) {
-        setIsHeaderVisible(true)
-      } else if (currentScrollY > lastScrollY) {
-        setIsHeaderVisible(false)
-      } else {
-        setIsHeaderVisible(true)
-      }
-      setLastScrollY(currentScrollY)
-    }
-
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [lastScrollY])
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] font-outfit">
-      {/* Header */}
-      <div className={`fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md border-b border-white/5 transition-all duration-300 ease-in-out ${
-        isHeaderVisible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
-      }`}>
-        <header className="px-4 sm:px-6 lg:px-8 py-5">
-          <nav className="flex justify-between items-center max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto">
-            <Link 
-              href="/" 
-              className="flex items-center justify-center text-white/70 hover:text-white transition-all duration-300 group bg-white/5 backdrop-blur-sm p-2 sm:px-4 sm:py-2 rounded-full border border-white/10 hover:border-white/20"
-              aria-label="Back to home"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm font-medium ml-2">Back</span>
-            </Link>
-            <div className="text-center flex-1">
-              <h1 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2 justify-center">
-                <Heart className="w-5 h-5 text-[#FF0000]" />
-                Favorites
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              {favorites.length > 0 && (
-                <button
-                  onClick={() => setIsShareModalOpen(true)}
-                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors flex items-center gap-2 text-white/70 hover:text-white"
-                  aria-label="Share favorites"
-                  title="Share favorites"
-                >
-                  <Share2 className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-          </nav>
-        </header>
-      </div>
+      <Header showBackButton={true} backUrl="/" />
 
       {/* Content */}
-      <div className="pt-24 pb-32">
+      <div className="pt-28 pb-32">
+        <div className="max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between pb-8 mb-8 border-b border-white/[0.08]">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400">
+                <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+              </div>
+              <div>
+                <h1 className="font-aspekta text-2xl sm:text-3xl font-light text-white tracking-tight">
+                  Favorites
+                </h1>
+                <p className="text-white/40 text-xs sm:text-sm mt-0.5">
+                  {favorites.length} {favorites.length === 1 ? 'wallpaper' : 'wallpapers'} saved
+                </p>
+              </div>
+            </div>
+
+            {favorites.length > 0 && (
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 hover:text-white text-xs sm:text-sm font-medium transition-all flex items-center gap-2"
+                aria-label="Share favorites"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share Gallery</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         {isLoading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
           </div>
         ) : favorites.length > 0 ? (
           <>
-            <div className="max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-              <p className="text-white/60 text-sm">
-                {favorites.length} {favorites.length === 1 ? 'wallpaper' : 'wallpapers'} saved
-              </p>
-            </div>
             <WallpaperGrid wallpapers={favorites} />
-            <ShareFavoritesModal 
-              isOpen={isShareModalOpen} 
+            <ShareFavoritesModal
+              isOpen={isShareModalOpen}
               onClose={() => setIsShareModalOpen(false)}
               favoriteIds={favorites}
               username={user?.username}
@@ -102,8 +74,8 @@ export default function FavoritesPage() {
               <p className="text-white/60 text-base mb-8">
                 Start adding wallpapers to your favorites to see them here
               </p>
-              <Link 
-                href="/" 
+              <Link
+                href="/"
                 className="inline-flex items-center gap-2 bg-[var(--accent-light)] text-black px-6 py-3 rounded-full font-medium hover:bg-[var(--accent-light)]/90 transition-all"
               >
                 Explore Wallpapers

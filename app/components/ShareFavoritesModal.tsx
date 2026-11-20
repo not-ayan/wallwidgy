@@ -209,7 +209,7 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
         <div className="flex-1 overflow-y-auto p-6">
           {/* Share Profile Section */}
           <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-            <h3 className="text-sm font-medium text-white mb-2">Share your collection</h3>
+            <h3 className="text-sm font-medium text-white mb-2">Share your profile</h3>
             {isSignedIn ? (
               username ? (
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3">

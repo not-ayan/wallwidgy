@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowLeft, Code, ExternalLink, Shield, Info, Github, Mail, Send, Clock, Smartphone, Cpu, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
+import Header from "../components/Header"
 import Footer from "../components/Footer"
 import BackToTop from "../components/BackToTop"
 
@@ -120,39 +121,21 @@ export default function News() {
   const selectedRelease = releases.find(r => r.version === activeVersion) || releases[0];
 
   return (
-    <div className="min-h-screen bg-[#060606] text-white font-aspekta relative selection:bg-[#F7F06D] selection:text-black overflow-x-hidden antialiased">
+    <div className="min-h-screen bg-[#0A0A0A] text-white font-aspekta relative selection:bg-[#F7F06D] selection:text-black overflow-x-hidden antialiased">
+      <Header showBackButton={true} backUrl="/" />
 
-      {/* Blueprint Grid Wrapper */}
-      <div className="max-w-[1440px] mx-auto border-x border-white/10 min-h-screen flex flex-col bg-[#060606]">
+      <div className="max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20">
+        {/* Blueprint Enclosed Panel */}
+        <div className="border border-white/10 rounded-3xl bg-[#060606] overflow-hidden shadow-2xl flex flex-col">
 
-        {/* Technical Header */}
-        <header className="grid grid-cols-1 md:grid-cols-12 border-b border-white/10">
-          {/* Back Button Column */}
-          <div className="md:col-span-3 border-b md:border-b-0 md:border-r border-white/10 py-4 px-6 flex items-center justify-start">
-            <Link
-              href="/"
-              className="flex items-center gap-2 text-white/60 hover:text-white transition-all duration-300 group bg-white/5 hover:bg-white/10 px-4 py-1.5 rounded border border-white/10 text-xs tracking-wider uppercase font-mono"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-              <span>Back</span>
-            </Link>
-          </div>
-
-          {/* Center Column: Title */}
-          <div className="md:col-span-6 border-b md:border-b-0 md:border-r border-white/10 flex items-center justify-center py-4 text-center">
-            <Link href="/" className="font-bold text-xs tracking-widest uppercase font-mono hover:text-[#F7F06D] transition-colors">
-              WALLWIDGY MK. II
-            </Link>
-          </div>
-
-          {/* Right Column: Status info */}
-          <div className="md:col-span-3 py-4 px-6 flex items-center justify-end">
+          {/* Technical Status Sub-bar */}
+          <div className="border-b border-white/10 py-3.5 px-6 flex items-center justify-between text-xs font-mono text-white/50 bg-white/[0.02]">
+            <span className="uppercase tracking-widest text-[10px]">WALLWIDGY MK. II // RELEASE JOURNAL</span>
             <div className="flex items-center gap-2 text-[9px] font-mono tracking-wider uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-[#F7F06D] animate-pulse" />
               <span className="text-white/60">IN PRODUCTION</span>
             </div>
           </div>
-        </header>
 
         {/* Content Body Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 flex-grow">
@@ -600,10 +583,10 @@ export default function News() {
           </div>
         </section>
 
-        {/* Integrated Blueprint Footer */}
-        <Footer variant="blueprint" />
-
+        </div>
       </div>
+
+      <Footer />
       <BackToTop />
 
       {/* Slide-in Animations */}

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import Link from "next/link"
 import { useUser, useClerk } from "@clerk/nextjs"
 import { useFavorites } from "@/hooks/use-favorites"
@@ -408,8 +408,10 @@ export default function ProfileClient() {
 
   // 3. Store Wallpapers Query (for Picker & Favorites)
   const [allWallpapers, setAllWallpapers] = useState<Wallpaper[]>([])
+  const [isWallpapersLoading, setIsWallpapersLoading] = useState(false)
   useEffect(() => {
     let mounted = true
+    setIsWallpapersLoading(true)
     getParsedWallpapers()
       .then(({ wallpapers }) => {
         if (mounted && wallpapers && wallpapers.length > 0) {
@@ -418,6 +420,9 @@ export default function ProfileClient() {
       })
       .catch((err) => {
         console.warn("Could not load wallpaper index for profile:", err)
+      })
+      .finally(() => {
+        if (mounted) setIsWallpapersLoading(false)
       })
     return () => {
       mounted = false
@@ -446,12 +451,75 @@ export default function ProfileClient() {
   const [pickerTarget, setPickerTarget] = useState<"backdrop" | "homescreen" | "lockscreen" | null>(null)
   const [pickerCustomUrl, setPickerCustomUrl] = useState("")
   const [pickerSearch, setPickerSearch] = useState("")
+  const [pickerFilter, setPickerFilter] = useState<"all" | "mobile" | "desktop" | "favorites">("all")
+  const [pickerVisibleCount, setPickerVisibleCount] = useState(60)
+  const pickerSentinelRef = useRef<HTMLDivElement | null>(null)
 
   const openPicker = (target: "backdrop" | "homescreen" | "lockscreen") => {
     setPickerTarget(target)
     setPickerCustomUrl("")
     setPickerSearch("")
+    setPickerFilter("all")
+    setPickerVisibleCount(60)
   }
+
+  // Filtered Wallpapers for the Picker Modal
+  const filteredPickerWallpapers = useMemo(() => {
+    const list = allWallpapers.length > 0 ? allWallpapers : CURATED_SAMPLE_WALLS
+
+    return list.filter((w) => {
+      // Tab filter
+      if (pickerFilter === "mobile" && w.platform !== "Mobile") return false
+      if (pickerFilter === "desktop" && w.platform !== "Desktop") return false
+      if (pickerFilter === "favorites") {
+        const isFav = favorites.some((favId) => isIdMatching(favId, w.sha) || isIdMatching(favId, w.name))
+        if (!isFav) return false
+      }
+
+      // Search query
+      if (!pickerSearch.trim()) return true
+      const query = pickerSearch.toLowerCase().trim()
+      const matchesName = w.name.toLowerCase().includes(query)
+      const matchesCategory = w.category?.toLowerCase().includes(query)
+      const matchesPlatform = w.platform?.toLowerCase().includes(query)
+      return matchesName || matchesCategory || matchesPlatform
+    })
+  }, [allWallpapers, pickerFilter, favorites, pickerSearch])
+
+  // Wallpaper category and count breakdown for the picker
+  const pickerCounts = useMemo(() => {
+    const list = allWallpapers.length > 0 ? allWallpapers : CURATED_SAMPLE_WALLS
+    let mobile = 0
+    let desktop = 0
+    let favCount = 0
+
+    for (const w of list) {
+      if (w.platform === "Mobile") mobile++
+      if (w.platform === "Desktop") desktop++
+      if (favorites.some((favId) => isIdMatching(favId, w.sha) || isIdMatching(favId, w.name))) {
+        favCount++
+      }
+    }
+
+    return { total: list.length, mobile, desktop, favCount }
+  }, [allWallpapers, favorites])
+
+  // Sentinel IntersectionObserver for infinite scrolling inside the modal
+  useEffect(() => {
+    if (!pickerTarget) return
+    const el = pickerSentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setPickerVisibleCount((prev) => Math.min(prev + 60, filteredPickerWallpapers.length))
+        }
+      },
+      { rootMargin: "300px" }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [pickerTarget, filteredPickerWallpapers.length])
 
   const applySelectedWallpaper = (item: { name?: string; previewUrl: string; id?: string }) => {
     if (!pickerTarget) return
@@ -548,19 +616,23 @@ export default function ProfileClient() {
 
             {/* Studio Backdrop System (Full Card Coverage, Seamless Gradient Dissolve) */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
-              {/* Base Wallpaper with Cinematic Contrast */}
+              {/* Base Wallpaper with Deep Cinematic Dimming */}
               <img
                 src={backdropUrl}
                 alt="Profile Backdrop"
-                className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.88] contrast-[1.12]"
+                className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.55] contrast-[1.08]"
               />
+
+              {/* Ambient Darkening Overlay */}
+              <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
               {/* Progressive Scrim Dissolve directly into #121212 */}
               <div
                 aria-hidden="true"
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: "linear-gradient(to bottom, rgba(18,18,18,0) 0%, rgba(18,18,18,0.05) 20%, rgba(18,18,18,0.35) 45%, rgba(18,18,18,0.75) 65%, rgba(18,18,18,0.95) 85%, #121212 98%)",
+                  background:
+                    "linear-gradient(to bottom, rgba(18,18,18,0.35) 0%, rgba(18,18,18,0.55) 25%, rgba(18,18,18,0.8) 50%, rgba(18,18,18,0.96) 75%, #121212 98%)",
                 }}
               />
             </div>
@@ -1122,7 +1194,7 @@ export default function ProfileClient() {
                       : "Select Lockscreen Wallpaper"}
                 </h3>
                 <p className="text-white/40 text-xs mt-0.5">
-                  Pick from curated mobile wallpapers or paste any image URL
+                  Pick from all {pickerCounts.total > 0 ? `${pickerCounts.total.toLocaleString()} wallpapers` : "wallpapers"} or paste any image URL
                 </p>
               </div>
 
@@ -1163,58 +1235,202 @@ export default function ProfileClient() {
               </div>
             </div>
 
-            {/* Search Filter for Gallery */}
-            <div className="py-2">
-              <div className="relative">
-                <Search className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Filter gallery wallpapers..."
-                  value={pickerSearch}
-                  onChange={(e) => setPickerSearch(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
-                />
+            {/* Filter Controls: Tabs & Search */}
+            <div className="py-2 space-y-2.5">
+              {/* Category / Platform Tabs */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+                <button
+                  onClick={() => {
+                    setPickerFilter("all")
+                    setPickerVisibleCount(60)
+                  }}
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                    pickerFilter === "all"
+                      ? "bg-white text-black"
+                      : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border border-white/[0.06]"
+                  }`}
+                >
+                  <span>All</span>
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                      pickerFilter === "all" ? "bg-black/15 text-black" : "bg-white/10 text-white/50"
+                    }`}
+                  >
+                    {pickerCounts.total.toLocaleString()}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPickerFilter("mobile")
+                    setPickerVisibleCount(60)
+                  }}
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                    pickerFilter === "mobile"
+                      ? "bg-white text-black"
+                      : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border border-white/[0.06]"
+                  }`}
+                >
+                  <span>Mobile</span>
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                      pickerFilter === "mobile" ? "bg-black/15 text-black" : "bg-white/10 text-white/50"
+                    }`}
+                  >
+                    {pickerCounts.mobile.toLocaleString()}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPickerFilter("desktop")
+                    setPickerVisibleCount(60)
+                  }}
+                  className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                    pickerFilter === "desktop"
+                      ? "bg-white text-black"
+                      : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border border-white/[0.06]"
+                  }`}
+                >
+                  <span>Desktop</span>
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                      pickerFilter === "desktop" ? "bg-black/15 text-black" : "bg-white/10 text-white/50"
+                    }`}
+                  >
+                    {pickerCounts.desktop.toLocaleString()}
+                  </span>
+                </button>
+
+                {pickerCounts.favCount > 0 && (
+                  <button
+                    onClick={() => {
+                      setPickerFilter("favorites")
+                      setPickerVisibleCount(60)
+                    }}
+                    className={`px-3 py-1.5 rounded-xl font-medium transition-all shrink-0 flex items-center gap-1.5 ${
+                      pickerFilter === "favorites"
+                        ? "bg-white text-black"
+                        : "bg-white/[0.04] text-white/60 hover:text-white hover:bg-white/[0.08] border border-white/[0.06]"
+                    }`}
+                  >
+                    <Heart className="w-3 h-3 text-red-400 fill-red-400" />
+                    <span>Favorites</span>
+                    <span
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
+                        pickerFilter === "favorites" ? "bg-black/15 text-black" : "bg-white/10 text-white/50"
+                      }`}
+                    >
+                      {pickerCounts.favCount}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Search bar + count */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search all walls by name or category..."
+                    value={pickerSearch}
+                    onChange={(e) => {
+                      setPickerSearch(e.target.value)
+                      setPickerVisibleCount(60)
+                    }}
+                    className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/20 transition-colors"
+                  />
+                  {pickerSearch && (
+                    <button
+                      onClick={() => setPickerSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white text-xs"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-[11px] font-mono text-white/40 shrink-0 px-1">
+                  {filteredPickerWallpapers.length.toLocaleString()}{" "}
+                  {filteredPickerWallpapers.length === 1 ? "wall" : "walls"}
+                </div>
               </div>
             </div>
 
-            {/* Gallery Grid Picker */}
-            <div className="flex-1 overflow-y-auto mt-2 pr-1 custom-scrollbar">
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                {(allWallpapers.length > 0 ? allWallpapers : CURATED_SAMPLE_WALLS)
-                  .filter((w) => {
-                    if (pickerTarget !== "backdrop" && w.platform !== "Mobile") {
-                      return false
-                    }
-                    if (!pickerSearch.trim()) return true
-                    return w.name.toLowerCase().includes(pickerSearch.toLowerCase())
-                  })
-                  .slice(0, 30)
-                  .map((wall) => (
-                    <div
-                      key={wall.sha}
-                      onClick={() =>
-                        applySelectedWallpaper({
-                          id: wall.sha,
-                          name: wall.name,
-                          previewUrl: wall.preview_url,
-                        })
-                      }
-                      className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-[var(--accent-light)] cursor-pointer transition-all hover:scale-[1.03]"
-                    >
-                      <img
-                        src={wall.preview_url}
-                        alt={wall.name}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-1 text-center">
-                        <span className="text-[10px] font-mono text-white font-medium truncate px-1">
-                          Select
-                        </span>
+            {/* Gallery Grid Picker with Infinite Scroll */}
+            <div
+              onScroll={(e) => {
+                const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+                if (scrollTop + clientHeight >= scrollHeight - 300) {
+                  setPickerVisibleCount((prev) => Math.min(prev + 60, filteredPickerWallpapers.length))
+                }
+              }}
+              className="flex-1 overflow-y-auto mt-2 pr-1 custom-scrollbar"
+            >
+              {isWallpapersLoading && allWallpapers.length === 0 ? (
+                <div className="h-64 flex flex-col items-center justify-center gap-2 text-white/40">
+                  <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  <span className="text-xs font-mono">Loading full wallpaper collection...</span>
+                </div>
+              ) : filteredPickerWallpapers.length === 0 ? (
+                <div className="h-48 flex flex-col items-center justify-center gap-1.5 text-center text-white/40">
+                  <p className="text-sm">No wallpapers found</p>
+                  <p className="text-xs text-white/30">Try a different search or filter</p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {filteredPickerWallpapers.slice(0, pickerVisibleCount).map((wall) => (
+                      <div
+                        key={wall.sha}
+                        onClick={() =>
+                          applySelectedWallpaper({
+                            id: wall.sha,
+                            name: wall.name,
+                            previewUrl: wall.preview_url,
+                          })
+                        }
+                        className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-[var(--accent-light)] cursor-pointer transition-all hover:scale-[1.03]"
+                      >
+                        <img
+                          src={wall.preview_url}
+                          alt={wall.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-1 text-center gap-1">
+                          <span className="text-[10px] font-mono text-white font-medium line-clamp-2 px-1">
+                            {wall.name.replace(/[-_]/g, " ").replace(/\.[^/.]+$/, "")}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-[var(--accent-light)] text-black text-[9px] font-bold uppercase tracking-wider">
+                            Select
+                          </span>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+
+                  {/* Infinite Scroll Sentinel */}
+                  <div ref={pickerSentinelRef} className="h-4 w-full" />
+
+                  {/* Manual Load More fallback */}
+                  {pickerVisibleCount < filteredPickerWallpapers.length && (
+                    <div className="py-4 text-center">
+                      <button
+                        onClick={() =>
+                          setPickerVisibleCount((prev) =>
+                            Math.min(prev + 60, filteredPickerWallpapers.length)
+                          )
+                        }
+                        className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-mono text-white/70 hover:text-white transition-colors border border-white/10"
+                      >
+                        Load More ({filteredPickerWallpapers.length - pickerVisibleCount} remaining)
+                      </button>
                     </div>
-                  ))}
-              </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

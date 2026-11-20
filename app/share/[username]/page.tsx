@@ -291,19 +291,23 @@ export default function SharedProfilePage() {
 
               {/* Studio Backdrop System (Full Card Coverage, Seamless Gradient Dissolve) */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
-                {/* Base Wallpaper with Cinematic Contrast */}
+                {/* Base Wallpaper with Deep Cinematic Dimming */}
                 <img
                   src={profile.backdrop || DEFAULT_BACKDROP}
                   alt={`${profile.displayName}'s Backdrop`}
-                  className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.88] contrast-[1.12]"
+                  className="w-full h-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105 filter brightness-[0.55] contrast-[1.08]"
                 />
+
+                {/* Ambient Darkening Overlay */}
+                <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
                 {/* Progressive Scrim Dissolve directly into #121212 */}
                 <div
                   aria-hidden="true"
                   className="absolute inset-0 pointer-events-none"
                   style={{
-                    background: "linear-gradient(to bottom, rgba(18,18,18,0) 0%, rgba(18,18,18,0.05) 20%, rgba(18,18,18,0.35) 45%, rgba(18,18,18,0.75) 65%, rgba(18,18,18,0.95) 85%, #121212 98%)",
+                    background:
+                      "linear-gradient(to bottom, rgba(18,18,18,0.35) 0%, rgba(18,18,18,0.55) 25%, rgba(18,18,18,0.8) 50%, rgba(18,18,18,0.96) 75%, #121212 98%)",
                   }}
                 />
               </div>

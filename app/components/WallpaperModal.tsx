@@ -375,7 +375,8 @@ export default function WallpaperModal({
       link.click()
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
-      showNotification(`Downloading ${fileName}`)
+      const cleanName = currentWallpaper.name.replace(/\.[^/.]+$/, "")
+      showNotification(`Downloading ${cleanName}...`)
 
       // Success: call el.done() to land the Sakuga checkmark
       const btn = downloadButtonRef.current

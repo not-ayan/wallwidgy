@@ -432,7 +432,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const handleDownload = useCallback(async (wallpaper: Wallpaper) => {
     activeDownloadsRef.current += 1;
     setIsDownloading(true);
-    showNotification("Your wallpaper is now downloading...");
+    const cleanName = wallpaper.name.replace(/\.[^/.]+$/, "")
+    showNotification(`Downloading ${cleanName}...`);
 
     try {
       trackDownload(wallpaper)

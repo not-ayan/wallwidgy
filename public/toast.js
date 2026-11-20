@@ -10,23 +10,23 @@ const { Spring, rnd, at, esc, lines, puff, shards, ticks, sfx, wob, dotted } = f
 
 class SakugaToast extends fx.Base {
   static css = `
-    :host { width: 236px; height: 56px; }
-    .toast { position: absolute; left: 0; bottom: 0; display: flex; align-items: center; gap: 10px; width: 236px; padding: 12px 14px; border: var(--sk-bw) solid var(--sk-ink); border-radius: var(--sk-r); background: var(--sk-card); box-shadow: var(--sk-sh); font-weight: 700; font-size: 15px; white-space: nowrap; visibility: hidden; will-change: transform; }
+    :host { width: var(--sk-toast-width, 320px); height: 44px; }
+    .toast { position: absolute; left: 0; bottom: 0; display: flex; align-items: center; gap: 8px; width: var(--sk-toast-width, 320px); max-width: calc(100vw - 32px); padding: 7px 12px; border: var(--sk-bw) solid var(--sk-ink); border-radius: var(--sk-r); background: var(--sk-card); box-shadow: var(--sk-sh); font-weight: 500; font-size: 12px; white-space: nowrap; visibility: hidden; will-change: transform; }
     .toast.on { visibility: visible; }
-    .ic { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--sk-pri); border: 2.4px solid var(--sk-ink); }
-    .ic svg { width: 15px; height: 15px; fill: none; stroke: var(--sk-on-pri); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-    .msg { overflow: hidden; text-overflow: ellipsis; }
-    .x { margin-left: auto; flex: none; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: none; font-weight: 900; font-size: 15px; cursor: pointer; }`;
+    .ic { display: grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--sk-pri); border: 1.8px solid var(--sk-ink); }
+    .ic svg { width: 11px; height: 11px; fill: none; stroke: var(--sk-on-pri); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+    .msg { overflow: hidden; text-overflow: ellipsis; font-size: 12px; font-weight: 500; line-height: 1.2; }
+    .x { margin-left: auto; flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none; font-weight: 700; font-size: 13px; cursor: pointer; }`;
   get open() { return this.state > 0 && this.state < 3; }
   render() { return `<div class="toast" part="toast"><span class="ic" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3.5 10.5l4.5 4.5 8.5-10"/></svg></span><span class="msg" role="status"></span><button class="x" type="button" part="close" aria-label="Dismiss">✕</button></div>`; }
   setup() {
-    this.toast = this.$('.toast'); this.msg = this.$('.msg'); this.sx = new Spring(-280, 280, 18); this.ss = new Spring(1, 420, 26); this.state = 0; this.at0 = 0; this.t = 0;
+    this.toast = this.$('.toast'); this.msg = this.$('.msg'); this.sx = new Spring(-340, 280, 18); this.ss = new Spring(1, 420, 26); this.state = 0; this.at0 = 0; this.t = 0;
     this.$('.x').addEventListener('click', () => this.hide());
   }
   // show a message. It stays for the duration attribute (2.6 seconds by default), or until hide().
   show(text) {
     if (!this.toast) return; this.msg.textContent = text ?? this.getAttribute('message') ?? 'Saved successfully!';
-    this.toast.classList.add('on'); this.sx.x = -280; this.sx.v = 1000; this.sx.to = 0; this.ss.x = 1; this.ss.to = 1; this.ss.k = 420; this.state = 1;
+    this.toast.classList.add('on'); const w = this.toast.offsetWidth || 320; this.sx.x = -(w + 40); this.sx.v = 1000; this.sx.to = 0; this.ss.x = 1; this.ss.to = 1; this.ss.k = 420; this.state = 1;
     if (fx.calm) { this.sx.x = 0; this.sx.v = 0; }
   }
   hide() { if (!this.open) return; this.state = 3; this.ss.to = 0; this.ss.k = 500; const c = at(this.toast); puff(c.x, c.y, { size: 9, n: 4, life: 0.5 }); }
@@ -37,7 +37,7 @@ class SakugaToast extends fx.Base {
       if (x > -10) { this.state = 2; this.at0 = this.t;   // it lands
         lines(c.x - c.w / 2 - 4, c.y, { n: 9, dir: Math.PI, len: 70, spread: 18, life: 0.4 }); for (const u of [-0.5, -0.36, -0.2]) puff(c.x + c.w * u, c.y + c.h / 2 + 4, { size: rnd(8, 12), n: 4, vx: -rnd(10, 30), vy: -8, life: rnd(0.7, 1) });
           puff(c.x + c.w / 2 + 8, c.y + 10, { size: 7, n: 3, vx: 20, life: 0.6 }); shards(c.x - c.w / 2, c.y + 12, { n: 4, size: 4, dir: Math.PI + 0.5, arc: 1.6 }); ticks(c.x + 30, c.y + c.h / 2 + 12, { dir: 0.5, n: 2, r: 4, len: 16 });
-          sfx('zuza', c.x - 34, c.y - 58, { size: 124, rot: -0.1, ...dotted() }); wob(c.x + c.w / 2 + 6, c.y, { dir: 1 }); } }
+          wob(c.x + c.w / 2 + 6, c.y, { dir: 1 }); } }
     else if (this.state === 2 && this.t - this.at0 > (+this.getAttribute('duration') || 2.6)) this.hide();
     else if (this.state === 3 && (sc < 0.03 || fx.calm)) { this.state = 0; this.toast.classList.remove('on'); this.toast.style.transform = ''; }
   }

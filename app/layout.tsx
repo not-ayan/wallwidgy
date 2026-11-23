@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     apple: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Frame%209-FXJqPudT39uGWT8Y4IRaSKavP2D0Fj.png",
   },
   manifest: "/manifest.json",
-  metadataBase: new URL('https://wallwidgy.xyz')
+  metadataBase: new URL('https://wallwidgy.app')
 }
 
 export const viewport: Viewport = {

@@ -28,12 +28,12 @@ export default function Home() {
       <HomeHeader />
 
       {/* Hero Section */}
-      <section className="max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-32 pb-16 sm:pb-24 text-center">
-        <h1 className="font-aspekta text-[13vw] sm:text-[8vw] md:text-[7vw] lg:text-[6vw] xl:text-[5.5vw] 2xl:text-[84px] font-light tracking-[-0.03em] text-[var(--accent-light)] leading-[1.05] max-w-[1200px] mx-auto">
-          <span className="title-animation inline-block" style={{ animationDelay: "0ms" }}>Wallwidgy</span>
+      <section className="max-w-[90%] md:max-w-[88%] xl:max-w-[85%] mx-auto px-4 sm:px-6 lg:px-8 pt-28 sm:pt-36 pb-12 sm:pb-16 text-center">
+        <h1 className="font-aspekta text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-normal tracking-tight text-[#EDEDED] leading-none max-w-[1200px] mx-auto">
+          Wallwidgy
         </h1>
-        <p className="mt-5 text-white/40 max-w-[600px] mx-auto text-[10px] sm:text-xs tracking-[0.2em] font-aspekta uppercase title-animation" style={{ animationDelay: "200ms" }}>
-          A curated library of minimal digital canvases
+        <p className="mt-4 text-[#8E8E8E] max-w-md mx-auto text-xs sm:text-sm md:text-base font-normal leading-relaxed">
+          Curated digital canvases and minimalist wallpapers for desktop and mobile
         </p>
       </section>
 

@@ -4,12 +4,16 @@ import { fetchIndexJson } from '@/lib/wallpapers'
 export const revalidate = 86400 // Cache sitemap for 24 hours
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://wallwidgy.vercel.app'
+  const baseUrl = 'https://wallwidgy.app'
 
   // Static routes
   const routes = [
     '',
+    '/search',
+    '/favorites',
     '/news',
+    '/android',
+    '/api',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),

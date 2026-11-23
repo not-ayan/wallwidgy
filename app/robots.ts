@@ -13,6 +13,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/'],
       }
     ],
-    sitemap: 'https://wallwidgy.vercel.app/sitemap.xml', // Update to domain or use dynamic origin if needed, but absolute URL is best.
+    sitemap: 'https://wallwidgy.app/sitemap.xml',
   }
 }

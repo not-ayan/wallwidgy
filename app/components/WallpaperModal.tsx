@@ -67,7 +67,7 @@ function SmartImage({
   );
 }
 import Image from "next/image"  // This is the Next.js Image component
-import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Sparkles, Heart, Loader2, Images } from "lucide-react"
+import { Download, Share2, ChevronLeft, ChevronRight, X, Minus, Plus, Heart, Loader2, Images, Check, Maximize2 } from "lucide-react"
 import Link from "next/link"
 import SimilarWallpapers from "./SimilarWallpapers"
 import { shouldDisableBlurEffects } from "@/lib/utils"
@@ -133,6 +133,8 @@ export default function WallpaperModal({
   const [isMobile, setIsMobile] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
   const downloadButtonRef = useRef<SakugaButtonElement>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isDownloaded, setIsDownloaded] = useState(false)
   const [isHighQuality, setIsHighQuality] = useState(false)
   const [isLoadingHighQuality, setIsLoadingHighQuality] = useState(false)
   const [showLoadingSpinner, setShowLoadingSpinner] = useState(false)
@@ -276,7 +278,7 @@ export default function WallpaperModal({
     }
   }, [isOpen])
 
-  // Preload the high-resolution image when preview is loaded
+  // Preload the high-resolution image when preview is loaded and seamlessly upgrade
   useEffect(() => {
     if (!isOpen || !currentWallpaper?.download_url || !isPreviewLoaded) return;
     let cancelled = false;
@@ -284,6 +286,7 @@ export default function WallpaperModal({
     img.onload = () => {
       if (!cancelled) {
         setIsFullImageLoaded(true);
+        setIsHighQuality(true);
       }
     };
     img.src = currentWallpaper.download_url;
@@ -320,15 +323,12 @@ export default function WallpaperModal({
 
   const handleDownload = async () => {
     try {
+      setIsDownloading(true)
       // Validate URL before attempting download
       if (!currentWallpaper.download_url) {
         showNotification("Download URL not available")
         return
       }
-      
-      // Add debug logging
-      console.log("Attempting to download:", currentWallpaper.download_url)
-      console.log("Wallpaper object:", currentWallpaper)
 
       // Record download count
       trackDownload(currentWallpaper)
@@ -377,18 +377,8 @@ export default function WallpaperModal({
       window.URL.revokeObjectURL(url)
       const cleanName = currentWallpaper.name.replace(/\.[^/.]+$/, "")
       showNotification(`Downloading ${cleanName}...`)
-
-      // Success: call el.done() to land the Sakuga checkmark
-      const btn = downloadButtonRef.current
-      if (btn && typeof btn.done === 'function') {
-        btn.done()
-      } else if (typeof window !== 'undefined' && window.customElements) {
-        window.customElements.whenDefined('sakuga-button').then(() => {
-          if (downloadButtonRef.current && typeof downloadButtonRef.current.done === 'function') {
-            downloadButtonRef.current.done()
-          }
-        })
-      }
+      setIsDownloaded(true)
+      setTimeout(() => setIsDownloaded(false), 2000)
     } catch (error) {
       console.error("Error downloading wallpaper:", error)
       console.error("Download URL was:", currentWallpaper.download_url)
@@ -402,6 +392,8 @@ export default function WallpaperModal({
       } else {
         showNotification("Failed to download wallpaper")
       }
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -533,23 +525,25 @@ export default function WallpaperModal({
 
   const loadHighQualityImage = () => {
     if (!currentWallpaper.download_url) {
-      showNotification("High quality image not available");
+      showNotification("Full resolution not available");
       return;
     }
 
     if (currentWallpaper.download_url === currentWallpaper.preview_url) {
       setIsHighQuality(true);
       setIsLoadingHighQuality(false);
-      showNotification("High quality image loaded!");
       return;
     }
 
     setIsLoadingHighQuality(true);
     setIsHighQuality(true);
-    showNotification("Loading high quality image...");
   }
 
   if (!isOpen) return null;
+
+  const resolutionLabel = currentWallpaper.resolution
+    ? formatResolution(currentWallpaper.resolution).replace(/\s*Portrait$/i, '')
+    : null;
 
   return (
     <div
@@ -651,7 +645,6 @@ export default function WallpaperModal({
                       setIsPreviewLoaded(true)
                       if (isHighQuality) {
                         setIsLoadingHighQuality(false)
-                        showNotification("High quality image loaded!")
                       }
                     }}
                     onError={() => {
@@ -672,7 +665,7 @@ export default function WallpaperModal({
             </div>
             {showLoadingSpinner && (
               <div className={`absolute inset-0 flex items-center justify-center bg-black/40 ${disableBlur ? '' : 'backdrop-blur-sm'} rounded-2xl transition-opacity duration-200 pointer-events-none`}>
-                <div className="w-8 h-8 border-2 border-white/20 border-t-[var(--accent-light)] rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
               </div>
             )}
             
@@ -768,75 +761,64 @@ export default function WallpaperModal({
           )}
         </div>
         
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Resolution and platform info */}
-          <div className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-black/80 ${disableBlur ? '' : 'backdrop-blur-md'} border border-white/10 shadow-lg`}>
-            {currentWallpaper.resolution && (
-              <div className="text-white/80 text-xs sm:text-sm">
-                {formatResolution(currentWallpaper.resolution)}
-              </div>
+        <div className="flex items-center pointer-events-auto">
+          {/* Unified Metadata & Resolution Capsule */}
+          <div className={`flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-1.5 rounded-full ${
+            disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/90 backdrop-blur-md'
+          } border border-white/10 shadow-lg text-xs select-none`}>
+            {/* Platform & Download Info */}
+            <div className="flex items-center gap-2 text-white/70">
+              {currentWallpaper.platform && (
+                <span className="font-medium text-white/75">{currentWallpaper.platform}</span>
+              )}
+              {Boolean(downloadCount && downloadCount > 0) && (
+                <>
+                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                  <span className="flex items-center gap-1 font-mono text-white/60">
+                    <Download className="w-3 h-3 text-white/50" />
+                    <span>{formatDownloadCount(downloadCount!)}</span>
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Subtle Divider */}
+            {currentWallpaper.download_url && (
+              <div className="w-px h-3 bg-white/15" />
             )}
-            {currentWallpaper.platform && (
-              <>
-                <div className="w-px h-3 bg-white/20" />
-                <div className="text-white/80 text-xs sm:text-sm">
-                  {currentWallpaper.platform}
+
+            {/* Resolution & Quality Action / Status */}
+            {currentWallpaper.download_url && (
+              !isHighQuality && !isLoadingHighQuality ? (
+                <button
+                  type="button"
+                  onClick={loadHighQualityImage}
+                  className="flex items-center gap-1.5 px-2 py-0.5 -mr-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-white/80 hover:text-white transition-colors cursor-pointer"
+                  title="Switch to full uncompressed resolution"
+                >
+                  <Maximize2 className="w-3 h-3 text-white/60" />
+                  <span className="font-mono text-[11px] font-medium tracking-tight text-white/90">
+                    {resolutionLabel ? `Full ${resolutionLabel}` : "Full res"}
+                  </span>
+                </button>
+              ) : isLoadingHighQuality ? (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 -mr-1 text-white/70">
+                  <Loader2 className="w-3 h-3 text-white/60 animate-spin" />
+                  <span className="font-mono text-[11px] tracking-tight text-white/70">
+                    Loading {resolutionLabel || "res"}...
+                  </span>
                 </div>
-              </>
-            )}
-            {Boolean(downloadCount && downloadCount > 0) && (
-              <>
-                <div className="w-px h-3 bg-white/20" />
-                <div className="flex items-center gap-1.5 text-white/80 text-xs sm:text-sm font-mono">
-                  <Download className="w-3.5 h-3.5 text-[#F7F06D]" />
-                  <span>{formatDownloadCount(downloadCount!)}</span>
+              ) : isHighQuality ? (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 -mr-1 text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="font-mono text-[11px] font-medium tracking-tight text-emerald-300">
+                    {resolutionLabel || "HD"}
+                  </span>
+                  <span className="text-[11px] text-white/50 font-normal">Full res</span>
                 </div>
-              </>
+              ) : null
             )}
           </div>
-
-          {/* HD Button or Quality Indicator */}
-          {!isHighQuality && !isLoadingHighQuality && currentWallpaper.download_url ? (
-            <button
-              type="button"
-              onClick={loadHighQualityImage}
-              className={`group relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full ${
-                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
-              } border border-white/10 hover:border-[var(--accent-light)]/40 text-white/90 hover:text-white text-xs sm:text-sm font-medium transition-colors duration-150 shadow-lg hover:shadow-[0_0_14px_rgba(255,248,207,0.14)] cursor-pointer select-none`}
-              title="Load original high-resolution wallpaper"
-            >
-              {/* Subtle top sheen on hover */}
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_50%_at_50%_0%,rgba(255,248,207,0.12),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              />
-
-              <Sparkles className="hidden sm:inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-light)] drop-shadow-[0_0_6px_rgba(255,248,207,0.45)] relative z-10" />
-              <span className="relative z-10 tracking-tight font-medium">Load HD</span>
-            </button>
-          ) : isLoadingHighQuality ? (
-            <div
-              className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full ${
-                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
-              } border border-[var(--accent-light)]/25 text-white/80 text-xs sm:text-sm font-medium shadow-lg select-none`}
-            >
-              <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-light)] animate-spin" />
-              <span className="tracking-tight text-white/70">Loading HD...</span>
-            </div>
-          ) : isHighQuality ? (
-            <div
-              className={`relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-full ${
-                disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
-              } border border-[var(--accent-light)]/30 text-[var(--accent-light)] text-xs sm:text-sm font-medium shadow-[0_0_12px_rgba(255,248,207,0.14)] select-none`}
-            >
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_50%_at_50%_0%,rgba(255,248,207,0.08),transparent_70%)]"
-              />
-              <Sparkles className="hidden sm:inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--accent-light)] drop-shadow-[0_0_6px_rgba(255,248,207,0.5)] relative z-10" />
-              <span className="relative z-10 tracking-tight font-medium">HD Active</span>
-            </div>
-          ) : null}
         </div>
       </div>
       
@@ -858,7 +840,7 @@ export default function WallpaperModal({
                 disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
               } border border-white/10 ${
                 hasPrevious
-                  ? 'hover:border-[var(--accent-light)]/40 hover:bg-[#181818] text-white/90 hover:text-white cursor-pointer hover:shadow-[0_0_16px_rgba(255,248,207,0.15)]'
+                  ? 'hover:border-white/25 hover:bg-white/[0.08] text-white/80 hover:text-white cursor-pointer'
                   : 'opacity-20 cursor-not-allowed text-white/30 border-white/5'
               } shadow-2xl transition-colors duration-150 select-none pointer-events-auto`}
               title={hasPrevious ? "Previous wallpaper" : "First wallpaper"}
@@ -883,7 +865,7 @@ export default function WallpaperModal({
                 disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/85 backdrop-blur-md'
               } border border-white/10 ${
                 hasNext
-                  ? 'hover:border-[var(--accent-light)]/40 hover:bg-[#181818] text-white/90 hover:text-white cursor-pointer hover:shadow-[0_0_16px_rgba(255,248,207,0.15)]'
+                  ? 'hover:border-white/25 hover:bg-white/[0.08] text-white/80 hover:text-white cursor-pointer'
                   : 'opacity-20 cursor-not-allowed text-white/30 border-white/5'
               } shadow-2xl transition-colors duration-150 select-none pointer-events-auto`}
               title={hasNext ? "Next wallpaper" : "Last wallpaper"}
@@ -897,7 +879,7 @@ export default function WallpaperModal({
 
       {/* Bottom Unified Floating Dock */}
       <div className="fixed bottom-6 left-0 right-0 z-40 flex items-center justify-center pointer-events-none px-4 pb-[env(safe-area-inset-bottom,0px)]">
-        <div className={`flex items-center gap-1 p-1 sm:p-1.5 rounded-full ${
+        <div className={`flex items-center gap-1 sm:gap-1.5 p-1 sm:p-1.5 rounded-full ${
           disableBlur ? 'bg-[#121212]' : 'bg-[#0D0D0D]/90 backdrop-blur-2xl'
         } border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.6)] pointer-events-auto select-none`}>
           
@@ -935,14 +917,14 @@ export default function WallpaperModal({
             onClick={() => setShowSimilarWallpapers(prev => !prev)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors duration-150 cursor-pointer select-none ${
               showSimilarWallpapers
-                ? 'bg-[var(--accent-light)]/15 text-[var(--accent-light)]'
+                ? 'bg-white/15 text-white'
                 : 'text-white/75 hover:text-white hover:bg-white/[0.08]'
             }`}
             title={showSimilarWallpapers ? "Close similar wallpapers" : "Discover similar wallpapers"}
           >
             <Images
               className={`w-3.5 h-3.5 ${
-                showSimilarWallpapers ? 'text-[var(--accent-light)]' : 'text-white/75'
+                showSimilarWallpapers ? 'text-white' : 'text-white/75'
               }`}
             />
             <span className="tracking-tight">Similar</span>
@@ -957,7 +939,7 @@ export default function WallpaperModal({
             onClick={() => toggleFavorite(currentWallpaper.sha)}
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150 cursor-pointer ${
               isFavorite(currentWallpaper.sha)
-                ? 'text-red-500 bg-red-500/15'
+                ? 'text-rose-400 bg-rose-500/15'
                 : 'text-white/75 hover:text-white hover:bg-white/[0.08]'
             }`}
             title={isFavorite(currentWallpaper.sha) ? "Remove from favorites" : "Add to favorites"}
@@ -975,19 +957,26 @@ export default function WallpaperModal({
             <Share2 className="w-4 h-4" />
           </button>
 
-          {/* Divider between Share and Download */}
-          <div className="w-px h-3.5 bg-white/10 mx-0.5" />
-
-          {/* Sakuga Download button */}
-          <sakuga-button
-            ref={downloadButtonRef}
+          {/* Solid Primary Download Button without stray divider */}
+          <button
+            type="button"
             onClick={handleDownload}
+            disabled={isDownloading}
             title="Download wallpaper"
             aria-label="Download wallpaper"
-            className="sakuga-download-btn"
+            className="flex items-center gap-1.5 h-8 px-4 ml-1 rounded-full bg-[#EDEDED] hover:bg-white text-black text-xs font-medium transition-all duration-150 active:scale-95 cursor-pointer disabled:opacity-60 shadow-xs select-none"
           >
-            <Download className="w-4 h-4" />
-          </sakuga-button>
+            {isDownloading ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : isDownloaded ? (
+              <Check className="w-3.5 h-3.5 text-black" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-black" />
+            )}
+            <span className="tracking-tight">
+              {isDownloading ? "Saving..." : isDownloaded ? "Saved" : "Download"}
+            </span>
+          </button>
         </div>
       </div>
     </div>

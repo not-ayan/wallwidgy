@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Bell, X, Info, Sparkles, AlertTriangle, Megaphone, CheckCheck, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import { createPortal } from "react-dom"
+import { useBackHandler } from "@/hooks/use-back-handler"
 import { parseStoredStringArray, selectLatestUnreadToast } from "@/lib/ui-state-helpers"
 
 export interface NotificationItem {
@@ -80,6 +81,13 @@ export default function NotificationCenter() {
     }
   }, [])
 
+  // Handle Android back button when notifications panel is open
+  useBackHandler({
+    isActive: isOpen,
+    onBack: () => setIsOpen(false),
+    priority: 1,
+  })
+
   // 1. Fetch notifications and load read state
   useEffect(() => {
     let isMounted = true
@@ -89,26 +97,22 @@ export default function NotificationCenter() {
     const fetchNotifications = async () => {
       try {
         setLoading(true)
-        // Fetch from dynamic URL or fallback GitHub Gist
-        const rawUrl = process.env.NEXT_PUBLIC_NOTIFICATIONS_URL || "https://gist.githubusercontent.com/not-ayan/3691b5169488c4e713f71aa26b2394f7/raw/notifications.json"
-        const finalUrl = rawUrl.includes("?") 
-          ? `${rawUrl}&t=${Date.now()}` 
+        const rawUrl =
+          process.env.NEXT_PUBLIC_NOTIFICATIONS_URL ||
+          "https://gist.githubusercontent.com/not-ayan/3691b5169488c4e713f71aa26b2394f7/raw/notifications.json"
+        const finalUrl = rawUrl.includes("?")
+          ? `${rawUrl}&t=${Date.now()}`
           : `${rawUrl}?t=${Date.now()}`
 
-        const res = await fetch(finalUrl, {
-          cache: "no-store", // Get fresh notifications
-        })
-
-        if (!res.ok) {
-          throw new Error("Failed to fetch")
-        }
+        const res = await fetch(finalUrl, { cache: "no-store" })
+        if (!res.ok) throw new Error("Failed to fetch")
 
         const data = await res.json()
         if (isMounted && Array.isArray(data)) {
           setNotifications(data)
           triggerToastCheck(data, parsedReadIds)
         }
-      } catch (err) {
+      } catch {
         if (isMounted) setNotifications([])
       } finally {
         if (isMounted) setLoading(false)
@@ -128,7 +132,6 @@ export default function NotificationCenter() {
 
     if (latestUnread) {
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
-      // Delay toast slightly for smoother page load feel
       toastTimerRef.current = setTimeout(() => {
         toastTimerRef.current = null
         const latestRead = readStoredIds(STORAGE_KEY)
@@ -139,7 +142,7 @@ export default function NotificationCenter() {
     }
   }
 
-  // 3. Close popover on click outside & cancel auto-read timer when closed
+  // 3. Close popover on click outside
   useEffect(() => {
     if (!isOpen && autoReadTimerRef.current) {
       clearTimeout(autoReadTimerRef.current)
@@ -188,7 +191,6 @@ export default function NotificationCenter() {
     if (!dismissedToasts.includes(id)) {
       writeStoredIds(DISMISSED_TOASTS_KEY, [...dismissedToasts, id])
     }
-    // Also mark it as read when dismissed
     markAsRead(id)
   }
 
@@ -196,15 +198,15 @@ export default function NotificationCenter() {
   const getTypeIcon = (type: NotificationItem["type"]) => {
     switch (type) {
       case "success":
-        return <Sparkles className="w-4 h-4 text-[#F7F06D]" />
+        return <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
       case "warning":
-        return <AlertTriangle className="w-4 h-4 text-red-400" />
+        return <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
       case "announcement":
-        return <Megaphone className="w-4 h-4 text-blue-400" />
+        return <Megaphone className="w-3.5 h-3.5 text-sky-400" />
       default:
-        return <Info className="w-4 h-4 text-white/60" />
+        return <Info className="w-3.5 h-3.5 text-white/60" />
     }
-  };
+  }
 
   return (
     <div className="relative inline-block" ref={containerRef}>
@@ -218,62 +220,59 @@ export default function NotificationCenter() {
             autoReadTimerRef.current = null
           }
           if (nextOpen && unreadCount > 0) {
-            // When opening, mark what they saw as read after a short delay (cancelled if closed early)
             autoReadTimerRef.current = setTimeout(() => {
               autoReadTimerRef.current = null
               markAllAsRead()
             }, 1000)
           }
         }}
-        className={`p-2 text-white/60 hover:text-white transition-all rounded-full hover:bg-white/5 relative ${
-          isOpen ? "text-white bg-white/5" : ""
+        className={`p-1.5 text-white/50 hover:text-white hover:bg-white/[0.06] rounded-full transition-colors relative ${
+          isOpen ? "text-white bg-white/[0.06]" : ""
         }`}
         aria-label="Notifications"
+        title="Notifications"
       >
-        <Bell className={`w-4 h-4 transition-transform hover:rotate-12 ${unreadCount > 0 ? "animate-pulse text-white" : ""}`} />
+        <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F7F06D] rounded-full ring-2 ring-[#0A0A0A] animate-ping" />
-        )}
-        {unreadCount > 0 && (
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#F7F06D] rounded-full ring-2 ring-[#0A0A0A]" />
+          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-white rounded-full ring-2 ring-[#0A0A0A]" />
         )}
       </button>
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute right-[-80px] sm:right-0 top-full mt-2.5 w-[320px] sm:w-[380px] bg-[#0F0F0F]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/90 z-[999] overflow-hidden origin-top-right transition-all duration-200">
+        <div className="absolute right-[-80px] sm:right-0 top-full mt-2 w-[320px] sm:w-[360px] bg-[#121212] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/80 z-[999] overflow-hidden origin-top-right transition-all">
           {/* Popover Header */}
-          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-outfit text-sm font-semibold tracking-wide text-white">Notifications</span>
+              <span className="text-xs font-medium text-[#EDEDED]">Notifications</span>
               {unreadCount > 0 && (
-                <span className="px-2 py-0.5 bg-[#F7F06D]/15 text-[#F7F06D] text-[10px] font-mono rounded-full font-bold">
-                  {unreadCount} NEW
+                <span className="px-1.5 py-0.5 bg-white/10 text-white/70 text-[10px] font-mono rounded-full font-medium">
+                  {unreadCount} new
                 </span>
               )}
             </div>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-[11px] font-medium text-white/40 hover:text-white flex items-center gap-1 transition-all"
+                className="text-[11px] text-white/40 hover:text-white flex items-center gap-1 transition-colors"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                Mark all read
+                <span>Mark all read</span>
               </button>
             )}
           </div>
 
           {/* Popover Content */}
-          <div className="max-h-[360px] overflow-y-auto scrollbar-thin divide-y divide-white/[0.04]">
+          <div className="max-h-[340px] overflow-y-auto divide-y divide-white/[0.04]">
             {loading ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-3">
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                <span className="text-xs text-white/40">Loading notifications...</span>
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-white/40">
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <span className="text-xs font-mono">Loading notifications...</span>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="py-16 text-center">
-                <Bell className="w-8 h-8 text-white/10 mx-auto mb-2" />
-                <p className="text-xs text-white/40 font-outfit">All caught up! No notifications.</p>
+              <div className="py-12 text-center text-white/40">
+                <Bell className="w-6 h-6 mx-auto mb-1.5 text-white/20" />
+                <p className="text-xs font-mono">No notifications</p>
               </div>
             ) : (
               notifications.map((item) => {
@@ -282,39 +281,37 @@ export default function NotificationCenter() {
                   <div
                     key={item.id}
                     onClick={() => markAsRead(item.id)}
-                    className={`p-4 flex gap-3 transition-colors hover:bg-white/[0.02] cursor-pointer relative ${
-                      !isRead ? "bg-white/[0.01]" : ""
-                    }`}
+                    className="p-3.5 flex gap-3 transition-colors hover:bg-white/[0.02] cursor-pointer relative"
                   >
-                    {/* Unread Status Dot Indicator */}
+                    {/* Unread indicator */}
                     {!isRead && (
-                      <span className="absolute top-4 right-4 w-1.5 h-1.5 bg-[#F7F06D] rounded-full" />
+                      <span className="absolute top-4 right-4 w-1.5 h-1.5 bg-white rounded-full" />
                     )}
 
-                    {/* Icon Container */}
+                    {/* Icon */}
                     <div className="mt-0.5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/[0.03] border border-white/[0.05] shrink-0">
                       {getTypeIcon(item.type)}
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-outfit text-xs font-semibold text-white mb-0.5 tracking-wide flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0 pr-2">
+                      <h4 className="text-xs font-medium text-[#EDEDED] mb-0.5 truncate">
                         {item.title}
                       </h4>
-                      <p className="font-outfit text-[11px] leading-relaxed text-white/50 mb-2">
+                      <p className="text-[11px] leading-relaxed text-[#8E8E8E] mb-2 line-clamp-2">
                         {item.message}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-mono text-white/30 uppercase">
+                        <span className="text-[10px] font-mono text-[#555555]">
                           {getRelativeTime(item.timestamp)}
                         </span>
                         {item.link && (
                           <Link
                             href={item.link}
                             target={item.link.startsWith("http") ? "_blank" : "_self"}
-                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#F7F06D] hover:text-white transition-colors"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-white hover:underline transition-colors"
                           >
-                            {item.linkLabel || "View"}
+                            <span>{item.linkLabel || "View"}</span>
                             <ExternalLink className="w-2.5 h-2.5" />
                           </Link>
                         )}
@@ -325,61 +322,52 @@ export default function NotificationCenter() {
               })
             )}
           </div>
-
-          {/* Admin Helper Footer */}
-          <div className="px-5 py-3.5 bg-white/[0.01] border-t border-white/[0.06] text-center">
-            <p className="text-[9px] font-mono text-white/20 select-none">
-              SYS.V2 • BROADCAST FEED
-            </p>
-          </div>
         </div>
       )}
 
       {/* On-Screen Toast Notification */}
       {activeToast && mounted && createPortal(
-        <div className="fixed bottom-6 right-6 z-[9999] w-[340px] sm:w-[380px] bg-[#0E0E0E]/95 backdrop-blur-xl border border-[#F7F06D]/20 rounded-2xl shadow-2xl shadow-black/80 p-4 animate-in slide-in-from-bottom-5 fade-in duration-300">
-          {/* Border highlight glow effect similar to premium sign-in button */}
-          <div className="absolute inset-0 rounded-2xl pointer-events-none border border-white/5" />
-          
-          <div className="flex gap-3 relative z-10">
+        <div className="fixed bottom-6 right-6 z-[9999] w-[340px] sm:w-[360px] bg-[#141414] border border-white/[0.1] rounded-2xl p-4 shadow-2xl shadow-black/90 animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <div className="flex gap-3">
             {/* Type Icon */}
-            <div className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-lg bg-[#F7F06D]/10 border border-[#F7F06D]/20 shrink-0">
+            <div className="mt-0.5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06] shrink-0">
               {getTypeIcon(activeToast.type)}
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start mb-0.5">
-                <h4 className="font-outfit text-xs font-semibold text-white tracking-wide">
+                <h4 className="text-xs font-medium text-[#EDEDED] tracking-tight">
                   {activeToast.title}
                 </h4>
                 <button
                   onClick={() => dismissToast(activeToast.id)}
-                  className="text-white/40 hover:text-white p-1 hover:bg-white/5 rounded transition-colors"
-                  aria-label="Dismiss toast"
+                  className="text-white/40 hover:text-white p-0.5 rounded transition-colors"
+                  aria-label="Dismiss notification"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="font-outfit text-[11px] leading-relaxed text-white/60 mb-3">
+
+              <p className="text-[11px] leading-relaxed text-[#8E8E8E] mb-3">
                 {activeToast.message}
               </p>
-              
+
               <div className="flex items-center gap-2">
-                {activeToast.link ? (
+                {activeToast.link && (
                   <Link
                     href={activeToast.link}
                     onClick={() => dismissToast(activeToast.id)}
                     target={activeToast.link.startsWith("http") ? "_blank" : "_self"}
-                    className="px-3.5 py-1.5 bg-[#F7F06D] hover:bg-white text-black font-semibold text-[10px] rounded-lg transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 bg-white hover:bg-white/90 text-black font-medium text-[11px] rounded-lg transition-colors flex items-center gap-1"
                   >
-                    {activeToast.linkLabel || "Learn More"}
+                    <span>{activeToast.linkLabel || "Learn more"}</span>
                     <ExternalLink className="w-2.5 h-2.5" />
                   </Link>
-                ) : null}
+                )}
                 <button
                   onClick={() => dismissToast(activeToast.id)}
-                  className="px-3 py-1.5 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] text-white/80 hover:text-white font-medium text-[10px] rounded-lg transition-colors"
+                  className="px-3 py-1.5 bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.08] text-white/70 hover:text-white font-medium text-[11px] rounded-lg transition-colors"
                 >
                   Dismiss
                 </button>

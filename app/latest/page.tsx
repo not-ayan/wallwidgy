@@ -13,7 +13,7 @@ export default function LatestWallpapers() {
         <h1 className="font-aspekta text-3xl sm:text-4xl font-light mb-8 text-white tracking-tight">
           Latest Wallpapers
         </h1>
-        <WallpaperGrid />
+        <WallpaperGrid disableContainer={true} />
       </div>
 
       <Footer />

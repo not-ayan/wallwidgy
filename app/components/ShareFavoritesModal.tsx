@@ -15,7 +15,13 @@ interface ShareFavoritesModalProps {
   isSignedIn?: boolean
 }
 
-export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, username, isSignedIn }: ShareFavoritesModalProps) {
+export default function ShareFavoritesModal({
+  isOpen,
+  onClose,
+  favoriteIds,
+  username,
+  isSignedIn,
+}: ShareFavoritesModalProps) {
   const [wallpaperLinks, setWallpaperLinks] = useState<{ name: string; url: string }[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [copiedProfile, setCopiedProfile] = useState(false)
@@ -24,7 +30,7 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
   useBackHandler({
     isActive: isOpen,
     onBack: onClose,
-    priority: 1
+    priority: 1,
   })
 
   useEffect(() => {
@@ -37,14 +43,15 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
   const fetchWallpaperData = async () => {
     try {
       const data = await getRawWallpaperIndex()
-      
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://wallwidgy.app"
+
       const links = data
         .filter((item: any) => favoriteIds.includes(item.file_name))
         .map((item: any) => ({
           name: item.file_name,
-          url: `${window.location.origin}/wallpaper/${encodeURIComponent(item.file_name)}`
+          url: `${origin}/wallpaper/${encodeURIComponent(item.file_name)}`,
         }))
-      
+
       setWallpaperLinks(links)
       setIsLoading(false)
     } catch (error) {
@@ -55,211 +62,119 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
 
   const copyAllLinks = async () => {
     try {
-      // Create formatted text with each wallpaper on a new line
-      const linksText = wallpaperLinks.map(link => `${link.name}: ${link.url}`).join('\n');
-      
-      // Use the Clipboard API with fallback
+      const linksText = wallpaperLinks.map((link) => `${link.name}: ${link.url}`).join("\n")
+
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(linksText);
-        showNotification("All links copied to clipboard!");
+        await navigator.clipboard.writeText(linksText)
+        showSakugaToast("All links copied to clipboard")
       } else {
-        // Fallback method using a temporary textarea element
-        const textArea = document.createElement('textarea');
-        textArea.value = linksText;
-        textArea.style.position = 'fixed';  // Avoid scrolling to bottom
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-        
+        const textArea = document.createElement("textarea")
+        textArea.value = linksText
+        textArea.style.position = "fixed"
+        textArea.style.opacity = "0"
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+
+        const successful = document.execCommand("copy")
+        document.body.removeChild(textArea)
+
         if (successful) {
-          showNotification("All links copied to clipboard!");
+          showSakugaToast("All links copied to clipboard")
         } else {
-          throw new Error('Fallback copy method failed');
+          throw new Error("Fallback copy method failed")
         }
       }
-    } catch (error) {
-      console.error("Failed to copy links:", error);
-      showNotification("Failed to copy links to clipboard");
+    } catch {
+      showSakugaToast("Failed to copy links to clipboard")
     }
-  }
-
-  const shareLinks = async () => {
-    try {
-      // Create formatted text with each wallpaper on a new line
-      const linksText = wallpaperLinks.map(link => `${link.name}: ${link.url}`).join('\n\n');
-      
-      // Create a more descriptive title and message
-      const title = "My Favorite Wallpapers";
-      const message = `Check out my collection of ${wallpaperLinks.length} favorite wallpapers from WallWidgy:\n\n${linksText}`;
-      
-      if (navigator.share) {
-        try {
-          // First try to share the full list (works best on mobile)
-          await navigator.share({
-            title: title,
-            text: message,
-            url: window.location.href // Fallback URL to the favorites page
-          });
-          showNotification("Shared successfully!");
-        } catch (shareError) {
-          console.error("Share API error:", shareError);
-          
-          // If the full list was too large, try a more compact version
-          if (linksText.length > 1500) {
-            try {
-              const compactMessage = `Check out my collection of ${wallpaperLinks.length} favorite wallpapers!`;
-              await navigator.share({
-                title: title,
-                text: compactMessage,
-                url: window.location.href
-              });
-              showNotification("Shared successfully!");
-            } catch (compactShareError) {
-              // If even compact sharing fails, fall back to clipboard
-              await copyToClipboard(linksText);
-            }
-          } else {
-            // Otherwise just fall back to clipboard
-            await copyToClipboard(linksText);
-          }
-        }
-      } else {
-        // No Web Share API support, use clipboard
-        await copyToClipboard(linksText);
-        showNotification("Links copied to clipboard! (Share API not available on this device)");
-      }
-    } catch (error) {
-      console.error("Error in share function:", error);
-      showNotification("Failed to share links");
-    }
-  };
-
-  // Helper function for clipboard operations
-  const copyToClipboard = async (text: string) => {
-    try {
-      // Try the modern clipboard API first
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        showNotification("Links copied to clipboard!");
-        return;
-      }
-      
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      if (successful) {
-        showNotification("Links copied to clipboard!");
-      } else {
-        throw new Error('Fallback copy method failed');
-      }
-    } catch (error) {
-      console.error("Clipboard error:", error);
-      showNotification("Failed to copy to clipboard");
-      throw error; // Re-throw to handle in the calling function
-    }
-  };
-
-  const showNotification = (message: string) => {
-    showSakugaToast(message)
   }
 
   const handleCopyProfileLink = async () => {
     if (!username) return
-    
-    const shareUrl = `${window.location.origin}/share/${username}`
-    
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://wallwidgy.app"
+    const shareUrl = `${origin}/share/${username}`
+
     try {
       await navigator.clipboard.writeText(shareUrl)
       setCopiedProfile(true)
-      showNotification("Profile link copied!")
+      showSakugaToast("Profile link copied")
       setTimeout(() => setCopiedProfile(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
+    } catch {
+      showSakugaToast("Failed to copy link")
     }
   }
 
   if (!isOpen) return null
 
-  const profileUrl = username ? `${window.location.origin}/share/${username}` : null
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://wallwidgy.app"
+  const profileUrl = username ? `${origin}/share/${username}` : null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-      <div className="bg-[#161616] rounded-2xl max-w-2xl w-[90%] max-h-[80vh] overflow-hidden flex flex-col shadow-xl border border-white/10">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h2 className="text-lg font-medium">Share Favorites</h2>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-white/10">
-            <X className="w-5 h-5" />
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#141414] border border-white/[0.08] rounded-2xl max-w-xl w-full max-h-[80vh] overflow-hidden flex flex-col shadow-2xl text-[#EDEDED]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+          <h2 className="text-sm font-medium text-[#EDEDED] tracking-tight">Share Gallery</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/[0.06] transition-colors"
+            aria-label="Close"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-6">
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Share Profile Section */}
-          <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-            <h3 className="text-sm font-medium text-white mb-2">Share your profile</h3>
+          <div className="p-4 bg-white/[0.03] rounded-xl border border-white/[0.06]">
+            <h3 className="text-xs font-medium text-[#EDEDED] mb-1.5">Share Your Public Gallery</h3>
             {isSignedIn ? (
               username ? (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <p className="text-white/50 text-xs sm:text-sm truncate flex-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                  <p className="text-xs font-mono text-[#8E8E8E] truncate flex-1">
                     {profileUrl}
                   </p>
-                  {/* Mobile: Icon only */}
                   <button
                     onClick={handleCopyProfileLink}
-                    className="sm:hidden p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/70 hover:text-white self-end"
-                    aria-label="Copy link"
-                  >
-                    {copiedProfile ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <LinkIcon className="w-4 h-4" />
-                    )}
-                  </button>
-                  {/* Desktop: Button with text */}
-                  <button
-                    onClick={handleCopyProfileLink}
-                    className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm text-white/70 hover:text-white"
+                    className="self-end sm:self-auto px-3 py-1.5 rounded-lg bg-white text-black hover:bg-white/90 text-xs font-medium transition-colors flex items-center gap-1.5"
                   >
                     {copiedProfile ? (
                       <>
-                        <Check className="w-4 h-4 text-green-500" />
-                        <span>Copied!</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copied</span>
                       </>
                     ) : (
                       <>
-                        <LinkIcon className="w-4 h-4" />
+                        <LinkIcon className="w-3.5 h-3.5" />
                         <span>Copy Link</span>
                       </>
                     )}
                   </button>
                 </div>
               ) : (
-                <p className="text-yellow-500/80 text-sm">
-                  Set a username in your profile to get a shareable link
+                <p className="text-xs text-[#8E8E8E]">
+                  Set a username in your profile to generate a shareable gallery link.
                 </p>
               )
             ) : (
-              <div className="flex items-center gap-3">
-                <p className="text-white/50 text-sm flex-1">
-                  Sign in to create a shareable profile page
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <p className="text-xs text-[#8E8E8E]">
+                  Sign in to create a shareable profile and sync your setups.
                 </p>
                 <SignInButton mode="modal">
-                  <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-white/90 transition-colors">
-                    <LogIn className="w-4 h-4" />
-                    <span className="hidden sm:inline">Sign In</span>
+                  <button className="px-3 py-1.5 rounded-lg bg-white text-black hover:bg-white/90 text-xs font-medium transition-colors flex items-center gap-1.5">
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In</span>
                   </button>
                 </SignInButton>
               </div>
@@ -267,41 +182,46 @@ export default function ShareFavoritesModal({ isOpen, onClose, favoriteIds, user
           </div>
 
           {/* Wallpaper Links Section */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10">
-              <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-            </div>
-          ) : (
-            <>
-              <p className="text-white/70 mb-4">
-                Share these {wallpaperLinks.length} wallpapers with others:
-              </p>
-              <div className="border border-white/10 rounded-lg divide-y divide-white/10 mb-6 overflow-hidden">
+          <div>
+            <span className="text-[11px] font-mono uppercase tracking-wider text-[#555555] block mb-2">
+              Individual Wallpapers ({wallpaperLinks.length})
+            </span>
+
+            {isLoading ? (
+              <div className="py-10 flex flex-col items-center justify-center gap-2 text-white/40">
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <span className="text-xs font-mono">Loading wallpaper links...</span>
+              </div>
+            ) : (
+              <div className="border border-white/[0.06] rounded-xl overflow-hidden divide-y divide-white/[0.04]">
                 {wallpaperLinks.map((link, index) => (
-                  <div key={index} className="p-4 bg-white/5 hover:bg-white/10 transition-colors">
-                    <p className="text-sm text-white/80 truncate">{link.name}</p>
+                  <div key={index} className="p-3 bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+                    <p className="text-xs font-medium text-[#EDEDED] truncate">
+                      {link.name.replace(/[-_]/g, " ").replace(/\.[^/.]+$/, "")}
+                    </p>
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs text-blue-400 hover:underline truncate block mt-1"
+                      className="text-[11px] font-mono text-[#8E8E8E] hover:text-white truncate block mt-0.5 transition-colors"
                     >
                       {link.url}
                     </a>
                   </div>
                 ))}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
-        
-        <div className="border-t border-white/10 px-6 py-4 flex justify-end gap-4">
+
+        {/* Footer */}
+        <div className="border-t border-white/[0.06] px-6 py-3.5 flex justify-end gap-3">
           <button
             onClick={copyAllLinks}
-            disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+            disabled={isLoading || wallpaperLinks.length === 0}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-white/90 text-black text-xs font-medium transition-colors disabled:opacity-40"
           >
-            <Copy className="w-4 h-4" />
+            <Copy className="w-3.5 h-3.5" />
             <span>Copy All Links</span>
           </button>
         </div>

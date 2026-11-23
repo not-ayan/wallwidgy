@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
-import { Heart, RefreshCw, Check, X, Sparkles, Layers } from "lucide-react"
+import { Heart, RefreshCw, Check, X, Layers } from "lucide-react"
+import { useBackHandler } from "@/hooks/use-back-handler"
 
 interface FavoritesSyncModalProps {
   isOpen: boolean
@@ -31,6 +32,13 @@ export default function FavoritesSyncModal({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Handle Android back button when sync modal is open
+  useBackHandler({
+    isActive: isOpen && mounted,
+    onBack: onClose,
+    priority: 1,
+  })
 
   if (!isOpen || !mounted) return null
 
@@ -76,15 +84,12 @@ export default function FavoritesSyncModal({
 
         {/* Icon Header */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/10 border border-red-500/30 flex items-center justify-center text-red-500 shadow-inner">
-            <Heart className="w-6 h-6 fill-red-500 text-red-500" />
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <Heart className="w-5 h-5 fill-rose-400" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs uppercase tracking-wider font-semibold text-white/50">Favorites Sync</span>
-              <Sparkles className="w-3 h-3 text-[#F7F06D]" />
-            </div>
-            <h2 className="text-lg sm:text-xl font-semibold text-white">Sync Guest Favorites</h2>
+            <span className="text-xs text-[#8E8E8E] block">Guest collection</span>
+            <h2 className="text-lg font-medium text-[#EDEDED] tracking-tight">Sync saved favorites</h2>
           </div>
         </div>
 

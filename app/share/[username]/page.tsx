@@ -7,6 +7,7 @@ import Header from "@/app/components/Header"
 import Footer from "@/app/components/Footer"
 import BackToTop from "@/app/components/BackToTop"
 import WallpaperModal from "@/app/components/WallpaperModal"
+import { useBackHandler } from "@/hooks/use-back-handler"
 import { showSakugaToast } from "@/lib/toast"
 import { getParsedWallpapers, Wallpaper } from "@/lib/wallpaper-store"
 import { isIdMatching } from "@/lib/favorites-state"
@@ -23,7 +24,6 @@ import {
   Battery,
   AlertCircle,
   Loader2,
-  Sparkles,
   Layers,
   X,
   Search,
@@ -176,6 +176,13 @@ export default function SharedProfilePage() {
   const [showAllFavorites, setShowAllFavorites] = useState(false)
   const [favoritesSearch, setFavoritesSearch] = useState("")
 
+  // Handle Android back button when full favorites modal is open
+  useBackHandler({
+    isActive: showAllFavorites,
+    onBack: () => setShowAllFavorites(false),
+    priority: 1,
+  })
+
   // Origin for sharing
   const [origin, setOrigin] = useState("")
   useEffect(() => {
@@ -184,7 +191,7 @@ export default function SharedProfilePage() {
     }
   }, [])
 
-  const shareUrl = origin ? `${origin}/share/${username}` : `https://wallwidgy.xyz/share/${username}`
+  const shareUrl = origin ? `${origin}/share/${username}` : `https://wallwidgy.app/share/${username}`
   const displayUrl = `wallwidgy.app/share/${username}`
 
   // Clipboard copy state
@@ -243,7 +250,7 @@ export default function SharedProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0A0A0A] text-white font-outfit selection:bg-[var(--accent-light)] selection:text-black">
+    <main className="min-h-screen bg-[#0A0A0A] text-[#EDEDED] font-aspekta selection:bg-white selection:text-black">
       {/* Universal Consistent Header */}
       <Header showBackButton={true} backUrl="/" />
 
@@ -253,28 +260,28 @@ export default function SharedProfilePage() {
         {/* Loading State */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-40 gap-4">
-            <Loader2 className="w-8 h-8 text-[var(--accent-light)] animate-spin" />
-            <p className="text-white/40 font-mono text-xs tracking-wider">
+            <Loader2 className="w-8 h-8 text-white/70 animate-spin" />
+            <p className="text-[#8E8E8E] font-mono text-xs">
               Loading curator profile...
             </p>
           </div>
         ) : error || !profile ? (
           /* Error / User Not Found State */
-          <div className="max-w-md mx-auto text-center py-32 bg-[#121212] border border-white/[0.08] rounded-3xl p-8 shadow-2xl">
+          <div className="max-w-md mx-auto text-center py-32 bg-[#121212] border border-white/[0.08] rounded-3xl p-8 shadow-xs">
             <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
               <AlertCircle className="w-7 h-7" />
             </div>
-            <h2 className="font-aspekta text-2xl font-semibold text-white tracking-tight">
-              {error === "User not found" ? "Curator Not Found" : "Profile Unavailable"}
+            <h2 className="font-aspekta text-2xl font-medium text-[#EDEDED] tracking-tight">
+              {error === "User not found" ? "Curator not found" : "Profile unavailable"}
             </h2>
-            <p className="text-white/40 text-xs sm:text-sm mt-2 mb-6 leading-relaxed">
+            <p className="text-[#8E8E8E] text-xs sm:text-sm mt-2 mb-6 leading-relaxed">
               {error === "User not found"
                 ? `The profile @${username} could not be found. It may have been renamed or does not exist.`
                 : "Unable to load this profile right now. Please check back later."}
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--accent-light)] text-black text-xs font-semibold hover:bg-[var(--accent-light)]/90 transition-all shadow-lg"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#EDEDED] text-black text-xs font-medium hover:bg-white transition-colors"
             >
               <span>Explore WallWidgy</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -287,7 +294,7 @@ export default function SharedProfilePage() {
             {/* ======================================================== */}
             {/* COLUMN 1: Profile & Identity Card                        */}
             {/* ======================================================== */}
-            <div className="lg:col-span-12 xl:col-span-4 flex flex-col justify-between bg-[#121212] border border-white/[0.08] rounded-3xl overflow-hidden shadow-2xl relative group min-h-[520px]">
+            <div className="lg:col-span-12 xl:col-span-4 flex flex-col justify-between bg-[#121212] border border-white/[0.08] rounded-3xl overflow-hidden shadow-xs relative group min-h-[520px]">
 
               {/* Studio Backdrop System (Full Card Coverage, Seamless Gradient Dissolve) */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
@@ -313,16 +320,15 @@ export default function SharedProfilePage() {
               </div>
 
               {/* Curator Badge */}
-              <div className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-[var(--accent-light)] text-xs font-mono font-medium flex items-center gap-1.5 shadow-lg">
-                <Sparkles className="w-3.5 h-3.5" />
+              <div className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white/80 text-xs font-mono font-medium flex items-center gap-1.5 shadow-xs">
                 <span>Curator</span>
               </div>
 
               {/* Profile Identity Body (Flows naturally over the backdrop) */}
               <div className="relative z-10 px-6 pb-6 pt-28 sm:pt-36 flex-1 flex flex-col justify-end">
                 <div>
-                  {/* Squircle Avatar Overlap with subtle glow ring */}
-                  <div className="mb-4 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-4 ring-[#121212] bg-[#141414] shadow-2xl shrink-0 border border-white/10 aspect-square">
+                  {/* Squircle Avatar Overlap */}
+                  <div className="mb-4 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden ring-4 ring-[#121212] bg-[#141414] shadow-xs shrink-0 border border-white/10 aspect-square">
                     {profile.imageUrl ? (
                       <img
                         src={profile.imageUrl}
@@ -330,19 +336,19 @@ export default function SharedProfilePage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-[#1E1E1E] to-[#2D2D2D]">
+                      <div className="w-full h-full flex items-center justify-center bg-[#181818] border border-white/10">
                         <UserIcon className="w-8 h-8 text-white/70" />
                       </div>
                     )}
                   </div>
 
                   {/* Display Name */}
-                  <h1 className="font-aspekta text-2xl sm:text-3xl font-semibold text-white tracking-tight leading-tight">
+                  <h1 className="font-aspekta text-2xl sm:text-3xl font-semibold text-[#EDEDED] tracking-tight leading-tight">
                     {profile.displayName}
                   </h1>
 
                   {/* Handle & Join Date */}
-                  <div className="flex items-center gap-2 mt-1.5 text-xs text-white/40 font-mono tracking-wider">
+                  <div className="flex items-center gap-2 mt-1.5 text-xs text-[#8E8E8E] font-mono">
                     <span>@{profile.username}</span>
                     <span>&bull;</span>
                     <span>Joined {memberSince}</span>
@@ -443,18 +449,18 @@ export default function SharedProfilePage() {
                       <div
                         key={wall.sha || index}
                         onClick={() => setInspectedWallpaper(wall)}
-                        className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-[var(--accent-light)]/40 transition-all duration-300 cursor-pointer shadow-md hover:shadow-xl hover:scale-[1.03]"
+                        className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-white/[0.03] border border-white/[0.06] hover:border-white/25 transition-colors cursor-pointer"
                         title={`Click to inspect ${wall.name}`}
                       >
                         <img
                           src={wall.preview_url}
                           alt={wall.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          className="w-full h-full object-cover"
                           loading="lazy"
                         />
 
                         {/* Hover Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
+                        <div className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-1.5">
                           <span className="text-[9px] text-white/90 truncate font-mono">
                             {wall.name.replace(/\.[^/.]+$/, "")}
                           </span>
@@ -466,7 +472,7 @@ export default function SharedProfilePage() {
                   /* Zero Favorites State */
                   <div className="bg-[#0B0B0B] border border-dashed border-white/[0.06] rounded-2xl p-6 sm:p-8 text-center flex flex-col items-center justify-center my-6">
                     <Heart className="w-7 h-7 sm:w-8 sm:h-8 text-white/20 mb-3" />
-                    <p className="text-white/60 text-xs font-mono">
+                    <p className="text-[#8E8E8E] text-xs font-mono">
                       No favorite wallpapers saved yet.
                     </p>
                   </div>
@@ -478,9 +484,9 @@ export default function SharedProfilePage() {
                 {resolvedFavourites.length > 8 ? (
                   <button
                     onClick={() => setShowAllFavorites(true)}
-                    className="text-xs font-mono text-white/40 hover:text-[var(--accent-light)] transition-colors"
+                    className="text-xs font-mono text-[#8E8E8E] hover:text-white transition-colors"
                   >
-                    +{resolvedFavourites.length - 8} More
+                    +{resolvedFavourites.length - 8} more
                   </button>
                 ) : (
                   <span className="text-xs font-mono text-white/30">
@@ -545,13 +551,13 @@ export default function SharedProfilePage() {
                       {currentSetup.homescreen?.previewUrl ? (
                         <div
                           onClick={() => openSetupWallpaper(currentSetup.homescreen)}
-                          className="group relative aspect-[9/19.5] w-[105px] xs:w-[120px] sm:w-[130px] md:w-[138px] rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border-[2.5px] sm:border-[3px] border-[#2A2A2A] bg-black overflow-hidden shadow-2xl cursor-pointer hover:border-[var(--accent-light)]/60 transition-all hover:scale-[1.02]"
+                          className="group relative aspect-[9/19.5] w-[105px] xs:w-[120px] sm:w-[130px] md:w-[138px] rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border-[2px] border-[#2A2A2A] bg-black overflow-hidden shadow-lg cursor-pointer hover:border-white/30 transition-colors"
                           title="Click to view and download wallpaper"
                         >
                           <img
                             src={currentSetup.homescreen.previewUrl}
                             alt={currentSetup.homescreen.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-full object-cover"
                           />
 
                           {/* Status Bar UI Overlay */}
@@ -569,14 +575,14 @@ export default function SharedProfilePage() {
                             <div className="w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-md xs:rounded-lg bg-white/20" />
                             <div className="w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-md xs:rounded-lg bg-white/20" />
                             <div className="w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-md xs:rounded-lg bg-white/20" />
-                            <div className="w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-md xs:rounded-lg bg-[var(--accent-light)]/40" />
+                            <div className="w-3.5 h-3.5 xs:w-4 xs:h-4 rounded-md xs:rounded-lg bg-white/30" />
                           </div>
 
                           {/* Hover View Action */}
-                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-center p-2">
-                            <Eye className="w-4 h-4 text-[var(--accent-light)]" />
+                          <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-center p-2">
+                            <Eye className="w-4 h-4 text-white/80" />
                             <span className="text-[10px] font-mono text-white font-medium">
-                              View Wallpaper
+                              View wallpaper
                             </span>
                           </div>
                         </div>
@@ -586,7 +592,7 @@ export default function SharedProfilePage() {
                         </div>
                       )}
 
-                      <span className="text-[11px] sm:text-xs font-mono text-white/50 tracking-wider">
+                      <span className="text-[11px] sm:text-xs font-mono text-[#8E8E8E]">
                         Home
                       </span>
                     </div>
@@ -596,13 +602,13 @@ export default function SharedProfilePage() {
                       {currentSetup.lockscreen?.previewUrl ? (
                         <div
                           onClick={() => openSetupWallpaper(currentSetup.lockscreen)}
-                          className="group relative aspect-[9/19.5] w-[105px] xs:w-[120px] sm:w-[130px] md:w-[138px] rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border-[2.5px] sm:border-[3px] border-[#2A2A2A] bg-black overflow-hidden shadow-2xl cursor-pointer hover:border-[var(--accent-light)]/60 transition-all hover:scale-[1.02]"
+                          className="group relative aspect-[9/19.5] w-[105px] xs:w-[120px] sm:w-[130px] md:w-[138px] rounded-[24px] xs:rounded-[28px] sm:rounded-[32px] border-[2px] border-[#2A2A2A] bg-black overflow-hidden shadow-lg cursor-pointer hover:border-white/30 transition-colors"
                           title="Click to view and download wallpaper"
                         >
                           <img
                             src={currentSetup.lockscreen.previewUrl}
                             alt={currentSetup.lockscreen.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-full object-cover"
                           />
 
                           {/* Top Punch Hole */}
@@ -610,7 +616,7 @@ export default function SharedProfilePage() {
 
                           {/* Lockscreen Clock & Date Widget */}
                           <div className="absolute top-6 xs:top-8 inset-x-0 text-center pointer-events-none">
-                            <span className="block text-[6.5px] xs:text-[7px] font-mono text-white/70 uppercase tracking-wider">
+                            <span className="block text-[6.5px] xs:text-[7px] font-mono text-white/70">
                               Thursday, Nov 20
                             </span>
                             <span className="block font-aspekta font-light text-lg xs:text-xl sm:text-2xl text-white/95 leading-none tracking-tight mt-0.5">
@@ -632,10 +638,10 @@ export default function SharedProfilePage() {
                           <div className="absolute bottom-1 xs:bottom-1.5 left-1/2 -translate-x-1/2 w-8 xs:w-10 h-0.5 rounded-full bg-white/60 pointer-events-none" />
 
                           {/* Hover View Action */}
-                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-center p-2">
-                            <Eye className="w-4 h-4 text-[var(--accent-light)]" />
+                          <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1.5 text-center p-2">
+                            <Eye className="w-4 h-4 text-white/80" />
                             <span className="text-[10px] font-mono text-white font-medium">
-                              View Wallpaper
+                              View wallpaper
                             </span>
                           </div>
                         </div>
@@ -645,7 +651,7 @@ export default function SharedProfilePage() {
                         </div>
                       )}
 
-                      <span className="text-[11px] sm:text-xs font-mono text-white/50 tracking-wider">
+                      <span className="text-[11px] sm:text-xs font-mono text-[#8E8E8E]">
                         Lockscreen
                       </span>
                     </div>
@@ -663,27 +669,27 @@ export default function SharedProfilePage() {
                         <button
                           key={setup.id}
                           onClick={() => setActiveSetupIndex(idx)}
-                          className={`relative w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11 rounded-full transition-all duration-300 flex items-center justify-center group ${isActive
-                            ? "bg-white text-black shadow-lg shadow-white/20 ring-4 ring-white/20 scale-105"
+                          className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-colors flex items-center justify-center group ${isActive
+                            ? "bg-white text-black ring-2 ring-white/20"
                             : "bg-white/10 hover:bg-white/20 text-white/60 hover:text-white ring-1 ring-white/10"
                             }`}
                           title={`${setup.name} (Click to switch)`}
                           aria-label={`Switch to ${setup.name}`}
                         >
-                          <span className="font-mono text-xs font-semibold">
+                          <span className="font-mono text-xs font-medium">
                             {idx + 1}
                           </span>
 
                           {isActive && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[var(--accent-light)] ring-2 ring-[#121212]" />
+                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#121212]" />
                           )}
                         </button>
                       )
                     })}
                   </div>
 
-                  <span className="text-xs font-mono text-white/30">
-                    {profile.setups.length} {profile.setups.length === 1 ? "Setup" : "Setups"}
+                  <span className="text-xs font-mono text-[#8E8E8E] tabular-nums">
+                    {profile.setups.length} {profile.setups.length === 1 ? "setup" : "setups"}
                   </span>
                 </div>
               )}
@@ -752,7 +758,7 @@ export default function SharedProfilePage() {
                     <div
                       key={wall.sha}
                       onClick={() => setInspectedWallpaper(wall)}
-                      className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-[var(--accent-light)] cursor-pointer transition-all hover:scale-[1.03]"
+                      className="group relative aspect-[9/16] rounded-xl overflow-hidden bg-white/[0.03] border border-white/10 hover:border-white/30 cursor-pointer transition-colors"
                     >
                       <img
                         src={wall.preview_url}

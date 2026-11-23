@@ -19,6 +19,7 @@ import {
   Atom,
   Flame,
   X,
+  Trash2,
 } from "lucide-react"
 import WallpaperModal from "./WallpaperModal"
 import Masonry from "react-masonry-css"
@@ -66,6 +67,9 @@ interface WallpaperGridProps {
   wallpapers?: string[]; // Array of favorite wallpaper IDs
   categoryFilter?: string; // Category filter string
   color?: string; // Color filter string
+  disableContainer?: boolean; // When true, does not re-wrap in max-w / mx-auto / px container
+  onShareFavorites?: () => void; // Optional handler to open share modal from favorites toolbar
+  hideBottomFilter?: boolean; // When true, hides the fixed bottom filter pill
 }
 
 const CATEGORY_LIST = [
@@ -149,7 +153,14 @@ const StableImageComponent = React.memo(({ wallpaper, index }: { wallpaper: Wall
 
 StableImageComponent.displayName = 'StableImageComponent';
 
-export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter, color: colorFilter }: WallpaperGridProps) {
+export default function WallpaperGrid({
+  wallpapers: favoriteIds,
+  categoryFilter,
+  color: colorFilter,
+  disableContainer = false,
+  onShareFavorites,
+  hideBottomFilter = false,
+}: WallpaperGridProps) {
   const [wallpapersState, setWallpapersState] = useState<Wallpaper[]>([])
   const [selectedWallpapers, setSelectedWallpapers] = useState<string[]>([])
   const { favorites, toggleFavorite, isFavorite, isLoading: favoritesLoading, clearAllFavorites } = useFavorites()
@@ -353,6 +364,51 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const showNotification = useCallback((message: string) => {
     showSakugaToast(message)
   }, [])
+
+  const handleDownloadAllFavorites = useCallback(async () => {
+    if (isDownloading) return
+    const allFavorites = getFilteredWallpapers()
+    if (allFavorites.length === 0) {
+      showNotification("No favorites to download")
+      return
+    }
+    activeDownloadsRef.current += 1
+    setIsDownloading(true)
+    showNotification(`Downloading ${allFavorites.length} favorite${allFavorites.length === 1 ? '' : 's'}...`)
+    try {
+      for (const wallpaper of allFavorites) {
+        try {
+          trackDownload(wallpaper)
+          const response = await fetch(wallpaper.download_url)
+          if (!response.ok) throw new Error('Failed to download')
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement("a")
+          link.href = url
+          const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
+          const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
+          link.download = fileName
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+        } catch (error) {
+          console.error(`Error downloading ${wallpaper.name}:`, error)
+          showNotification(`Failed to download ${wallpaper.name}`)
+        }
+      }
+    } finally {
+      activeDownloadsRef.current = Math.max(0, activeDownloadsRef.current - 1)
+      setIsDownloading(activeDownloadsRef.current > 0)
+    }
+  }, [getFilteredWallpapers, isDownloading, showNotification])
+
+  const handleClearAllFavorites = useCallback(() => {
+    if (typeof window !== "undefined" && window.confirm("Are you sure you want to remove all saved favorites?")) {
+      clearAllFavorites()
+      showNotification("Removed all favorites")
+    }
+  }, [clearAllFavorites, showNotification])
 
   const downloadSelectedWallpapers = useCallback(async () => {
     if (selectedWallpapers.length === 0) return;
@@ -585,7 +641,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         <p className="text-red-500 mb-4">{error}</p>
         <button
           onClick={handleRetry}
-          className="bg-[var(--accent-light)] text-black px-4 py-2 rounded-full hover:bg-[var(--accent-light)]/90 transition-all flex items-center gap-2 mx-auto"
+          className="bg-[#EDEDED] hover:bg-white text-black px-4 py-2 rounded-full transition-all flex items-center gap-2 mx-auto text-xs font-medium"
         >
           <RefreshCw className="w-4 h-4" />
           <span>Retry</span>
@@ -609,15 +665,15 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
   const ImageComponent = StableImageComponent;
 
   return (
-    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative max-w-[90%] md:max-w-[88%] xl:max-w-[85%]">
+    <div className={disableContainer ? "w-full relative pb-24" : "w-full mx-auto px-4 sm:px-6 lg:px-8 pb-32 relative max-w-[90%] md:max-w-[88%] xl:max-w-[85%]"}>
       {/* Desktop Controls Toolbar (Unified wrapped layout) */}
       {!favoriteIds && (
         <div className="hidden md:flex w-full items-center justify-between gap-4 mb-8">
           {/* Left: Categories (Wrap) */}
-          <div className="flex flex-col gap-3 flex-1">
+          <div className="flex flex-col gap-2.5 flex-1">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
-                Filter by Categories
+              <span className="text-xs text-[#8E8E8E] font-medium">
+                Categories
               </span>
               {(selectedCategories.length > 0 || isPopular) && (
                 <button
@@ -626,13 +682,13 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                     setSelectedCategories([])
                     setIsPopular(false)
                   }}
-                  className="font-mono text-[9px] text-[#F7F06D] hover:underline uppercase transition-all px-1"
+                  className="text-xs text-[#8E8E8E] hover:text-[#EDEDED] transition-colors px-1"
                 >
                   Clear ({selectedCategories.length + (isPopular ? 1 : 0)})
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 pt-1.5">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -641,43 +697,33 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 }}
                 className={`px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 active:scale-95 ${
                   selectedCategories.length === 0 && !isPopular
-                    ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-lg shadow-[var(--accent-light)]/10"
-                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                    ? "bg-[#EDEDED] text-black border-transparent shadow-xs"
+                    : "bg-white/[0.04] text-[#8E8E8E] border-white/[0.08] hover:bg-white/[0.08] hover:text-[#EDEDED]"
                 }`}
               >
                 All Wallpapers
               </button>
               
-              {/* Refined Accent Glow Popular Button (Desktop) */}
+              {/* Popular Button (Desktop) */}
               <button
                 type="button"
                 onClick={() => {
                   setIsPopular((prev) => !prev)
                   setSelectedCategories([])
                 }}
-                className={`group relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-300 active:scale-95 select-none cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 active:scale-95 select-none cursor-pointer ${
                   isPopular
-                    ? "bg-[#141414] text-white border border-[var(--accent-light)]/45 shadow-[0_0_12px_rgba(255,248,207,0.16)]"
-                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white hover:border-[var(--accent-light)]/25 hover:shadow-[0_0_8px_rgba(255,248,207,0.1)]"
+                    ? "bg-[#EDEDED] text-black border-transparent shadow-xs"
+                    : "bg-white/[0.04] text-[#8E8E8E] border-white/[0.08] hover:bg-white/[0.08] hover:text-[#EDEDED]"
                 }`}
                 title="View popular wallpapers"
               >
-                {/* Subtle organic top sheen inside the pill (no rectangles or harsh lines) */}
-                {isPopular && (
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_45%_at_50%_0%,rgba(255,248,207,0.12),transparent_70%)]"
-                  />
-                )}
-
                 <Flame
-                  className={`w-3.5 h-3.5 transition-colors relative z-10 ${
-                    isPopular
-                      ? "text-[var(--accent-light)] fill-[var(--accent-light)]/25 drop-shadow-[0_0_5px_rgba(255,248,207,0.5)]"
-                      : "text-[var(--accent-light)]/50 group-hover:text-[var(--accent-light)]"
+                  className={`w-3.5 h-3.5 transition-colors ${
+                    isPopular ? "text-black fill-current" : "text-[#8E8E8E]"
                   }`}
                 />
-                <span className="relative z-10">Popular</span>
+                <span>Popular</span>
               </button>
 
               {CATEGORY_LIST.map((category) => {
@@ -701,11 +747,11 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                     }}
                     className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all duration-200 active:scale-95 ${
                       isSelected
-                        ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-lg shadow-[var(--accent-light)]/10"
-                        : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                        ? "bg-[#EDEDED] text-black border-transparent shadow-xs"
+                        : "bg-white/[0.04] text-[#8E8E8E] border-white/[0.08] hover:bg-white/[0.08] hover:text-[#EDEDED]"
                     }`}
                   >
-                    <Icon className="w-3 h-3" />
+                    <Icon className={`w-3 h-3 ${isSelected ? "text-black" : "text-[#8E8E8E]"}`} />
                     <span>{category.name}</span>
                   </button>
                 )
@@ -715,17 +761,17 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
           {/* Right: Layout Switcher */}
           {!categoryFilter && (
-            <div className="flex flex-col gap-3 justify-end items-end">
-              <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase">
+            <div className="flex flex-col gap-2.5 justify-end items-end">
+              <span className="text-xs text-[#8E8E8E] font-medium">
                 Layout
               </span>
-              <div className="inline-flex items-center gap-1 bg-white/5 rounded-full p-1 border border-white/10">
+              <div className="inline-flex items-center gap-0.5 bg-white/[0.04] rounded-full p-1 border border-white/[0.08]">
                 <button
                   onClick={() => setLayoutMode("masonry")}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                     layoutMode === "masonry"
-                      ? "bg-[var(--accent-light)] text-black font-semibold"
-                      : "text-white/60 hover:text-white"
+                      ? "bg-[#EDEDED] text-black shadow-xs"
+                      : "text-[#8E8E8E] hover:text-[#EDEDED]"
                   }`}
                   title="Masonry layout"
                 >
@@ -735,8 +781,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   onClick={() => setLayoutMode("grid")}
                   className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
                     layoutMode === "grid"
-                      ? "bg-[var(--accent-light)] text-black font-semibold"
-                      : "text-white/60 hover:text-white"
+                      ? "bg-[#EDEDED] text-black shadow-xs"
+                      : "text-[#8E8E8E] hover:text-[#EDEDED]"
                   }`}
                   title="Grid layout"
                 >
@@ -754,7 +800,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
           {/* Subheader: Categories status vs Layout switcher */}
           <div className="flex items-center justify-between px-0.5">
             <div className="flex items-center gap-2">
-              <span className="font-mono text-[9px] text-white/40 tracking-wider uppercase">
+              <span className="text-xs text-[#8E8E8E] font-medium">
                 Categories
               </span>
               {(selectedCategories.length > 0 || isPopular) && (
@@ -764,12 +810,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                     setSelectedCategories([])
                     setIsPopular(false)
                   }}
-                  className="inline-flex items-center gap-1 font-mono text-[9px] text-[var(--accent-light)] hover:text-white bg-[var(--accent-light)]/10 hover:bg-[var(--accent-light)]/20 border border-[var(--accent-light)]/25 px-2 py-0.5 rounded-full uppercase tracking-wider transition-all duration-200 active:scale-95"
+                  className="inline-flex items-center gap-1 text-[11px] text-[#8E8E8E] hover:text-[#EDEDED] bg-white/[0.04] border border-white/[0.08] px-2 py-0.5 rounded-full transition-colors active:scale-95"
                   title="Clear category filters"
                 >
                   <X className="w-2.5 h-2.5" />
                   <span>Reset</span>
-                  <span className="opacity-75 font-semibold">
+                  <span className="opacity-75">
                     ({selectedCategories.length + (isPopular ? 1 : 0)})
                   </span>
                 </button>
@@ -778,14 +824,14 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
 
             {/* Layout Toggle (Mobile) */}
             {!categoryFilter && (
-              <div className="inline-flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/10">
+              <div className="inline-flex items-center gap-0.5 bg-white/[0.04] rounded-full p-0.5 border border-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setLayoutMode("masonry")}
                   className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
                     layoutMode === "masonry"
-                      ? "bg-[var(--accent-light)] text-black font-semibold shadow-sm"
-                      : "text-white/60 hover:text-white"
+                      ? "bg-[#EDEDED] text-black shadow-xs font-medium"
+                      : "text-[#8E8E8E] hover:text-[#EDEDED]"
                   }`}
                 >
                   Masonry
@@ -795,8 +841,8 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   onClick={() => setLayoutMode("grid")}
                   className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-all ${
                     layoutMode === "grid"
-                      ? "bg-[var(--accent-light)] text-black font-semibold shadow-sm"
-                      : "text-white/60 hover:text-white"
+                      ? "bg-[#EDEDED] text-black shadow-xs font-medium"
+                      : "text-[#8E8E8E] hover:text-[#EDEDED]"
                   }`}
                 >
                   Grid
@@ -819,43 +865,33 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                 }}
                 className={`flex-shrink-0 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all duration-200 active:scale-95 ${
                   selectedCategories.length === 0 && !isPopular
-                    ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-sm"
-                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                    ? "bg-[#EDEDED] text-black border-transparent shadow-xs"
+                    : "bg-white/[0.04] text-[#8E8E8E] border-white/[0.08] hover:bg-white/[0.08] hover:text-[#EDEDED]"
                 }`}
               >
                 All
               </button>
 
-              {/* Refined Accent Glow Popular Button (Mobile) */}
+              {/* Popular Button (Mobile) */}
               <button
                 type="button"
                 onClick={() => {
                   setIsPopular((prev) => !prev)
                   setSelectedCategories([])
                 }}
-                className={`group relative flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-medium transition-all duration-300 active:scale-95 select-none cursor-pointer ${
+                className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-medium border transition-all duration-200 active:scale-95 select-none cursor-pointer ${
                   isPopular
-                    ? "bg-[#141414] text-white border border-[var(--accent-light)]/45 shadow-[0_0_12px_rgba(255,248,207,0.16)]"
-                    : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10 hover:text-white hover:border-[var(--accent-light)]/25 hover:shadow-[0_0_8px_rgba(255,248,207,0.1)]"
+                    ? "bg-[#EDEDED] text-black border-transparent shadow-xs"
+                    : "bg-white/[0.04] text-[#8E8E8E] border-white/[0.08] hover:bg-white/[0.08] hover:text-[#EDEDED]"
                 }`}
                 title="View popular wallpapers"
               >
-                {/* Subtle organic top sheen inside the pill (no rectangles or harsh lines) */}
-                {isPopular && (
-                  <span
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(ellipse_75%_45%_at_50%_0%,rgba(255,248,207,0.12),transparent_70%)]"
-                  />
-                )}
-
                 <Flame
-                  className={`w-3 h-3 transition-colors relative z-10 ${
-                    isPopular
-                      ? "text-[var(--accent-light)] fill-[var(--accent-light)]/25 drop-shadow-[0_0_5px_rgba(255,248,207,0.5)]"
-                      : "text-[var(--accent-light)]/50 group-hover:text-[var(--accent-light)]"
+                  className={`w-3 h-3 transition-colors ${
+                    isPopular ? "text-black fill-current" : "text-[#8E8E8E]"
                   }`}
                 />
-                <span className="relative z-10">Popular</span>
+                <span>Popular</span>
               </button>
               
               {CATEGORY_LIST.map((category) => {
@@ -879,78 +915,84 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                     }}
                     className={`flex-shrink-0 flex items-center gap-1 px-3.5 py-1.5 rounded-full border text-[11px] font-medium transition-all duration-200 active:scale-95 ${
                       isSelected
-                        ? "bg-[var(--accent-light)] text-black border-[var(--accent-light)] shadow-sm font-semibold"
-                        : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                        ? "bg-[#EDEDED] text-black border-transparent shadow-xs"
+                        : "bg-white/[0.04] text-[#8E8E8E] border-white/[0.08] hover:bg-white/[0.08] hover:text-[#EDEDED]"
                     }`}
                   >
-                    <Icon className="w-3 h-3" />
+                    <Icon className={`w-3 h-3 ${isSelected ? "text-black" : "text-[#8E8E8E]"}`} />
                     <span>{category.name}</span>
                   </button>
                 )
               })}
             </div>
-
-            {/* Subtle Right Edge Fade Mask to signal scrollability without cutting chips */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#0A0A0A] to-transparent z-10"
-            />
           </div>
         </div>
       )}
 
-      {favoriteIds && displayedWallpapers.length > 0 && (
-        <div className="flex items-center justify-center gap-3 sm:gap-4 mb-8">
-          <button
-            disabled={isDownloading}
-            onClick={async () => {
-              if (isDownloading) return
-              activeDownloadsRef.current += 1
-              setIsDownloading(true)
-              const allFavorites = getFilteredWallpapers()
-              showNotification("Started downloading all favorites")
-              try {
-                for (const wallpaper of allFavorites) {
-                  try {
-                    trackDownload(wallpaper)
-                    const response = await fetch(wallpaper.download_url)
-                    if (!response.ok) throw new Error('Failed to download')
-                    const blob = await response.blob()
-                    const url = window.URL.createObjectURL(blob)
-                    const link = document.createElement("a")
-                    link.href = url
-                    const fileExtension = wallpaper.download_url.split('.').pop()?.toLowerCase() || 'jpg'
-                    const fileName = wallpaper.name.includes('.') ? wallpaper.name : `${wallpaper.name}.${fileExtension}`
-                    link.download = fileName
-                    document.body.appendChild(link)
-                    link.click()
-                    document.body.removeChild(link)
-                    window.URL.revokeObjectURL(url)
-                  } catch (error) {
-                    console.error(`Error downloading ${wallpaper.name}:`, error)
-                    showNotification(`Failed to download ${wallpaper.name}`)
-                  }
-                }
-              } finally {
-                activeDownloadsRef.current = Math.max(0, activeDownloadsRef.current - 1)
-                setIsDownloading(activeDownloadsRef.current > 0)
-              }
-            }}
-            className="bg-[var(--accent-light)] text-black px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-[var(--accent-light)]/90 transition-all text-xs sm:text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-          >
-            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Download All
-          </button>
-          <button
-            onClick={() => {
-              clearAllFavorites()
-              showNotification("Removed all favorites")
-            }}
-            className="bg-black/60 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-full hover:bg-black/70 transition-all text-xs sm:text-sm font-medium flex items-center gap-2 backdrop-blur-sm"
-          >
-            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Remove All
-          </button>
+      {favoriteIds && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 w-full">
+          {/* Left: Platform segmented switch */}
+          <div className="inline-flex items-center p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] self-start sm:self-auto">
+            {(["all", "desktop", "mobile"] as const).map((tab) => {
+              const isActive = filter === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => handleFilterChange(tab)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors capitalize ${
+                    isActive
+                      ? "bg-[#EDEDED] text-black shadow-xs font-medium"
+                      : "text-[#8E8E8E] hover:text-[#EDEDED]"
+                  }`}
+                >
+                  {tab === "all" ? "All" : tab === "desktop" ? "Desktop" : "Mobile"}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            {onShareFavorites && (
+              <button
+                type="button"
+                onClick={onShareFavorites}
+                className="h-8 px-3 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-[#EDEDED] text-xs font-medium transition-colors inline-flex items-center gap-1.5"
+                title="Share your collection"
+              >
+                <Share2 className="w-3.5 h-3.5 text-white/70" />
+                <span>Share</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              disabled={isDownloading || displayedWallpapers.length === 0}
+              onClick={handleDownloadAllFavorites}
+              className="h-8 px-3.5 rounded-lg bg-[#EDEDED] hover:bg-white text-black text-xs font-medium transition-colors inline-flex items-center gap-1.5 disabled:opacity-40"
+              title="Download all filtered favorites"
+            >
+              <Download className="w-3.5 h-3.5 text-black" />
+              <span>{isDownloading ? "Downloading..." : "Download all"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleClearAllFavorites}
+              className="h-8 px-3 rounded-lg bg-white/[0.04] hover:bg-red-500/10 border border-white/[0.08] hover:border-red-500/20 text-[#8E8E8E] hover:text-red-400 text-xs font-medium transition-colors inline-flex items-center gap-1.5"
+              title="Remove all favorites"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear all</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {favoriteIds && displayedWallpapers.length === 0 && (
+        <div className="py-16 text-center text-[#8E8E8E] text-xs">
+          No {filter !== "all" ? filter : ""} favorites in your collection.
         </div>
       )}
       
@@ -1030,7 +1072,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                       }}
                       className={`p-2 rounded-full ${
                         selectedWallpapers.includes(wallpaper.sha)
-                          ? "bg-[var(--accent-light)] text-black"
+                          ? "bg-[#EDEDED] text-black"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
                       style={{ transitionDelay: isMobile ? '0ms' : '0ms', willChange: "transform" }}
@@ -1047,12 +1089,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                       }}
                       className={`p-2 rounded-full ${
                         isFavorite(wallpaper.sha)
-                          ? "bg-black/60 text-[#FF0000]"
+                          ? "bg-black/60 text-rose-400"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
                       style={{ transitionDelay: isMobile ? '0ms' : '50ms', willChange: "transform" }}
                     >
-                      <Heart className={`w-4 h-4 ${isFavorite(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isFavorite(wallpaper.sha) ? "fill-rose-400" : ""}`} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -1091,7 +1133,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   </div>
                   {downloadCount > 0 && (
                     <div className="flex items-center gap-1 bg-black/75 backdrop-blur-md text-white/90 border border-white/10 px-2 py-1 rounded-full text-xs font-mono shadow-sm">
-                      <Download className="w-3 h-3 text-[#F7F06D]" />
+                      <Download className="w-3 h-3 text-white/70" />
                       <span>{formatDownloadCount(downloadCount)}</span>
                     </div>
                   )}
@@ -1185,7 +1227,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                       }}
                       className={`p-2 rounded-full ${
                         selectedWallpapers.includes(wallpaper.sha)
-                          ? "bg-[var(--accent-light)] text-black"
+                          ? "bg-[#EDEDED] text-black"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
                       style={{ transitionDelay: isMobile ? '0ms' : '0ms', willChange: "transform" }}
@@ -1202,12 +1244,12 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                       }}
                       className={`p-2 rounded-full ${
                         isFavorite(wallpaper.sha)
-                          ? "bg-black/60 text-[#FF0000]"
+                          ? "bg-black/60 text-rose-400"
                           : "bg-black/60 text-white hover:bg-black/70"
                       } backdrop-blur-sm transition-all duration-300 hover:scale-105 transform translate-y-2 group-hover:translate-y-0 z-10`}
                       style={{ transitionDelay: isMobile ? '0ms' : '50ms', willChange: "transform" }}
                     >
-                      <Heart className={`w-4 h-4 ${isFavorite(wallpaper.sha) ? "fill-[#FF0000]" : ""}`} />
+                      <Heart className={`w-4 h-4 ${isFavorite(wallpaper.sha) ? "fill-rose-400" : ""}`} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -1246,7 +1288,7 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
                   </div>
                   {downloadCount > 0 && (
                     <div className="flex items-center gap-1 bg-black/75 backdrop-blur-md text-white/90 border border-white/10 px-2 py-1 rounded-full text-xs font-mono shadow-sm">
-                      <Download className="w-3 h-3 text-[#F7F06D]" />
+                      <Download className="w-3 h-3 text-white/70" />
                       <span>{formatDownloadCount(downloadCount)}</span>
                     </div>
                   )}
@@ -1282,66 +1324,68 @@ export default function WallpaperGrid({ wallpapers: favoriteIds, categoryFilter,
         >
           <button
             onClick={downloadSelectedWallpapers}
-            className="bg-black/80 text-white px-5 py-2.5 rounded-full hover:bg-black/90 transition-all text-[13px] font-medium flex items-center gap-2 animate-bounce backdrop-blur-lg border border-white/10"
+            className="bg-[#EDEDED] hover:bg-white text-black px-4 py-2 rounded-full transition-all text-xs font-medium flex items-center gap-2 shadow-2xl border border-white/20"
             style={{ width: "auto" }}
           >
-            <Download className="w-4 h-4 text-[var(--accent-light)]" />
-            Download Selected ({selectedWallpapers.length})
+            <Download className="w-3.5 h-3.5 text-black" />
+            <span>Download selected ({selectedWallpapers.length})</span>
           </button>
         </div>
       )}
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[90%] md:max-w-[88%] xl:max-w-[85%] px-4 sm:px-6 lg:px-8 pointer-events-none z-50 flex justify-center md:justify-start">
-        <div 
-          className="pointer-events-auto relative flex bg-[#0A0A0A] rounded-full p-1 border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.8)] h-10 items-center transition-all duration-300"
-          style={{
-            width: isMobileDevice ? "210px" : "260px"
-          }}
-        >
-          {/* Sliding Indicator */}
+      {!favoriteIds && !hideBottomFilter && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[90%] md:max-w-[88%] xl:max-w-[85%] px-4 sm:px-6 lg:px-8 pointer-events-none z-50 flex justify-center md:justify-start">
           <div 
-            className="absolute top-[4px] bottom-[4px] bg-[var(--accent-light)] rounded-full transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
+            className="pointer-events-auto relative flex bg-[#0A0A0A]/95 backdrop-blur-md rounded-full p-1 border border-white/[0.08] shadow-2xl h-10 items-center transition-all duration-300"
             style={{
-              left: filter === "all" ? "4px" : filter === "desktop" ? (isMobileDevice ? "71px" : "88px") : (isMobileDevice ? "138px" : "172px"),
-              width: isMobileDevice ? "67px" : "84px"
+              width: isMobileDevice ? "210px" : "260px"
             }}
-          />
-          
-          <button
-            onClick={() => handleFilterChange("all")}
-            style={{
-              width: isMobileDevice ? "67px" : "84px"
-            }}
-            className={`h-full rounded-full z-10 flex items-center justify-center font-mono tracking-wider uppercase text-[10px] transition-colors duration-300 ${
-              filter === "all" ? "text-black font-semibold" : "text-white/50 hover:text-white"
-            }`}
           >
-            All
-          </button>
-          <button
-            onClick={() => handleFilterChange("desktop")}
-            style={{
-              width: isMobileDevice ? "67px" : "84px"
-            }}
-            className={`h-full rounded-full z-10 flex items-center justify-center font-mono tracking-wider uppercase text-[10px] transition-colors duration-300 ${
-              filter === "desktop" ? "text-black font-semibold" : "text-white/50 hover:text-white"
-            }`}
-          >
-            Desktop
-          </button>
-          <button
-            onClick={() => handleFilterChange("mobile")}
-            style={{
-              width: isMobileDevice ? "67px" : "84px"
-            }}
-            className={`h-full rounded-full z-10 flex items-center justify-center font-mono tracking-wider uppercase text-[10px] transition-colors duration-300 ${
-              filter === "mobile" ? "text-black font-semibold" : "text-white/50 hover:text-white"
-            }`}
-          >
-            Mobile
-          </button>
+            {/* Sliding Indicator */}
+            <div 
+              className="absolute top-[4px] bottom-[4px] bg-[#EDEDED] rounded-full transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] shadow-xs"
+              style={{
+                left: filter === "all" ? "4px" : filter === "desktop" ? (isMobileDevice ? "71px" : "88px") : (isMobileDevice ? "138px" : "172px"),
+                width: isMobileDevice ? "67px" : "84px"
+              }}
+            />
+            
+            <button
+              onClick={() => handleFilterChange("all")}
+              style={{
+                width: isMobileDevice ? "67px" : "84px"
+              }}
+              className={`h-full rounded-full z-10 flex items-center justify-center text-xs transition-colors duration-200 ${
+                filter === "all" ? "text-black font-medium" : "text-[#8E8E8E] hover:text-[#EDEDED]"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => handleFilterChange("desktop")}
+              style={{
+                width: isMobileDevice ? "67px" : "84px"
+              }}
+              className={`h-full rounded-full z-10 flex items-center justify-center text-xs transition-colors duration-200 ${
+                filter === "desktop" ? "text-black font-medium" : "text-[#8E8E8E] hover:text-[#EDEDED]"
+              }`}
+            >
+              Desktop
+            </button>
+            <button
+              onClick={() => handleFilterChange("mobile")}
+              style={{
+                width: isMobileDevice ? "67px" : "84px"
+              }}
+              className={`h-full rounded-full z-10 flex items-center justify-center text-xs transition-colors duration-200 ${
+                filter === "mobile" ? "text-black font-medium" : "text-[#8E8E8E] hover:text-[#EDEDED]"
+              }`}
+            >
+              Mobile
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {selectedWallpaper && (() => {
         const filteredWallpapers = getFilteredWallpapers();

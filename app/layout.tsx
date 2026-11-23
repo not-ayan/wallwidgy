@@ -76,6 +76,9 @@ export default function RootLayout({
           identityPreviewText: "text-white",
           identityPreviewEditButton: "text-white/60 hover:text-white",
           userButtonPopoverActionButton__manageAccount: "hidden",
+          userButtonPopoverRootBox: "max-w-[calc(100vw-1.5rem)]",
+          userButtonPopoverCard:
+            "w-[280px] max-w-[calc(100vw-1.5rem)] bg-[#121212] border border-white/[0.08]",
         }
       }}
     >

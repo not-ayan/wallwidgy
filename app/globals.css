@@ -261,6 +261,38 @@ html::-webkit-scrollbar-thumb:hover {
   display: none !important;
 }
 
+/* Constrain Clerk UserButton popover to prevent horizontal out-of-bounds overflow on mobile */
+.cl-userButtonPopoverRootBox {
+  max-width: calc(100vw - 1.5rem) !important;
+  box-sizing: border-box !important;
+}
+
+.cl-userButtonPopoverCard {
+  width: 280px !important;
+  max-width: calc(100vw - 1.5rem) !important;
+  box-sizing: border-box !important;
+  background-color: #121212 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 1rem !important;
+  overflow: hidden !important;
+}
+
+.cl-userButtonPopoverMain {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.cl-userButtonPopoverFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+@media (max-width: 640px) {
+  .cl-userButtonPopoverRootBox {
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+}
+
 /* Sakuga Download Button */
 .sakuga-download-btn {
   --sk-r: 9999px;

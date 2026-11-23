@@ -134,6 +134,10 @@ export default function Header({ showBackButton = false, backUrl = "/" }: Header
                     avatarBox:
                       "w-7 h-7 rounded-full ring-1 ring-white/10 hover:ring-white/30 transition-all",
                     userButtonPopoverActionButton__manageAccount: "hidden",
+                    userButtonPopoverRootBox: "max-w-[calc(100vw-1.5rem)]",
+                    userButtonPopoverCard:
+                      "w-[280px] max-w-[calc(100vw-1.5rem)] bg-[#121212] border border-white/[0.08] shadow-2xl shadow-black/80",
+                    userButtonPopoverFooter: "border-white/[0.06]",
                   },
                 }}
               >

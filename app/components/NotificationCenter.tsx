@@ -240,7 +240,7 @@ export default function NotificationCenter() {
 
       {/* Dropdown Popover */}
       {isOpen && (
-        <div className="absolute right-[-80px] sm:right-0 top-full mt-2 w-[320px] sm:w-[360px] bg-[#121212] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/80 z-[999] overflow-hidden origin-top-right transition-all">
+        <div className="fixed sm:absolute top-[58px] sm:top-full left-3 right-3 sm:left-auto sm:right-0 mt-0 sm:mt-2 w-auto sm:w-[360px] max-w-[380px] sm:max-w-none mx-auto sm:mx-0 bg-[#121212] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/80 z-[999] overflow-hidden origin-top sm:origin-top-right transition-all">
           {/* Popover Header */}
           <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -327,7 +327,7 @@ export default function NotificationCenter() {
 
       {/* On-Screen Toast Notification */}
       {activeToast && mounted && createPortal(
-        <div className="fixed bottom-6 right-6 z-[9999] w-[340px] sm:w-[360px] bg-[#141414] border border-white/[0.1] rounded-2xl p-4 shadow-2xl shadow-black/90 animate-in slide-in-from-bottom-5 fade-in duration-200">
+        <div className="fixed bottom-6 right-3 sm:right-6 left-3 sm:left-auto max-w-[360px] mx-auto sm:mx-0 z-[9999] w-auto sm:w-[360px] bg-[#141414] border border-white/[0.1] rounded-2xl p-4 shadow-2xl shadow-black/90 animate-in slide-in-from-bottom-5 fade-in duration-200">
           <div className="flex gap-3">
             {/* Type Icon */}
             <div className="mt-0.5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/[0.06] shrink-0">
